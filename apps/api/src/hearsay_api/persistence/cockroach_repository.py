@@ -1011,6 +1011,7 @@ class CockroachRunRepository:
                     ActiveMemoryModel.confidence,
                     ActiveMemoryModel.salience,
                     BeliefVersionModel.source_id,
+                    BeliefModel.contested,
                     distance.label("distance"),
                 )
                 .join(
@@ -1061,6 +1062,7 @@ class CockroachRunRepository:
                         confidence=candidate.confidence,
                         salience=candidate.salience,
                         source_id=candidate.source_id,
+                        contested=candidate.contested,
                     )
                 )
                 candidate_trace.append(
@@ -1070,6 +1072,7 @@ class CockroachRunRepository:
                         "distance": float(candidate.distance),
                         "source_trust": source_trust,
                         "final_score": final_score,
+                        "contested": candidate.contested,
                     }
                 )
             recalled.sort(key=lambda memory: memory.final_score, reverse=True)

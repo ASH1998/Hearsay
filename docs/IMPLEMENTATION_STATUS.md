@@ -108,10 +108,19 @@ Completed:
   deterministic `hearsay-hash-384-v1` vector instead of falsely claiming BGE.
 - Model and Torch/Hugging Face caches remain under ignored repository paths;
   `THIRD_PARTY_MODELS.md` records the exact upstream model and MIT license.
+- Player questions now run holder-scoped vector recall before dialogue
+  generation. Contested memories are explicitly marked in the validated prompt,
+  and the call still occurs before the authoritative action transaction.
+- Saved dialogue state records the exact recalled belief/version references,
+  contested flags, provider, model, and fallback status. The browser surfaces a
+  “Memory-informed” audit label, and refresh preserves the complete response
+  context.
+- A retrieval failure logs only its exception class and preserves the authored
+  NPC opening instead of fabricating or silently changing game state.
 
 Validated:
 
-- Forty-three local API tests pass, covering immutable versions, lineage, recall,
+- Forty-five local API tests pass, covering immutable versions, lineage, recall,
   repeated claims, strict output validation, retries, all three fallback
   operations, service-level inference provenance, and every deterministic
   conflict-policy branch, plus real-provider shape checks and truthful embedding
@@ -137,17 +146,20 @@ Validated:
 - A real cached BGE CPU probe returns normalized 384-dimensional vectors and
   ranks a related shipment-price query above an unrelated chapel-weather query
   (`0.786` versus `0.354` in the latest doctor run).
+- Local and real Cockroach tests prove Pip answers from his own mutated rumor,
+  Elias answers from his contested active belief after the concurrent race, and
+  the exact memory references survive snapshot restoration.
 - Ruff, formatting, strict mypy, ESLint, TypeScript, Vitest, the Next.js
   production build, and the Playwright signature story pass.
 
 Remaining:
 
-- Feed recalled and contested beliefs into dialogue choices and relationship
-  treatment.
+- Apply recalled and contested beliefs to additional relationship treatment and
+  dialogue-choice availability.
 - Implement the independently authenticated read-only Managed MCP Historian.
 
 ## Next implementation slice
 
-1. Feed recalled and contested beliefs into dialogue choices and relationship
-   treatment.
+1. Apply recalled and contested beliefs to relationship treatment and
+   dialogue-choice availability.
 2. Configure the read-only Managed MCP Historian allowlist and audit surface.

@@ -215,6 +215,23 @@ export interface components {
             run_id: string;
             snapshot: components["schemas"]["RunSnapshot"];
         };
+        /** DialogueMemoryRef */
+        DialogueMemoryRef: {
+            /**
+             * Belief Id
+             * Format: uuid
+             */
+            belief_id: string;
+            /** Version */
+            version: number;
+            /** Proposition Key */
+            proposition_key: string;
+            /**
+             * Contested
+             * @default false
+             */
+            contested: boolean;
+        };
         /** DialogueState */
         DialogueState: {
             /** Speaker Id */
@@ -223,6 +240,19 @@ export interface components {
             speaker_name: string;
             /** Text */
             text: string;
+            /** Recalled Memories */
+            recalled_memories?: components["schemas"]["DialogueMemoryRef"][];
+            /** Provider Id */
+            provider_id?: string | null;
+            /** Model Id */
+            model_id?: string | null;
+            /**
+             * Fallback Used
+             * @default false
+             */
+            fallback_used: boolean;
+            /** Fallback Reason */
+            fallback_reason?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -410,6 +440,11 @@ export interface components {
             salience: number;
             /** Source Id */
             source_id: string | null;
+            /**
+             * Contested
+             * @default false
+             */
+            contested: boolean;
         };
         /** RunSnapshot */
         RunSnapshot: {

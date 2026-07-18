@@ -30,6 +30,11 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
   ).toHaveText(
     "The newcomer tried to ruin Bram in the middle of market row.",
   );
+  await page.getByRole("button", { name: "Talk", exact: true }).click();
+  await expect(page.getByText(/Memory-informed · 1 recalled/)).toBeVisible();
+  await expect(page.locator(".conversation blockquote")).toContainText(
+    "ruin Bram",
+  );
 
   await page.getByRole("button", { name: "Close conversation" }).click();
   await page.getByRole("button", { name: "Trace Pip's rumor" }).click();

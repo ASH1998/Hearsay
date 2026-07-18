@@ -567,6 +567,35 @@
         ],
         "title": "CreateRunResponse"
       },
+      "DialogueMemoryRef": {
+        "properties": {
+          "belief_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Belief Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "contested": {
+            "type": "boolean",
+            "title": "Contested",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "belief_id",
+          "version",
+          "proposition_key"
+        ],
+        "title": "DialogueMemoryRef"
+      },
       "DialogueState": {
         "properties": {
           "speaker_id": {
@@ -580,6 +609,51 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "recalled_memories": {
+            "items": {
+              "$ref": "#/components/schemas/DialogueMemoryRef"
+            },
+            "type": "array",
+            "title": "Recalled Memories"
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "fallback_used": {
+            "type": "boolean",
+            "title": "Fallback Used",
+            "default": false
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
           }
         },
         "type": "object",
@@ -1028,6 +1102,11 @@
               }
             ],
             "title": "Source Id"
+          },
+          "contested": {
+            "type": "boolean",
+            "title": "Contested",
+            "default": false
           }
         },
         "type": "object",

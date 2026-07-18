@@ -83,7 +83,9 @@ validated and provenance-tracked. Conflicting claims are stored as independent
 inputs and deterministically resolved without losing either source history; a
 real Cockroach serialization race proves one coherent active belief survives.
 Local BGE embeddings now power configured development recall. Memory-driven
-dialogue and the Managed MCP Historian are next.
+dialogue records and displays the exact belief versions behind an NPC response,
+including contested status and provider provenance. Broader relationship
+treatment and the Managed MCP Historian are next.
 
 ## Authority
 

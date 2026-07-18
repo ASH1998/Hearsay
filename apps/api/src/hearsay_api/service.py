@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
+import structlog
+
 from hearsay_api.content import GreyhavenContent, load_content
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
+    DialogueOutput,
+    DialogueRequest,
     InferenceResult,
     RumorRetelling,
     RumorRetellingRequest,
@@ -26,6 +30,7 @@ from hearsay_api.schemas import (
     ActionVerb,
     CreateRunRequest,
     CreateRunResponse,
+    DialogueMemoryRef,
     DialogueState,
     LocationState,
     MemoryLineageResponse,
@@ -41,6 +46,9 @@ from hearsay_api.schemas import (
 
 class InvalidActionError(ValueError):
     pass
+
+
+logger = structlog.get_logger(__name__)
 
 
 FREE_ACTIONS = {
@@ -169,6 +177,12 @@ class GameService:
                 )
                 pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
                 pip.speech = retelling.value.retold_claim
+            if request.verb == ActionVerb.TALK:
+                self._apply_memory_driven_dialogue(
+                    run_id,
+                    snapshot,
+                    request,
+                )
 
             response = ActionResponse(
                 action_id=uuid4(),
@@ -194,6 +208,70 @@ class GameService:
                 if attempt == self.max_concurrency_retries:
                     raise
         raise AssertionError("Unreachable concurrency retry state.")
+
+    def _apply_memory_driven_dialogue(
+        self,
+        run_id: UUID,
+        snapshot: RunSnapshot,
+        request: ActionRequest,
+    ) -> InferenceResult[DialogueOutput] | None:
+        assert request.target_id is not None
+        question = request.content
+        if not question:
+            return None
+        try:
+            recalled = self.recall_memories(
+                run_id,
+                MemoryRecallRequest(
+                    holder_id=request.target_id,
+                    query=question,
+                    limit=4,
+                ),
+            )
+        except Exception as error:
+            logger.warning(
+                "dialogue_recall_failed",
+                operation="talk",
+                reason=type(error).__name__,
+            )
+            return None
+
+        memories = [
+            (f"[contested] {memory.narrative_text}" if memory.contested else memory.narrative_text)
+            for memory in recalled.memories
+        ]
+        result = self.inference.generate_dialogue(
+            DialogueRequest(
+                npc_id=request.target_id,
+                player_message=question,
+                recalled_memories=memories,
+                current_mood=(
+                    "guarded"
+                    if any(memory.contested for memory in recalled.memories)
+                    else "neutral"
+                ),
+            )
+        )
+        npc = self._require_npc(snapshot, request.target_id)
+        snapshot.dialogue = DialogueState(
+            speaker_id=npc.id,
+            speaker_name=npc.name,
+            text=result.value.text,
+            recalled_memories=[
+                DialogueMemoryRef(
+                    belief_id=memory.belief_id,
+                    version=memory.version,
+                    proposition_key=memory.proposition_key,
+                    contested=memory.contested,
+                )
+                for memory in recalled.memories
+            ],
+            provider_id=result.provider_id,
+            model_id=result.model_id,
+            fallback_used=result.fallback_used,
+            fallback_reason=result.fallback_reason,
+        )
+        return result
 
     def _apply_action(self, snapshot: RunSnapshot, request: ActionRequest) -> WorldEvent:
         if request.verb == ActionVerb.MOVE:

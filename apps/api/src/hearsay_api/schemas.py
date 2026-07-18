@@ -62,10 +62,22 @@ class PromiseState(BaseModel):
     status: Literal["active", "kept", "broken"] = "active"
 
 
+class DialogueMemoryRef(BaseModel):
+    belief_id: UUID
+    version: int
+    proposition_key: str
+    contested: bool = False
+
+
 class DialogueState(BaseModel):
     speaker_id: str
     speaker_name: str
     text: str
+    recalled_memories: list[DialogueMemoryRef] = Field(default_factory=list)
+    provider_id: str | None = None
+    model_id: str | None = None
+    fallback_used: bool = False
+    fallback_reason: str | None = None
 
 
 class WorldEvent(BaseModel):
@@ -199,6 +211,7 @@ class RecalledMemory(BaseModel):
     confidence: float
     salience: float
     source_id: str | None
+    contested: bool = False
 
 
 class MemoryRecallResponse(BaseModel):

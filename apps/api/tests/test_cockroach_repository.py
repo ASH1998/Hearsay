@@ -332,6 +332,25 @@ def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state
     }
     assert {item.resulting_version for item in concurrent_inputs} == {5, 6}
 
+    dialogue = service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="talk",
+            target_id="elias",
+            content="Who arranged the relic theft?",
+        ),
+    )
+    assert dialogue.snapshot.dialogue is not None
+    assert "[contested]" in dialogue.snapshot.dialogue.text
+    assert dialogue.snapshot.dialogue.recalled_memories[0].contested is True
+    assert dialogue.snapshot.dialogue.provider_id == "deterministic"
+    restored_dialogue = repository.get(created.run_id).dialogue
+    assert restored_dialogue is not None
+    assert restored_dialogue.recalled_memories[0].belief_id == (
+        dialogue.snapshot.dialogue.recalled_memories[0].belief_id
+    )
+
     with repository.session_factory() as session:
         belief = session.execute(select(BeliefModel.current_version, BeliefModel.contested)).one()
         active_version = session.scalar(

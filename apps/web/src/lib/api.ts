@@ -59,6 +59,7 @@ export async function takeAction(
   runId: string,
   verb: ActionVerb,
   targetId?: string,
+  content?: string,
 ): Promise<RunSnapshot> {
   const body = await request<{ snapshot: RunSnapshot }>(
     `/v1/runs/${runId}/actions`,
@@ -68,6 +69,7 @@ export async function takeAction(
         idempotency_key: crypto.randomUUID(),
         verb,
         target_id: targetId,
+        content,
       }),
     },
   );

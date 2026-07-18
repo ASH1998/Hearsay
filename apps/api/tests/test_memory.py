@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -12,6 +12,13 @@ from hearsay_api.memory import (
     SafeEmbeddingProvider,
     SentenceTransformerEmbeddingProvider,
 )
+from hearsay_api.repository import InMemoryRunRepository
+from hearsay_api.schemas import (
+    ActionRequest,
+    CreateRunRequest,
+    MemoryRecallResponse,
+)
+from hearsay_api.service import GameService
 from test_api import create_run, make_client
 
 
@@ -175,3 +182,68 @@ def test_repeated_claim_creates_an_immutable_superseded_version() -> None:
         assert [version["version"] for version in bram_versions] == [1, 2]
         assert [version["active"] for version in bram_versions] == [False, True]
         assert len(lineage["transmissions"]) == 2
+
+
+def test_npc_dialogue_uses_holder_scoped_recalled_memory() -> None:
+    with make_client() as client:
+        run = create_run(client)
+        run_id = run["run_id"]
+        for verb, target in (("promise_help", "marta"), ("confront", "bram")):
+            response = client.post(
+                f"/v1/runs/{run_id}/actions",
+                json={
+                    "idempotency_key": str(uuid4()),
+                    "verb": verb,
+                    "target_id": target,
+                },
+            )
+            assert response.status_code == 200
+
+        response = client.post(
+            f"/v1/runs/{run_id}/actions",
+            json={
+                "idempotency_key": str(uuid4()),
+                "verb": "talk",
+                "target_id": "pip",
+                "content": "What happened between the newcomer and Bram?",
+            },
+        )
+
+        assert response.status_code == 200
+        dialogue = response.json()["snapshot"]["dialogue"]
+        assert dialogue["speaker_id"] == "pip"
+        assert "ruin Bram" in dialogue["text"]
+        assert dialogue["provider_id"] == "deterministic"
+        assert dialogue["model_id"] == "hearsay-rules-v1"
+        assert dialogue["fallback_used"] is False
+        assert dialogue["recalled_memories"][0]["proposition_key"] == ("bram-price-confrontation")
+
+
+def test_dialogue_recall_failure_preserves_the_authored_opening() -> None:
+    class FailingRecallRepository(InMemoryRunRepository):
+        def recall_memories(
+            self,
+            run_id: UUID,
+            holder_id: str,
+            query_text: str,
+            query_embedding: tuple[float, ...],
+            limit: int,
+        ) -> MemoryRecallResponse:
+            raise RuntimeError("database detail that must not enter dialogue")
+
+    service = GameService(repository=FailingRecallRepository())
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=42))
+
+    response = service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="talk",
+            target_id="marta",
+            content="What do you remember?",
+        ),
+    )
+
+    assert response.snapshot.dialogue is not None
+    assert response.snapshot.dialogue.text == (service.content.principals_by_id["marta"].opening)
+    assert response.snapshot.dialogue.recalled_memories == []

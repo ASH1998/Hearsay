@@ -276,6 +276,7 @@ class InMemoryRunRepository:
                     confidence=version.confidence,
                     salience=version.salience,
                     source_id=version.source_id,
+                    contested=version.contested,
                 )
             )
         recalled.sort(key=lambda memory: memory.final_score, reverse=True)

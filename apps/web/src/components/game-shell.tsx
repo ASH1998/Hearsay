@@ -88,12 +88,12 @@ export function GameShell() {
   }, []);
 
   const act = useCallback(
-    async (verb: ActionVerb, targetId?: string) => {
+    async (verb: ActionVerb, targetId?: string, content?: string) => {
       if (!snapshot) return;
       setBusy(true);
       setError(null);
       try {
-        const next = await takeAction(snapshot.run_id, verb, targetId);
+        const next = await takeAction(snapshot.run_id, verb, targetId, content);
         setSnapshot(next);
         playConfirmation();
         if (snapshot.weather !== "rain" && next.weather === "rain") {
@@ -316,8 +316,26 @@ export function GameShell() {
                 ? snapshot.dialogue.text
                 : selectedNpc.speech ?? "They wait to hear what you have to say."}
             </blockquote>
+            {snapshot.dialogue?.speaker_id === selectedNpc.id &&
+            (snapshot.dialogue.recalled_memories?.length ?? 0) > 0 ? (
+              <small>
+                Memory-informed · {snapshot.dialogue.recalled_memories?.length ?? 0} recalled ·{" "}
+                {snapshot.dialogue.provider_id}/{snapshot.dialogue.model_id}
+                {snapshot.dialogue.fallback_used ? " · safe fallback" : ""}
+              </small>
+            ) : null}
             <div className="conversation__choices">
-              <button disabled={busy} type="button" onClick={() => act("talk", selectedNpc.id)}>
+              <button
+                disabled={busy}
+                type="button"
+                onClick={() =>
+                  act(
+                    "talk",
+                    selectedNpc.id,
+                    "What have you heard about me and the town?",
+                  )
+                }
+              >
                 Talk
               </button>
               {selectedNpc.id === "marta" &&
