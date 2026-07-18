@@ -153,6 +153,11 @@ export interface components {
                 number,
                 number
             ];
+            /**
+             * Neighbors
+             * @default []
+             */
+            neighbors: string[];
         };
         /** NpcState */
         NpcState: {

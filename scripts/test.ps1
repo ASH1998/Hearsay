@@ -19,9 +19,13 @@ if ($LASTEXITCODE -ne 0) { throw "mypy failed." }
 if ($LASTEXITCODE -ne 0) { throw "pytest failed." }
 & "tools/uv/uv.exe" run python scripts/run_database_tests.py
 if ($LASTEXITCODE -ne 0) { throw "CockroachDB integration tests failed." }
+& "tools/uv/uv.exe" run python scripts/build_assets.py --validate-only
+if ($LASTEXITCODE -ne 0) { throw "Asset validation failed." }
 pnpm --filter @hearsay/web lint
 if ($LASTEXITCODE -ne 0) { throw "Frontend lint failed." }
 pnpm --filter @hearsay/web typecheck
 if ($LASTEXITCODE -ne 0) { throw "Frontend typecheck failed." }
 pnpm --filter @hearsay/web test
 if ($LASTEXITCODE -ne 0) { throw "Frontend tests failed." }
+pnpm test:e2e
+if ($LASTEXITCODE -ne 0) { throw "Playwright browser tests failed." }

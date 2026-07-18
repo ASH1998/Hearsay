@@ -64,6 +64,7 @@ assets/work/
 assets/tmp/
 assets/render-cache/
 assets/processed/debug/
+apps/web/public/assets/
 
 # Runtime scratch data
 logs/

@@ -38,6 +38,11 @@ def test_create_run_returns_authoritative_opening_snapshot() -> None:
         assert snapshot["day"] == 1
         assert snapshot["phase"] == "morning"
         assert len(snapshot["locations"]) == 12
+        assert set(snapshot["locations"][0]["neighbors"]) == {
+            "square",
+            "alley",
+            "midwife",
+        }
         assert len(snapshot["npcs"]) == 8
 
 
@@ -89,6 +94,28 @@ def test_two_consequential_actions_advance_tick_and_make_rumor_visible() -> None
         assert snapshot["world_tick"] == 1
         pip = next(npc for npc in snapshot["npcs"] if npc["id"] == "pip")
         assert "Bram" in pip["speech"]
+
+
+def test_day_one_evening_brings_the_storm() -> None:
+    with make_client() as client:
+        run = create_run(client)
+        run_id = run["run_id"]
+
+        for target in ("marta", "bram", "pip", "rhea"):
+            response = client.post(
+                f"/v1/runs/{run_id}/actions",
+                json={
+                    "idempotency_key": str(uuid4()),
+                    "verb": "talk",
+                    "target_id": target,
+                },
+            )
+            assert response.status_code == 200
+
+        snapshot = response.json()["snapshot"]
+        assert snapshot["action_count"] == 4
+        assert snapshot["phase"] == "evening"
+        assert snapshot["weather"] == "rain"
 
 
 def test_actions_are_idempotent() -> None:
@@ -146,8 +173,26 @@ def test_snapshot_restores_state_after_client_refresh() -> None:
     with make_client() as client:
         run = create_run(client)
         run_id = run["run_id"]
-        client.post(
-            f"/v1/runs/{run_id}/actions",
+        for target in ("square", "guildhouse", "docks"):
+            client.post(
+                f"/v1/runs/{run_id}/actions",
+                json={
+                    "idempotency_key": str(uuid4()),
+                    "verb": "move",
+                    "target_id": target,
+                },
+            )
+
+        restored = client.get(f"/v1/runs/{run_id}/snapshot")
+        assert restored.status_code == 200
+        assert restored.json()["player"]["location_id"] == "docks"
+
+
+def test_movement_rejects_disconnected_waypoint() -> None:
+    with make_client() as client:
+        run = create_run(client)
+        response = client.post(
+            f"/v1/runs/{run['run_id']}/actions",
             json={
                 "idempotency_key": str(uuid4()),
                 "verb": "move",
@@ -155,9 +200,8 @@ def test_snapshot_restores_state_after_client_refresh() -> None:
             },
         )
 
-        restored = client.get(f"/v1/runs/{run_id}/snapshot")
-        assert restored.status_code == 200
-        assert restored.json()["player"]["location_id"] == "docks"
+        assert response.status_code == 409
+        assert "connected" in response.json()["detail"]
 
 
 def test_websocket_returns_current_snapshot() -> None:

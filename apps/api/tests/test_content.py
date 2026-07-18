@@ -1,0 +1,24 @@
+from __future__ import annotations
+
+import pytest
+from pydantic import ValidationError
+
+from hearsay_api.content import GreyhavenContent, load_content
+
+
+def test_greyhaven_content_references_are_complete() -> None:
+    content = load_content()
+
+    assert len(content.locations) == 12
+    assert len(content.principals) == 8
+    assert len(content.public_traits) == 6
+    assert all(location.neighbors for location in content.locations)
+
+
+def test_content_rejects_one_way_waypoint_edge() -> None:
+    payload = load_content().model_dump(mode="json")
+    square = next(location for location in payload["locations"] if location["id"] == "square")
+    square["neighbors"].remove("road")
+
+    with pytest.raises(ValidationError, match="bidirectional"):
+        GreyhavenContent.model_validate(payload)

@@ -14,6 +14,9 @@ tools/uv/uv run ruff check apps/api/src apps/api/tests scripts
 tools/uv/uv run ruff format --check apps/api/src apps/api/tests scripts
 tools/uv/uv run mypy apps/api/src
 tools/uv/uv run pytest
+tools/uv/uv run python scripts/run_database_tests.py
+tools/uv/uv run python scripts/build_assets.py --validate-only
 pnpm --filter @hearsay/web lint
 pnpm --filter @hearsay/web typecheck
 pnpm --filter @hearsay/web test
+pnpm test:e2e

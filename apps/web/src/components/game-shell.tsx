@@ -15,6 +15,42 @@ import {
 
 const RUN_STORAGE_KEY = "hearsay.run-id";
 
+function playConfirmation() {
+  const audio = new Audio("/assets/audio/ui-confirm.ogg");
+  audio.volume = 0.24;
+  void audio.play().catch(() => undefined);
+}
+
+function playThunder() {
+  const AudioContextClass =
+    window.AudioContext ??
+    (
+      window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }
+    ).webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  const context = new AudioContextClass();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "sawtooth";
+  oscillator.frequency.setValueAtTime(58, context.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(
+    24,
+    context.currentTime + 1.45,
+  );
+  gain.gain.setValueAtTime(0.0001, context.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.19, context.currentTime + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.55);
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start();
+  oscillator.stop(context.currentTime + 1.6);
+  oscillator.addEventListener("ended", () => void context.close(), {
+    once: true,
+  });
+}
+
 export function GameShell() {
   const [snapshot, setSnapshot] = useState<RunSnapshot | null>(null);
   const [selectedNpc, setSelectedNpc] = useState<NpcState | null>(null);
@@ -55,6 +91,10 @@ export function GameShell() {
       try {
         const next = await takeAction(snapshot.run_id, verb, targetId);
         setSnapshot(next);
+        playConfirmation();
+        if (snapshot.weather !== "rain" && next.weather === "rain") {
+          playThunder();
+        }
         if (selectedNpc) {
           setSelectedNpc(next.npcs.find((npc) => npc.id === selectedNpc.id) ?? null);
         }
@@ -91,12 +131,32 @@ export function GameShell() {
   const currentLocation =
     snapshot.locations.find(
       (location) => location.id === snapshot.player.location_id,
-    )?.name ?? "Greyhaven";
+    );
+  const waypointLocations =
+    currentLocation?.neighbors
+      .map((neighborId) =>
+        snapshot.locations.find((location) => location.id === neighborId),
+      )
+      .filter((location) => location !== undefined) ?? [];
+
+  const move = (locationId: string) => {
+    void act("move", locationId);
+  };
 
   return (
-    <main className="game">
+    <main
+      className="game"
+      data-weather={snapshot.weather}
+      data-conversation={selectedNpc ? "open" : "closed"}
+    >
       <div className="scene" aria-label="A miniature view of Greyhaven">
-        <TownScene snapshot={snapshot} onNpcClick={setSelectedNpc} />
+        <TownScene
+          snapshot={snapshot}
+          selectedNpcId={selectedNpc?.id ?? null}
+          movementDisabled={busy}
+          onMove={move}
+          onNpcClick={setSelectedNpc}
+        />
       </div>
 
       <header className="topbar">
@@ -106,6 +166,9 @@ export function GameShell() {
         </div>
         <div className="clock" aria-label="Game clock">
           <span>{clockLabel(snapshot)}</span>
+          {snapshot.weather === "rain" ? (
+            <strong className="storm-status">Storm over Greyhaven</strong>
+          ) : null}
           <small>{18 - snapshot.action_count} consequential actions remain</small>
         </div>
       </header>
@@ -114,24 +177,20 @@ export function GameShell() {
         <span className="where__pin">◆</span>
         <div>
           <small>You are at</small>
-          <strong>{currentLocation}</strong>
+          <strong>{currentLocation?.name ?? "Greyhaven"}</strong>
         </div>
       </aside>
 
       <nav className="waypoints" aria-label="Walk through Greyhaven">
-        {[
-          ["inn", "The inn"],
-          ["square", "The square"],
-          ["market", "Market row"],
-          ["docks", "The docks"],
-        ].map(([id, label]) => (
+        <small>Walk · WASD / arrows</small>
+        {waypointLocations.map((location) => (
           <button
-            key={id}
+            key={location.id}
             type="button"
-            disabled={busy || snapshot.player.location_id === id}
-            onClick={() => act("move", id)}
+            disabled={busy}
+            onClick={() => move(location.id)}
           >
-            {label}
+            {location.name}
           </button>
         ))}
       </nav>
@@ -183,6 +242,12 @@ export function GameShell() {
         )}>
           Find Bram
           <small>Market row</small>
+        </button>
+        <button type="button" disabled={busy} onClick={() => setSelectedNpc(
+          snapshot.npcs.find((npc) => npc.id === "pip") ?? null,
+        )}>
+          Find Pip
+          <small>Town square</small>
         </button>
       </section>
 

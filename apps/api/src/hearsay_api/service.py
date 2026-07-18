@@ -49,7 +49,12 @@ class GameService:
     def create_run(self, request: CreateRunRequest) -> CreateRunResponse:
         run_id = uuid4()
         locations = [
-            LocationState(id=item.id, name=item.name, position=item.position)
+            LocationState(
+                id=item.id,
+                name=item.name,
+                position=item.position,
+                neighbors=item.neighbors,
+            )
             for item in self.content.locations
         ]
         npcs = [
@@ -81,7 +86,7 @@ class GameService:
         return CreateRunResponse(run_id=run_id, snapshot=snapshot)
 
     def get_snapshot(self, run_id: UUID) -> RunSnapshot:
-        return self.repository.get(run_id)
+        return self._hydrate_content(self.repository.get(run_id))
 
     def take_action(self, run_id: UUID, request: ActionRequest) -> ActionResponse:
         cached = self.repository.get_action_result(run_id, request.idempotency_key)
@@ -89,7 +94,7 @@ class GameService:
             return cached
 
         for attempt in range(self.max_concurrency_retries + 1):
-            snapshot = self.repository.get(run_id)
+            snapshot = self._hydrate_content(self.repository.get(run_id))
             if snapshot.status != "active":
                 raise InvalidActionError("This run has already ended.")
 
@@ -187,6 +192,9 @@ class GameService:
     def _move(self, snapshot: RunSnapshot, target_id: str | None) -> WorldEvent:
         if target_id is None or target_id not in self.content.locations_by_id:
             raise InvalidActionError("Choose a valid Greyhaven location.")
+        current = self.content.locations_by_id[snapshot.player.location_id]
+        if target_id not in current.neighbors:
+            raise InvalidActionError("Walk to a connected Greyhaven waypoint first.")
         snapshot.player.location_id = target_id
         location = self.content.locations_by_id[target_id]
         return self._event("movement", f"You walk to {location.name}.")
@@ -215,6 +223,9 @@ class GameService:
             snapshot.phase = "evening"
         else:
             snapshot.phase = "night"
+        snapshot.weather = (
+            "rain" if snapshot.day == 1 and snapshot.phase in {"evening", "night"} else "clear"
+        )
 
     @staticmethod
     def _run_gossip_tick(snapshot: RunSnapshot) -> None:
@@ -233,6 +244,17 @@ class GameService:
         if npc is None:
             raise InvalidActionError("Choose a valid Greyhaven resident.")
         return npc
+
+    def _hydrate_content(self, snapshot: RunSnapshot) -> RunSnapshot:
+        snapshot.locations = [
+            location.model_copy(
+                update={
+                    "neighbors": self.content.locations_by_id[location.id].neighbors,
+                }
+            )
+            for location in snapshot.locations
+        ]
+        return snapshot
 
     @staticmethod
     def _event(kind: str, text: str) -> WorldEvent:

@@ -317,7 +317,7 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 ## Quality Gates
 
 - Unit tests for election mathematics, promise/favor resolution, traits, rumor constraints, schedules, idempotency, seed data, memory revision, relationship deltas, retrieval ranking, and content validation.
-- Integration tests against a disposable database and Cockroach-specific tests against the configured development cluster when credentials are supplied by the user: migrations, vector-index use, retries, concurrent updates, MCP allowlisting, worker recovery, Town Ledger isolation, provider contracts, and replay determinism.
+- Integration tests use the isolated `hearsay_test` database on the configured Cockroach Cloud instance; deterministic unit and browser fixtures may use the in-memory repository, but no disposable container database is introduced. Cockroach-specific coverage includes migrations, vector-index use, retries, concurrent updates, MCP allowlisting, worker recovery, Town Ledger isolation, provider contracts, and replay determinism.
 - Property tests for state-machine invariants and replay stability.
 - Playwright tests for onboarding, broken-promise propagation, rumor travel, storm refresh, reconnect, full election, ending classes, two isolated runs, Director’s Room, and one full game path.
 - Benchmark tests that write reproducible evidence rather than relying on a one-off demonstration.
@@ -326,9 +326,9 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 
 ## Manual Deployment Handoff (Not Executed by This Goal)
 
-1. User provisions Cockroach Cloud, EC2, S3/CloudFront, IAM, and Bedrock access.
+1. User keeps using the existing Cockroach Cloud instance configured in `.env` and provisions only the remaining EC2, S3/CloudFront, IAM, and Bedrock resources.
 2. User supplies deployment secrets through the documented environment/parameter mechanism.
-3. User deploys the prepared containers and static assets using the provided runbook.
+3. User deploys the prepared native EC2 services and static assets using the provided runbook; Hearsay does not require Docker for its database or application workflow.
 4. User verifies a public demo, records the demo video, pushes the public repository, and submits before the hackathon deadline.
 5. Keep the demo available through the judging period.
 

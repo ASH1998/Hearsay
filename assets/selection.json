@@ -1,8 +1,5 @@
 {
   "schema_version": 1,
-  "initial_load_budget_bytes": 26214400,
-  "full_session_budget_bytes": 62914560,
-  "draw_call_budget": 300,
   "assets": [
     {
       "id": "greyhaven-inn",
@@ -16,13 +13,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/pirate-kit",
       "license": "CC0-1.0",
-      "purpose": "Gull & Anchor exterior",
-      "archive_sha256": "96713665632f303532214f10d9dd6e3b83fe26fc23149656ef442bc887259284",
-      "bytes": 437568,
-      "sha256": "d3071aa7feb32bab3f21b44924dffecb33463ab561952a4891c164916904097f",
-      "draw_calls": 2,
-      "triangles": 11878,
-      "animations": 0
+      "purpose": "Gull & Anchor exterior"
     },
     {
       "id": "greyhaven-house",
@@ -36,13 +27,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/pirate-kit",
       "license": "CC0-1.0",
-      "purpose": "Secondary town-house silhouette",
-      "archive_sha256": "96713665632f303532214f10d9dd6e3b83fe26fc23149656ef442bc887259284",
-      "bytes": 172020,
-      "sha256": "d18005e3dea5455ca28973d3bb0e3675c13afa6d799f2f75aa928bc84e6d71dd",
-      "draw_calls": 2,
-      "triangles": 4958,
-      "animations": 0
+      "purpose": "Secondary town-house silhouette"
     },
     {
       "id": "greyhaven-dock",
@@ -56,13 +41,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/pirate-kit",
       "license": "CC0-1.0",
-      "purpose": "Harbor dock modules",
-      "archive_sha256": "96713665632f303532214f10d9dd6e3b83fe26fc23149656ef442bc887259284",
-      "bytes": 58808,
-      "sha256": "0360238cf6fcaa6cd2c2541515ed5c35ca78f07e8df09866b86184148effe6b2",
-      "draw_calls": 1,
-      "triangles": 1912,
-      "animations": 0
+      "purpose": "Harbor dock modules"
     },
     {
       "id": "dock-barrel",
@@ -76,13 +55,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/pirate-kit",
       "license": "CC0-1.0",
-      "purpose": "Harbor and market dressing",
-      "archive_sha256": "96713665632f303532214f10d9dd6e3b83fe26fc23149656ef442bc887259284",
-      "bytes": 20924,
-      "sha256": "5eceff1d025d01b9adbdd013309622e2ce0af07c0602fba0e7ef95a31cb78a0a",
-      "draw_calls": 1,
-      "triangles": 640,
-      "animations": 0
+      "purpose": "Harbor and market dressing"
     },
     {
       "id": "dock-fish-bucket",
@@ -96,13 +69,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/pirate-kit",
       "license": "CC0-1.0",
-      "purpose": "Fishmonger and dock dressing",
-      "archive_sha256": "96713665632f303532214f10d9dd6e3b83fe26fc23149656ef442bc887259284",
-      "bytes": 80880,
-      "sha256": "1bf708f3ed0207a006115a213062989985311fdb9b6fb7dfba2d4ca6d537bb5e",
-      "draw_calls": 1,
-      "triangles": 3860,
-      "animations": 0
+      "purpose": "Fishmonger and dock dressing"
     },
     {
       "id": "common-tree",
@@ -116,13 +83,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/stylizednature.html",
       "license": "CC0-1.0",
-      "purpose": "Square and lane foliage",
-      "archive_sha256": "298f6732b872e4cf7b30e6e7abf9641c7f6dc6b326df37ac089533ed7e3d58c9",
-      "bytes": 409696,
-      "sha256": "6c9b5e5d60c29b70f7d3cd36a9932fd11cbd0767355bd116f09c6df75cf97faa",
-      "draw_calls": 2,
-      "triangles": 5648,
-      "animations": 0
+      "purpose": "Square and lane foliage"
     },
     {
       "id": "market-stall",
@@ -136,13 +97,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/fantasypropsmegakit.html",
       "license": "CC0-1.0",
-      "purpose": "Town-square market dressing",
-      "archive_sha256": "8b6f7e806d222e585478f0e1bdc6b271bbc7bc6f84dd6af8ca703a7c64f0cb1e",
-      "bytes": 434048,
-      "sha256": "239613beee00c6d0741aa6c93d2cf7ef87a162f5b080eac7f7d9760624e19c27",
-      "draw_calls": 3,
-      "triangles": 1496,
-      "animations": 0
+      "purpose": "Town-square market dressing"
     },
     {
       "id": "village-wagon",
@@ -156,13 +111,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/medievalvillagemegakit.html",
       "license": "CC0-1.0",
-      "purpose": "Market row and shipment dressing",
-      "archive_sha256": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4",
-      "bytes": 255984,
-      "sha256": "927cd15e22a136a64fb7d181e28c9c2d136db60c7dcb67304e374ffd1a7761aa",
-      "draw_calls": 1,
-      "triangles": 1672,
-      "animations": 0
+      "purpose": "Market row and shipment dressing"
     },
     {
       "id": "marta-character",
@@ -176,13 +125,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/ultimatemodularcharacters.html",
       "license": "CC0-1.0",
-      "purpose": "Marta shared-rig character variant",
-      "archive_sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
-      "bytes": 566172,
-      "sha256": "38a141fb4a8f77918ce43048001e038c0f70a6c96b646181566234de622fd7e7",
-      "draw_calls": 4,
-      "triangles": 13568,
-      "animations": 0
+      "purpose": "Marta shared-rig character variant"
     },
     {
       "id": "bram-character",
@@ -196,13 +139,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/ultimatemodularcharacters.html",
       "license": "CC0-1.0",
-      "purpose": "Bram shared-rig character variant",
-      "archive_sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
-      "bytes": 656932,
-      "sha256": "c04d5ba601dc9d3f82836bb4e43b649edc480ccb213f79c5ea28b5dbfa8a3ae8",
-      "draw_calls": 5,
-      "triangles": 12894,
-      "animations": 0
+      "purpose": "Bram shared-rig character variant"
     },
     {
       "id": "rhea-character",
@@ -216,13 +153,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/ultimatemodularcharacters.html",
       "license": "CC0-1.0",
-      "purpose": "Rhea shared-rig character variant",
-      "archive_sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
-      "bytes": 1296688,
-      "sha256": "c0cb2e2b5b48c8a50e2844a090c82c2f5d62879ad4cce2a1dc741528ccd4caf2",
-      "draw_calls": 10,
-      "triangles": 26966,
-      "animations": 0
+      "purpose": "Rhea shared-rig character variant"
     },
     {
       "id": "player-character",
@@ -236,13 +167,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/ultimatemodularcharacters.html",
       "license": "CC0-1.0",
-      "purpose": "Controllable newcomer shared-rig character",
-      "archive_sha256": "c3468b18871cc8c8f05ab14df7712baf22cb9f389cbd870babf130e595187f70",
-      "bytes": 1281180,
-      "sha256": "68b9e6bf71fe44f07d993bdd707959c4cb27e610e4f108a4fbd019938c438696",
-      "draw_calls": 10,
-      "triangles": 26982,
-      "animations": 0
+      "purpose": "Controllable newcomer shared-rig character"
     },
     {
       "id": "character-animation-library",
@@ -256,13 +181,7 @@
       "creator": "Quaternius",
       "source_url": "https://quaternius.com/packs/universalanimationlibrary.html",
       "license": "CC0-1.0",
-      "purpose": "Idle, walking, talking, sitting, and interaction clips",
-      "archive_sha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724",
-      "bytes": 2543876,
-      "sha256": "d2dfff8a965d31621a1e882300853e453903ba25f931db28313ee45952c0a1a4",
-      "draw_calls": 2,
-      "triangles": 13744,
-      "animations": 43
+      "purpose": "Idle, walking, talking, sitting, and interaction clips"
     },
     {
       "id": "ui-confirm",
@@ -275,10 +194,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/ui-audio",
       "license": "CC0-1.0",
-      "purpose": "Consequential action confirmation",
-      "archive_sha256": "946fc23a63d535d693eb31b2eabb80c8c28d6351e2186b344ceb71b2cb1d5eb6",
-      "bytes": 4983,
-      "sha256": "59175ac17cd49a68dd736285738441287636112a84a6f7ce0d89921bda5a5360"
+      "purpose": "Consequential action confirmation"
     },
     {
       "id": "ui-hover",
@@ -291,10 +207,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/ui-audio",
       "license": "CC0-1.0",
-      "purpose": "Interaction hover feedback",
-      "archive_sha256": "946fc23a63d535d693eb31b2eabb80c8c28d6351e2186b344ceb71b2cb1d5eb6",
-      "bytes": 4701,
-      "sha256": "d0bc0fcba496d73df1da8c145e5330df75f87ab5a4f33a9b71461b006b5c338e"
+      "purpose": "Interaction hover feedback"
     },
     {
       "id": "ledger-panel",
@@ -307,20 +220,7 @@
       "creator": "Kenney",
       "source_url": "https://kenney.nl/assets/ui-pack-adventure",
       "license": "CC0-1.0",
-      "purpose": "Town Ledger paper texture",
-      "archive_sha256": "982e8ab66842509ee9214f9c2038e594cbe029f19d1dc177fecaad3b41a67ed3",
-      "bytes": 2748,
-      "sha256": "1cf9ef7eab511350c3f35b30636208bc96256df1a0a0b4abe7140efbc52b9789"
+      "purpose": "Town Ledger paper texture"
     }
-  ],
-  "candidate_archives": [
-    "assets/downloads/Fantasy Props MegaKit[Standard].zip",
-    "assets/downloads/Medieval Village MegaKit[Standard].zip",
-    "assets/downloads/Modular Character Outfits - Fantasy[Standard].zip",
-    "assets/downloads/Stylized Nature MegaKit[Standard].zip",
-    "assets/downloads/Universal Animation Library[Standard].zip",
-    "assets/downloads/glTF-20260718T165702Z-1-001.zip",
-    "assets/downloads/kenney_ui-audio.zip",
-    "assets/downloads/kenney_ui-pack-adventure.zip"
   ]
 }

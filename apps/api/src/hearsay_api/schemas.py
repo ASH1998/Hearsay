@@ -39,6 +39,7 @@ class LocationState(BaseModel):
     id: str
     name: str
     position: tuple[float, float, float]
+    neighbors: tuple[str, ...] = ()
 
 
 class NpcState(BaseModel):

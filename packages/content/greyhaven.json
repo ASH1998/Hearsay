@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
   "locations": [
-    {"id": "road", "name": "The road into town", "position": [0, 0, 12]},
-    {"id": "inn", "name": "The Gull & Anchor", "position": [-7, 0, 1]},
-    {"id": "square", "name": "Town square", "position": [0, 0, 0]},
-    {"id": "market", "name": "Market row", "position": [6, 0, 1]},
-    {"id": "chapel", "name": "Chapel", "position": [8, 0, -7]},
-    {"id": "docks", "name": "Docks and harbor", "position": [-9, 0, -8]},
-    {"id": "constable", "name": "Constable's post", "position": [5, 0, -5]},
-    {"id": "midwife", "name": "Midwife's cottage", "position": [10, 0, 5]},
-    {"id": "guildhouse", "name": "Guildhouse", "position": [-5, 0, -5]},
-    {"id": "alley", "name": "Back alley", "position": [-2, 0, 5]},
-    {"id": "notice_board", "name": "Notice board", "position": [2, 0, 1]},
-    {"id": "room", "name": "Your rented room", "position": [-8, 1, 1]}
+    {"id": "road", "name": "The road into town", "position": [0, 0, 12], "neighbors": ["square", "alley", "midwife"]},
+    {"id": "inn", "name": "The Gull & Anchor", "position": [-7, 0, 1], "neighbors": ["square", "alley", "room"]},
+    {"id": "square", "name": "Town square", "position": [0, 0, 0], "neighbors": ["road", "inn", "market", "guildhouse", "notice_board", "constable"]},
+    {"id": "market", "name": "Market row", "position": [6, 0, 1], "neighbors": ["square", "constable", "midwife"]},
+    {"id": "chapel", "name": "Chapel", "position": [8, 0, -7], "neighbors": ["constable", "guildhouse"]},
+    {"id": "docks", "name": "Docks and harbor", "position": [-9, 0, -8], "neighbors": ["guildhouse"]},
+    {"id": "constable", "name": "Constable's post", "position": [5, 0, -5], "neighbors": ["square", "market", "chapel"]},
+    {"id": "midwife", "name": "Midwife's cottage", "position": [10, 0, 5], "neighbors": ["road", "market"]},
+    {"id": "guildhouse", "name": "Guildhouse", "position": [-5, 0, -5], "neighbors": ["square", "chapel", "docks", "alley"]},
+    {"id": "alley", "name": "Back alley", "position": [-2, 0, 5], "neighbors": ["road", "inn", "guildhouse"]},
+    {"id": "notice_board", "name": "Notice board", "position": [2, 0, 1], "neighbors": ["square"]},
+    {"id": "room", "name": "Your rented room", "position": [-8, 1, 1], "neighbors": ["inn"]}
   ],
   "principals": [
     {

@@ -7,7 +7,7 @@ Game Design Document or Hackathon Blueprint.
 
 ## Milestone 1 — Playable Foundation
 
-Status: in progress
+Status: complete on the configured Windows development workstation
 
 Completed:
 
@@ -20,11 +20,14 @@ Completed:
 - Twelve Greyhaven locations and all eight principal NPCs stored as validated
   content data.
 - Playable Marta promise → Bram confrontation → Pip rumor tick.
-- Compact React Three Fiber town proof with day-phase lighting, resident
-  markers, speech bubbles, interaction panels, clock, ledger, and waypoints.
+- Optimized React Three Fiber Greyhaven scene using curated GLBs for the inn,
+  houses, market, docks, foliage, props, player, and animated residents.
+- Graph-constrained waypoint movement through buttons or WASD/arrow keys,
+  player interpolation, conversation camera easing, interaction prompts,
+  responsive dialogue, day/evening lighting, rain, lightning, and thunder.
 - OpenAPI export and generated TypeScript contracts.
-- Empty-but-valid runtime asset manifest with 25 MB initial and 60 MB session
-  budgets.
+- Reproducible asset extraction/optimization pipeline, CC0 attribution ledger,
+  checksummed manifest, public-runtime sync, and tracked validation report.
 - SQLAlchemy/Alembic persistence with players, versioned run snapshots,
   idempotent actions, and immutable event records.
 - Bounded CockroachDB serializable transaction retries and optimistic run
@@ -36,36 +39,33 @@ Validated:
 
 - `scripts/doctor.ps1` passes with Node 22.14, pnpm 11.9, uv 0.11.15,
   repository-local Python 3.12.13, environment names, and source assets.
-- Ruff, formatting, strict mypy, and seventeen local API tests pass.
+- Ruff, formatting, strict mypy, and the local API suite pass.
 - The configured Cockroach Cloud cluster is healthy; the `hearsay` application
   database is at migration head.
 - Two real CockroachDB integration tests pass against `hearsay_test`, proving
   durable repository recreation, idempotent action replay, concurrent commits,
   monotonic revisions, and complete event history.
-- ESLint, strict TypeScript, and Vitest pass.
+- Asset validation passes with 16 runtime assets, 7.84 MB initial load, 7.85 MB
+  full session, and 44 source draw calls—within every Milestone 1 budget.
+- ESLint, strict TypeScript, Vitest, and the Next.js production build pass.
 - Next.js production build emits the App Router `/` route and standalone server.
-- Local browser smoke test completes the opening promise and confrontation,
-  shows Pip's changed rumor, reaches tick 1 / Day 1 afternoon, reports no browser
-  console errors, and restores that state after refresh.
+- Tracked Playwright coverage completes create → promise → confrontation → Pip
+  rumor → refresh and restores the durable story state.
+- Live visual inspection against the configured Cockroach Cloud application
+  database passes at desktop and 390×844 mobile viewports.
 
-Remaining before the Milestone 1 gate:
-
-- Curate and optimize the inn, square, docks, three character variants,
-  animation clips, UI audio, and environment audio from the candidate archives.
-- Replace proxy geometry with lazy-loaded GLB runtime assets.
-- Add keyboard player movement, waypoint collision, conversation camera easing,
-  rain/thunder, and animated residents.
-- Add Playwright automation and produce the tracked asset validation report.
-- Expand the durable schema from run snapshots into beliefs, immutable belief
-  versions, active vector memories, relationships, promises, transmissions,
-  votes, traces, and benchmark evidence.
+The in-memory repository remains available only as an explicitly selected,
+deterministic unit/browser-test fixture. Normal development and application
+persistence use the user-managed Cockroach Cloud `hearsay` database; destructive
+integration tests use only `hearsay_test`.
 
 ## Next implementation slice
 
-1. Build the reproducible asset inventory/extraction pipeline without committing
-   raw archives.
-2. Add the belief/version/active-memory schema and scoped 384-dimensional vector
+1. Add the belief/version/active-memory schema and scoped 384-dimensional vector
    retrieval.
-3. Persist provenance-preserving rumor transmissions and relationship effects
+2. Persist provenance-preserving rumor transmissions and relationship effects
    in one serializable tick transaction.
-4. Add a browser test for create → promise → confront → rumor → refresh.
+3. Add structured model output with deterministic fixtures, safe fallbacks, and
+   real Modal inference when configured.
+4. Build the Historian lineage view and prove the scoped vector plan with
+   CockroachDB `EXPLAIN`.

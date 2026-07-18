@@ -6,9 +6,10 @@ Hearsay is a browser-based social-memory game set in Greyhaven. You have three
 days to win a mayoral election in a town where promises become rumors, rumors
 mutate as people repeat them, and every decisive memory keeps its provenance.
 
-The project is under active implementation. The current vertical slice provides
-an authoritative FastAPI run/action/snapshot loop, durable CockroachDB
-persistence, and a compact React Three Fiber Greyhaven scene.
+The project is under active implementation. The playable foundation provides an
+authoritative FastAPI run/action/snapshot loop, durable CockroachDB persistence,
+and an optimized React Three Fiber Greyhaven scene with animated characters,
+graph-constrained movement, conversation camera focus, and storm presentation.
 
 ## Local setup
 
@@ -57,9 +58,10 @@ The opening loop is intentionally small but end to end:
 4. After the second consequential action, Pip visibly repeats a distorted
    version and the authoritative action clock advances.
 
-Movement, eavesdropping, and the notice board are free actions. Refreshing the
-browser restores the current run from CockroachDB when the durable backend is
-enabled. Full belief provenance and vector retrieval are the next data slice.
+Movement, eavesdropping, and the notice board are free actions. Walk through
+connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
+the browser restores the current run from CockroachDB. Full belief provenance
+and vector retrieval are the next data slice.
 
 ## Authority
 

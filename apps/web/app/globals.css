@@ -234,6 +234,16 @@ button:focus-visible {
   gap: 0.35rem;
 }
 
+.waypoints > small {
+  padding: 0.35rem 0.45rem;
+  background: rgb(12 20 22 / 72%);
+  color: rgb(232 223 198 / 76%);
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .waypoints button,
 .actions button,
 .conversation__choices button {
@@ -264,7 +274,9 @@ button:disabled {
   width: min(21rem, calc(100vw - 3rem));
   padding: 1.1rem;
   border-top: 4px solid var(--rust);
-  background: rgb(232 223 198 / 94%);
+  background:
+    linear-gradient(rgb(232 223 198 / 92%), rgb(232 223 198 / 92%)),
+    url("/assets/ui/ledger-panel.svg") center / cover;
   box-shadow: 0 18px 55px rgb(0 0 0 / 28%);
 }
 
@@ -318,7 +330,7 @@ button:disabled {
   bottom: 5rem;
   display: grid;
   width: min(21rem, calc(100vw - 3rem));
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
 }
 
@@ -435,6 +447,32 @@ button:disabled {
   line-height: 1.3;
 }
 
+.resident-name {
+  display: block;
+  border: 1px solid rgb(232 223 198 / 18%);
+  border-radius: 999px;
+  padding: 0.16rem 0.42rem;
+  background: rgb(12 20 22 / 78%);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 24%);
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 0.58rem;
+  font-weight: 700;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.storm-status {
+  color: #c9e4ed;
+  font-size: 0.65rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.game[data-weather="rain"] .topbar {
+  background: linear-gradient(180deg, rgb(7 13 17 / 92%), transparent);
+}
+
 .busy,
 .toast {
   position: fixed;
@@ -463,6 +501,7 @@ button:disabled {
   .where {
     top: 4.8rem;
     left: 0.7rem;
+    width: 9.5rem;
   }
 
   .waypoints {
@@ -488,6 +527,13 @@ button:disabled {
     bottom: 4.2rem;
     width: calc(100vw - 1.4rem);
     grid-template-columns: 5rem 1fr;
+  }
+
+  .game[data-conversation="open"] .where,
+  .game[data-conversation="open"] .waypoints,
+  .game[data-conversation="open"] .ledger,
+  .game[data-conversation="open"] .actions {
+    display: none;
   }
 
   .portrait {
