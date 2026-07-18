@@ -55,8 +55,19 @@ def test_settling_shipment_keeps_promise_spreads_memory_and_changes_treatment() 
     assert [version.active for version in marta_versions] == [False, True]
     assert marta_versions[-1].normalized_position["promise_status"] == "kept"
     assert any(version.holder_id == "pip" for version in lineage.versions)
-    assert len(lineage.transmissions) == 1
-    assert lineage.transmissions[0].speaker_id == "marta"
+    assert len(
+        [
+            transmission
+            for transmission in lineage.transmissions
+            if transmission.speaker_id == "marta"
+        ]
+    ) == 1
+    ambient_transmissions = [
+        transmission
+        for transmission in lineage.transmissions
+        if transmission.speaker_id == "pip"
+    ]
+    assert 2 <= len(ambient_transmissions) <= 4
 
     response = act(
         service,
@@ -89,7 +100,8 @@ def test_evening_breaks_active_promise_and_marks_public_reputation() -> None:
     assert broken.snapshot.promises[0].status == "broken"
     assert broken.snapshot.player.traits == ["Dishonest", "Troublemaker"]
     assert broken.snapshot.recent_events[0].kind == "promise_broken"
-    assert broken.snapshot.recent_events[1].kind == "conversation"
+    assert broken.snapshot.recent_events[1].kind == "ambient_gossip"
+    assert broken.snapshot.recent_events[2].kind == "conversation"
     pip = next(npc for npc in broken.snapshot.npcs if npc.id == "pip")
     assert "empty word" in (pip.speech or "")
 

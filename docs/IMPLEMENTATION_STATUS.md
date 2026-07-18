@@ -286,16 +286,29 @@ Completed:
   matching public trait, writes three holder-specific immutable memories, and
   carries the exact choice/contribution/belief version into Bram, Nessa, and
   Pip's election inputs. Calm produces Influential and a seeded `11–9` win.
+- All twelve ambient residents now have authored echo styles. A gossip tick
+  carrying a new salient Pip account deterministically selects 2–4 co-located
+  listeners from authoritative scheduled/event-overridden positions.
+- Each selected ambient gets a style-mutated belief version whose parent is
+  Pip's exact version, plus a Pip→listener transmission with deterministic
+  provider/model provenance. A public `ambient_gossip` event names listeners.
+- Ambient NPC state retains at most three recent visible echoes, and holder
+  recall is capped to three. Always-visible pair bubbles name the
+  Pip→resident route; refresh restores both the chatter and its source.
+- Ambient election memory is likewise limited to the last three and attenuated
+  by hop distance and carrier style. Skeptical carriers counterweight rather
+  than blindly amplify, preserving the seeded `11–9` path.
 
 Validated:
 
-- Eighty-seven local API tests pass. Pure election tests cover all six ending
+- Eighty-nine local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
   four Bram effects, playable threat/lie endings, the storm lifecycle,
   all-resident evacuation, awareness, clearing, skipped-interval history, event
-  faction damage, all three interventions, and their exact vote memories.
+  faction damage, all three interventions, their exact vote memories, 2–4
+  proximity selection, visible echo restoration, and the shallow recall cap.
 - Eleven real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
@@ -308,10 +321,13 @@ Validated:
   The argument test additionally proves both directional trust rows reach
   `0.15`, all lifecycle/action events exist, three belief-backed vote inputs
   persist, and repository recreation restores the same election.
+  The signature test also proves four hop-two ambient beliefs, four Pip
+  transmission edges with `hearsay-ambient-echo-v1`, one public chatter event,
+  correct active-memory counts, and unchanged indexed Pip recall.
 - Three browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
-  live afternoon movement cue, Pip's new Market row location, storm start, and
-  storm refresh before the `11–9` result and exact v1 promise memory
+  live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
+  Market row location, storm start, and storm refresh before the `11–9` result and exact v1 promise memory
   explanation. The second threatens
   Bram, shows the two public traits, reaches `0–20` Run out of town, and renders
   the belief-backed threat input in the election explanation.
@@ -325,12 +341,11 @@ Remaining:
 
 - Additional favors and information/ambition verbs needed for multiple viable
   paths to all six endings.
-- Ambient rumor echo behavior beyond the current Pip signature transmission.
 - Broader rumor propagation, election tuning, and seeded Narrow loss,
   Humiliation, and Landslide browser playthroughs.
 
 ## Next implementation slice
 
-1. Turn the twelve ambient residents into the town's rumor echo: proximity-
-   aware deterministic hops, shallow last-three memory, visible pair chatter,
-   and election inputs that preserve the originating belief lineage.
+1. Add Nessa's first favor chain and the warn/correct information verbs so the
+   player can protect the harbor faction, challenge a live rumor, or trade that
+   trust for an endorsement instead of relying only on Marta's shipment.

@@ -26,6 +26,12 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
     page.locator('[data-event-kind="schedule_shift"]'),
   ).toContainText("Afternoon routines move");
   await expect(
+    page.locator('[data-event-kind="ambient_gossip"]'),
+  ).toContainText("Pip's version reaches");
+  await expect(
+    page.locator(".speech-bubble small").filter({ hasText: "Pip →" }),
+  ).toHaveCount(4);
+  await expect(
     page.getByRole("button", { name: /Find Pip/ }),
   ).toContainText("Market row");
 

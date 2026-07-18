@@ -35,7 +35,7 @@ class PrincipalContent(ResidentContent):
 
 
 class AmbientContent(ResidentContent):
-    pass
+    echo_style: str
 
 
 class EndingContent(BaseModel):
@@ -276,6 +276,10 @@ class GreyhavenContent(BaseModel):
     @property
     def residents_by_id(self) -> dict[str, ResidentContent]:
         return {resident.id: resident for resident in self.residents}
+
+    @property
+    def ambients_by_id(self) -> dict[str, AmbientContent]:
+        return {ambient.id: ambient for ambient in self.ambients}
 
     @property
     def endings_by_id(self) -> dict[str, EndingContent]:

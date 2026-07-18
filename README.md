@@ -125,6 +125,12 @@ Each Bram approach now produces its own public event, relationship change,
 semantic rumor, and election weight. Threatening him can end with the town
 running the player out; lying about Elias's authority can unravel into the
 Exposed ending, both through ordinary three-day play rather than debug state.
+On each gossip tick with a new salient Pip account, 2–4 co-located ambient
+residents now repeat it in their authored blunt, skeptical, cautious, wry,
+practical, precise, or urgent style. Their on-scene bubbles name the
+Pip→listener pair; CockroachDB stores every belief and transmission edge;
+shallow recall and voting use at most their last three memories with hop/style
+attenuation.
 Those residents also follow validated three-day,
 morning/afternoon/evening/night routines. Consequential actions advance the
 authoritative clock, move NPCs in the 3D town, append a public schedule-shift

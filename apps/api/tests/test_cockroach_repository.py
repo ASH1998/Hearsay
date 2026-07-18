@@ -155,9 +155,33 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
         created.run_id,
         "bram-price-confrontation",
     )
-    assert len(lineage.versions) == 2
-    assert len(lineage.transmissions) == 1
-    transmission = lineage.transmissions[0]
+    assert len(lineage.versions) == 6
+    assert len(lineage.transmissions) == 5
+    ambient_versions = [
+        version
+        for version in lineage.versions
+        if version.holder_id not in {"bram", "pip"}
+    ]
+    ambient_transmissions = [
+        item
+        for item in lineage.transmissions
+        if item.speaker_id == "pip"
+    ]
+    assert len(ambient_versions) == 4
+    assert {
+        version.normalized_position["echo_hop"]
+        for version in ambient_versions
+    } == {2}
+    assert len(ambient_transmissions) == 4
+    assert {
+        item.model_id
+        for item in ambient_transmissions
+    } == {"hearsay-ambient-echo-v1"}
+    transmission = next(
+        item
+        for item in lineage.transmissions
+        if item.speaker_id == "bram"
+    )
     assert transmission.speaker_id == "bram"
     assert transmission.listener_id == "pip"
     assert transmission.original_text != transmission.retold_text
@@ -206,6 +230,11 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
         transmission_count = session.scalar(select(func.count()).select_from(TransmissionModel))
         relationship_count = session.scalar(select(func.count()).select_from(RelationshipModel))
         trace_count = session.scalar(select(func.count()).select_from(RetrievalTraceModel))
+        ambient_gossip_count = session.scalar(
+            select(func.count())
+            .select_from(EventModel)
+            .where(EventModel.kind == "ambient_gossip")
+        )
         pip_dimensions = session.scalar(
             select(func.vector_dims(ActiveMemoryModel.embedding))
             .where(ActiveMemoryModel.holder_id == "pip")
@@ -230,12 +259,13 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
             },
         ).all()
 
-    assert belief_count == 3
-    assert version_count == 5
-    assert transmission_count == 2
+    assert belief_count == 7
+    assert version_count == 9
+    assert transmission_count == 6
     assert relationship_count == 3
     assert trace_count == 1
-    assert active_memory_count == 3
+    assert ambient_gossip_count == 1
+    assert active_memory_count == 7
     assert pip_dimensions == 384
     assert any(
         index["index_name"] == "active_memories_retrieval_vector_idx" for index in vector_indexes
@@ -457,14 +487,15 @@ def test_broken_promise_persists_both_visible_events_and_memory_consequence(
     assert result.snapshot.promises[0].status == "broken"
     assert result.snapshot.player.traits == ["Dishonest", "Troublemaker"]
     assert result.snapshot.recent_events[0].kind == "promise_broken"
-    assert result.snapshot.recent_events[1].kind == "conversation"
+    assert result.snapshot.recent_events[1].kind == "ambient_gossip"
+    assert result.snapshot.recent_events[2].kind == "conversation"
 
     lineage = repository.list_memory_lineage(
         created.run_id,
         "player-promise-marta-shipment",
     )
-    assert len(lineage.versions) == 3
-    assert len(lineage.transmissions) == 1
+    assert len(lineage.versions) == 5
+    assert len(lineage.transmissions) == 3
     assert next(
         version
         for version in lineage.versions
@@ -491,7 +522,8 @@ def test_broken_promise_persists_both_visible_events_and_memory_consequence(
     assert event_kinds.count("promise_broken") == 1
     assert event_kinds.count("schedule_shift") == 2
     assert event_kinds.count("storm_begins") == 1
-    assert len(event_kinds) == 9
+    assert event_kinds.count("ambient_gossip") == 1
+    assert len(event_kinds) == 10
     assert marta_trust is not None
     assert marta_trust <= 0.25
 

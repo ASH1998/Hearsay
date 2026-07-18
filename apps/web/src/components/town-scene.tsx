@@ -108,6 +108,7 @@ function AnimatedResident({
   const group = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const { scene } = useGLTF(NPC_ASSET[npc.id] ?? ASSETS.marta);
+  const latestEcho = npc.recent_echoes.at(-1);
   useCharacterAnimation(
     group,
     npc.speech ? "Idle_Talking_Loop" : "Idle_Loop",
@@ -136,9 +137,17 @@ function AnimatedResident({
       onPointerOut={() => setHovered(false)}
     >
       <Clone object={scene} castShadow receiveShadow />
-      {npc.speech && hovered ? (
+      {npc.speech && (hovered || latestEcho) ? (
         <Html position={[0, 1.75, 0]} center distanceFactor={10}>
           <button className="speech-bubble" type="button" onClick={onClick}>
+            {latestEcho ? (
+              <small>
+                {latestEcho.speaker_id === "pip"
+                  ? "Pip"
+                  : latestEcho.speaker_id}{" "}
+                → {npc.name}
+              </small>
+            ) : null}
             {npc.speech}
           </button>
         </Html>

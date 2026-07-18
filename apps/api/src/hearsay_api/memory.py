@@ -277,10 +277,19 @@ class DialogueTreatment:
 
 
 @dataclass(frozen=True)
+class VisibleAmbientEcho:
+    listener_id: str
+    proposition_key: str
+    speaker_id: str
+    text: str
+
+
+@dataclass(frozen=True)
 class MemoryEffects:
     beliefs: tuple[PlannedBelief, ...] = ()
     relationships: tuple[PlannedRelationship, ...] = ()
     gossip_tick_number: int | None = None
+    visible_ambient_echoes: tuple[VisibleAmbientEcho, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -313,8 +322,19 @@ def plan_action_memory(
         embeddings,
     )
     town_events = _plan_town_event_transitions(town_event_transitions)
+    pre_echo_beliefs = (
+        primary.beliefs
+        + promise.beliefs
+        + town_events.beliefs
+    )
+    ambient_echoes = _plan_ambient_echoes(
+        pre_echo_beliefs,
+        response,
+        embeddings,
+        content,
+    )
     return MemoryEffects(
-        beliefs=primary.beliefs + promise.beliefs + town_events.beliefs,
+        beliefs=pre_echo_beliefs + ambient_echoes.beliefs,
         relationships=(
             primary.relationships
             + promise.relationships
@@ -325,6 +345,7 @@ def plan_action_memory(
             if primary.gossip_tick_number is not None
             else promise.gossip_tick_number
         ),
+        visible_ambient_echoes=ambient_echoes.visible_ambient_echoes,
     )
 
 
@@ -597,6 +618,137 @@ def _plan_town_event_transitions(
                 affinity_delta=-0.2,
             ),
         )
+    )
+
+
+def _plan_ambient_echoes(
+    beliefs: tuple[PlannedBelief, ...],
+    response: ActionResponse,
+    embeddings: EmbeddingProvider,
+    content: GreyhavenContent,
+) -> MemoryEffects:
+    snapshot = response.snapshot
+    if snapshot.world_tick == 0 or snapshot.action_count % 2 != 0:
+        return MemoryEffects()
+    pip_sources = [
+        belief
+        for belief in beliefs
+        if belief.holder_id == "pip"
+    ]
+    if not pip_sources:
+        return MemoryEffects()
+    source = max(pip_sources, key=lambda belief: belief.salience)
+    pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
+    candidates = sorted(
+        npc.id
+        for npc in snapshot.npcs
+        if npc.id in content.ambients_by_id
+        and npc.location_id == pip.location_id
+    )
+    if not candidates:
+        return MemoryEffects()
+
+    hop_count = min(
+        len(candidates),
+        2 + ((snapshot.seed + snapshot.world_tick) % 3),
+    )
+    offset = (snapshot.seed + snapshot.world_tick) % len(candidates)
+    listeners = (
+        candidates[offset:]
+        + candidates[:offset]
+    )[:hop_count]
+    echo_beliefs: list[PlannedBelief] = []
+    visible_echoes: list[VisibleAmbientEcho] = []
+    for listener_id in listeners:
+        ambient = content.ambients_by_id[listener_id]
+        retold_text, mutation_note = _retell_ambient_echo(
+            source.narrative_text,
+            ambient.echo_style,
+        )
+        text_embedding = embeddings.embed(retold_text)
+        echo_beliefs.append(
+            PlannedBelief(
+                proposition_key=source.proposition_key,
+                subject_kind=source.subject_kind,
+                subject_id=source.subject_id,
+                predicate=source.predicate,
+                holder_id=listener_id,
+                narrative_text=retold_text,
+                normalized_position={
+                    **source.normalized_position,
+                    "echo_hop": 2,
+                    "echo_style": ambient.echo_style,
+                },
+                confidence=max(source.confidence - 0.08, 0.1),
+                salience=max(source.salience - 0.12, 0.1),
+                source_kind="hearsay",
+                source_id="pip",
+                embedding=text_embedding.vector,
+                embedding_model_id=text_embedding.model_id,
+                parent_holder_id="pip",
+                mutation_note=mutation_note,
+                trust_at_time=0.55,
+                retelling_provider_id="deterministic",
+                retelling_model_id="hearsay-ambient-echo-v1",
+                inference_attempts=0,
+                inference_latency_ms=0,
+            )
+        )
+        visible_echoes.append(
+            VisibleAmbientEcho(
+                listener_id=listener_id,
+                proposition_key=source.proposition_key,
+                speaker_id="pip",
+                text=retold_text,
+            )
+        )
+    return MemoryEffects(
+        beliefs=tuple(echo_beliefs),
+        visible_ambient_echoes=tuple(visible_echoes),
+    )
+
+
+def _retell_ambient_echo(
+    source_text: str,
+    style: str,
+) -> tuple[str, str]:
+    lowered = source_text[0].lower() + source_text[1:]
+    templates = {
+        "blunt": (
+            f"Pip says {lowered} That's the whole of it.",
+            "A blunt carrier strips the account down to its accusation.",
+        ),
+        "practical": (
+            f"Pip says {lowered} What matters is who fixes the damage.",
+            "A practical carrier adds a demand for consequences.",
+        ),
+        "skeptical": (
+            f"Pip claims {lowered} I doubt that is the whole ledger.",
+            "A skeptical carrier repeats the claim with visible doubt.",
+        ),
+        "wry": (
+            f"Pip says {lowered} Funny how every story finds a buyer.",
+            "A wry carrier turns the account into a joke about reputation.",
+        ),
+        "cautious": (
+            f"I heard from Pip that {lowered} Mind, hearing is not knowing.",
+            "A cautious carrier preserves the claim but lowers its certainty.",
+        ),
+        "precise": (
+            f"Pip's exact claim is this: {source_text}",
+            "A precise carrier preserves the wording and names the source.",
+        ),
+        "urgent": (
+            f"Quick—Pip says {lowered}",
+            "An urgent carrier compresses the account into breaking news.",
+        ),
+    }
+    return templates.get(
+        style,
+        (
+            f"Pip says {lowered}",
+            "The carrier repeats Pip's account without a strong style change.",
+        ),
     )
 
 

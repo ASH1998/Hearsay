@@ -512,6 +512,15 @@ export interface components {
             /** Created At */
             created_at?: string | null;
         };
+        /** NpcEchoState */
+        NpcEchoState: {
+            /** Proposition Key */
+            proposition_key: string;
+            /** Speaker Id */
+            speaker_id: string;
+            /** Text */
+            text: string;
+        };
         /** NpcState */
         NpcState: {
             /** Id */
@@ -531,6 +540,8 @@ export interface components {
             relationship: number;
             /** Speech */
             speech?: string | null;
+            /** Recent Echoes */
+            recent_echoes?: components["schemas"]["NpcEchoState"][];
         };
         /** PlayerState */
         PlayerState: {

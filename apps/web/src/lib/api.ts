@@ -9,8 +9,9 @@ export type LocationState = Schemas["LocationState"];
 export type PromiseState = Schemas["PromiseState"];
 export type MemoryLineage = Schemas["MemoryLineageResponse"];
 export type HistorianTrace = Schemas["HistorianTraceResponse"];
-export type NpcState = Omit<Schemas["NpcState"], "speech"> & {
+export type NpcState = Omit<Schemas["NpcState"], "speech" | "recent_echoes"> & {
   speech: string | null;
+  recent_echoes: Schemas["NpcEchoState"][];
 };
 export type RunSnapshot = Omit<
   GeneratedSnapshot,

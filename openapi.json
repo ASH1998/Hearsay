@@ -1329,6 +1329,29 @@
         ],
         "title": "MemoryVersionState"
       },
+      "NpcEchoState": {
+        "properties": {
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "speaker_id": {
+            "type": "string",
+            "title": "Speaker Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposition_key",
+          "speaker_id",
+          "text"
+        ],
+        "title": "NpcEchoState"
+      },
       "NpcState": {
         "properties": {
           "id": {
@@ -1368,6 +1391,14 @@
               }
             ],
             "title": "Speech"
+          },
+          "recent_echoes": {
+            "items": {
+              "$ref": "#/components/schemas/NpcEchoState"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Recent Echoes"
           }
         },
         "type": "object",

@@ -95,7 +95,10 @@ def resolve_election(
                 )
             )
 
-        for memory in active_by_holder.get(resident.id, []):
+        resident_memories = active_by_holder.get(resident.id, [])
+        if resident.id in content.ambients_by_id:
+            resident_memories = resident_memories[-3:]
+        for memory in resident_memories:
             proposition_key = memory.proposition_key
             contribution = 0.0
             explanation = ""
@@ -138,6 +141,20 @@ def resolve_election(
                 explanation = (
                     "They remember how the player answered Bram and Nessa's "
                     f"argument: {(value or 'unknown').replace('_', ' ')}."
+                )
+            if (
+                contribution
+                and memory.normalized_position.get("echo_hop") == 2
+            ):
+                echo_style = memory.normalized_position.get("echo_style")
+                contribution *= (
+                    -0.05
+                    if echo_style == "skeptical"
+                    else 0.1
+                )
+                explanation = (
+                    "Ambient echo, attenuated by distance and carrier style: "
+                    f"{explanation}"
                 )
             if not contribution:
                 continue

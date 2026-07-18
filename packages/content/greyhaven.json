@@ -105,7 +105,8 @@
       "color": "#4f7f8f",
       "opening": "Cargo tells you who owes whom, if you know how to count.",
       "voter_bias": 0.05,
-      "schedule_id": "dockworker"
+      "schedule_id": "dockworker",
+      "echo_style": "blunt"
     },
     {
       "id": "mae",
@@ -115,7 +116,8 @@
       "color": "#52758c",
       "opening": "A hand that helps before the rain is a hand I remember.",
       "voter_bias": -0.05,
-      "schedule_id": "dockworker"
+      "schedule_id": "dockworker",
+      "echo_style": "practical"
     },
     {
       "id": "oswin",
@@ -125,7 +127,8 @@
       "color": "#a87b4f",
       "opening": "Everyone wants tomorrow's bread on yesterday's credit.",
       "voter_bias": -0.2,
-      "schedule_id": "square_trader"
+      "schedule_id": "square_trader",
+      "echo_style": "skeptical"
     },
     {
       "id": "del",
@@ -135,7 +138,8 @@
       "color": "#3b8b81",
       "opening": "The tide brings truth in eventually. Usually smelling worse.",
       "voter_bias": 0.0,
-      "schedule_id": "harbor_household"
+      "schedule_id": "harbor_household",
+      "echo_style": "wry"
     },
     {
       "id": "hettie",
@@ -145,7 +149,8 @@
       "color": "#b28645",
       "opening": "Rhea knows how to keep the market predictable.",
       "voter_bias": -0.35,
-      "schedule_id": "market_trader"
+      "schedule_id": "market_trader",
+      "echo_style": "skeptical"
     },
     {
       "id": "cal",
@@ -155,7 +160,8 @@
       "color": "#9c7141",
       "opening": "I vote for whoever keeps customers walking this row.",
       "voter_bias": -0.25,
-      "schedule_id": "market_trader"
+      "schedule_id": "market_trader",
+      "echo_style": "blunt"
     },
     {
       "id": "edda",
@@ -165,7 +171,8 @@
       "color": "#7a7088",
       "opening": "New names make old promises very easily.",
       "voter_bias": -0.3,
-      "schedule_id": "elder"
+      "schedule_id": "elder",
+      "echo_style": "cautious"
     },
     {
       "id": "will",
@@ -175,7 +182,8 @@
       "color": "#796b5d",
       "opening": "Rhea has faults. At least we already know their price.",
       "voter_bias": -0.45,
-      "schedule_id": "elder"
+      "schedule_id": "elder",
+      "echo_style": "cautious"
     },
     {
       "id": "fen",
@@ -185,7 +193,8 @@
       "color": "#718b50",
       "opening": "A mayor ought to know which end of a crate is heavy.",
       "voter_bias": 0.1,
-      "schedule_id": "road_worker"
+      "schedule_id": "road_worker",
+      "echo_style": "practical"
     },
     {
       "id": "lina",
@@ -195,7 +204,8 @@
       "color": "#9f6682",
       "opening": "Reputation is only a seam. Pull it and see what holds.",
       "voter_bias": -0.1,
-      "schedule_id": "square_craft"
+      "schedule_id": "square_craft",
+      "echo_style": "precise"
     },
     {
       "id": "tob",
@@ -205,7 +215,8 @@
       "color": "#8a5e43",
       "opening": "Buy no speeches before you've heard the second telling.",
       "voter_bias": 0.0,
-      "schedule_id": "tavern_regular"
+      "schedule_id": "tavern_regular",
+      "echo_style": "wry"
     },
     {
       "id": "kit",
@@ -215,7 +226,8 @@
       "color": "#c07455",
       "opening": "I know who answers a knock and who lets a message freeze.",
       "voter_bias": 0.15,
-      "schedule_id": "courier"
+      "schedule_id": "courier",
+      "echo_style": "urgent"
     }
   ],
   "endings": [

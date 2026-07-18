@@ -20,6 +20,7 @@ from hearsay_api.memory import (
     DialogueTreatment,
     EmbeddingProvider,
     PromiseTransition,
+    VisibleAmbientEcho,
     derive_dialogue_treatment,
     plan_action_memory,
 )
@@ -40,6 +41,7 @@ from hearsay_api.schemas import (
     MemoryLineageResponse,
     MemoryRecallRequest,
     MemoryRecallResponse,
+    NpcEchoState,
     NpcState,
     PlayerState,
     PromiseState,
@@ -156,12 +158,17 @@ class GameService:
         request: MemoryRecallRequest,
     ) -> MemoryRecallResponse:
         query_embedding = self.embeddings.embed_query(request.query)
+        effective_limit = (
+            min(request.limit, 3)
+            if request.holder_id in self.content.ambients_by_id
+            else request.limit
+        )
         return self.repository.recall_memories(
             run_id,
             request.holder_id,
             request.query,
             query_embedding.vector,
-            request.limit,
+            effective_limit,
         )
 
     def take_action(self, run_id: UUID, request: ActionRequest) -> ActionResponse:
@@ -275,6 +282,11 @@ class GameService:
                 promise_transitions,
                 town_event_transitions,
             )
+            self._apply_visible_ambient_echoes(
+                snapshot,
+                memory_effects.visible_ambient_echoes,
+            )
+            response.snapshot = snapshot
             try:
                 return self.repository.update(
                     run_id,
@@ -707,6 +719,43 @@ class GameService:
         for resident_id, speech in awareness.items():
             npc = next(item for item in snapshot.npcs if item.id == resident_id)
             npc.speech = speech
+
+    @classmethod
+    def _apply_visible_ambient_echoes(
+        cls,
+        snapshot: RunSnapshot,
+        echoes: tuple[VisibleAmbientEcho, ...],
+    ) -> None:
+        if not echoes:
+            return
+        listener_names: list[str] = []
+        for echo in echoes:
+            npc = next(
+                item
+                for item in snapshot.npcs
+                if item.id == echo.listener_id
+            )
+            npc.recent_echoes = (
+                npc.recent_echoes
+                + [
+                    NpcEchoState(
+                        proposition_key=echo.proposition_key,
+                        speaker_id=echo.speaker_id,
+                        text=echo.text,
+                    )
+                ]
+            )[-3:]
+            npc.speech = echo.text
+            listener_names.append(npc.name)
+        chatter_event = cls._event(
+            "ambient_gossip",
+            f"Pip's version reaches {', '.join(listener_names)}.",
+        )
+        snapshot.recent_events = (
+            snapshot.recent_events[:1]
+            + [chatter_event]
+            + snapshot.recent_events[1:]
+        )[:8]
 
     @staticmethod
     def _run_gossip_tick(snapshot: RunSnapshot) -> None:

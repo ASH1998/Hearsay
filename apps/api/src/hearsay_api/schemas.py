@@ -69,6 +69,13 @@ class NpcState(BaseModel):
     color: str
     relationship: int = Field(default=0, ge=-100, le=100)
     speech: str | None = None
+    recent_echoes: list[NpcEchoState] = Field(default_factory=list, max_length=3)
+
+
+class NpcEchoState(BaseModel):
+    proposition_key: str
+    speaker_id: str
+    text: str
 
 
 class PromiseState(BaseModel):
