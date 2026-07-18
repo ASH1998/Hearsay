@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import AliasChoices, Field, SecretStr, model_validator
@@ -93,6 +94,22 @@ class Settings(BaseSettings):
         ge=1,
         le=3,
         alias="HEARSAY_INFERENCE_MAX_ATTEMPTS",
+    )
+    embedding_provider: Literal[
+        "auto",
+        "fallback",
+        "sentence_transformers",
+    ] = Field(
+        default="auto",
+        alias="HEARSAY_EMBEDDING_PROVIDER",
+    )
+    embedding_model: str = Field(
+        default="BAAI/bge-small-en-v1.5",
+        alias="HEARSAY_EMBEDDING_MODEL",
+    )
+    embedding_cache_dir: Path = Field(
+        default=Path(".cache/huggingface"),
+        alias="HEARSAY_EMBEDDING_CACHE_DIR",
     )
 
     @model_validator(mode="after")

@@ -124,12 +124,12 @@ class GameService:
         run_id: UUID,
         request: MemoryRecallRequest,
     ) -> MemoryRecallResponse:
-        query_embedding = self.embeddings.embed(request.query)
+        query_embedding = self.embeddings.embed_query(request.query)
         return self.repository.recall_memories(
             run_id,
             request.holder_id,
             request.query,
-            query_embedding,
+            query_embedding.vector,
             request.limit,
         )
 

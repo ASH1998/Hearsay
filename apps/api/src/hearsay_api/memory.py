@@ -2,9 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from pathlib import Path
+from threading import Lock
+from time import perf_counter
+from typing import TYPE_CHECKING, Protocol, cast
+
+import structlog
 
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
@@ -16,13 +23,42 @@ from hearsay_api.schemas import ActionRequest, ActionResponse, ActionVerb
 
 EMBEDDING_DIMENSIONS = 384
 TOKEN_PATTERN = re.compile(r"[a-z0-9']+")
+BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+logger = structlog.get_logger(__name__)
+
+if TYPE_CHECKING:
+    from hearsay_api.config import Settings
+
+
+class EmbeddingArray(Protocol):
+    def tolist(self) -> list[float]: ...
+
+
+class SentenceEmbeddingModel(Protocol):
+    def encode(
+        self,
+        sentences: str,
+        *,
+        normalize_embeddings: bool,
+        convert_to_numpy: bool,
+        show_progress_bar: bool,
+    ) -> EmbeddingArray: ...
+
+
+@dataclass(frozen=True)
+class EmbeddingResult:
+    vector: tuple[float, ...]
+    provider_id: str
+    model_id: str
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+    latency_ms: float = 0
 
 
 class EmbeddingProvider(Protocol):
-    @property
-    def model_id(self) -> str: ...
+    def embed(self, text: str) -> EmbeddingResult: ...
 
-    def embed(self, text: str) -> tuple[float, ...]: ...
+    def embed_query(self, text: str) -> EmbeddingResult: ...
 
 
 class DeterministicEmbeddingProvider:
@@ -32,7 +68,8 @@ class DeterministicEmbeddingProvider:
     def model_id(self) -> str:
         return "hearsay-hash-384-v1"
 
-    def embed(self, text: str) -> tuple[float, ...]:
+    def embed(self, text: str) -> EmbeddingResult:
+        started = perf_counter()
         values = [0.0] * EMBEDDING_DIMENSIONS
         tokens = TOKEN_PATTERN.findall(text.lower()) or ["empty"]
         for token in tokens:
@@ -42,7 +79,145 @@ class DeterministicEmbeddingProvider:
             values[first_index] += 1.0 if digest[8] & 1 else -1.0
             values[second_index] += 0.5 if digest[9] & 1 else -0.5
         magnitude = math.sqrt(sum(value * value for value in values)) or 1.0
-        return tuple(value / magnitude for value in values)
+        return EmbeddingResult(
+            vector=tuple(value / magnitude for value in values),
+            provider_id="deterministic",
+            model_id=self.model_id,
+            latency_ms=(perf_counter() - started) * 1000,
+        )
+
+    def embed_query(self, text: str) -> EmbeddingResult:
+        return self.embed(text)
+
+
+class SentenceTransformerEmbeddingProvider:
+    def __init__(
+        self,
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        cache_dir: Path = Path(".cache/huggingface"),
+        model: SentenceEmbeddingModel | None = None,
+    ) -> None:
+        self.model_name = model_name
+        self.cache_dir = cache_dir
+        self._model = model
+        self._model_lock = Lock()
+
+    def _load_model(self) -> SentenceEmbeddingModel:
+        if self._model is not None:
+            return self._model
+        with self._model_lock:
+            if self._model is None:
+                os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+                os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+                from sentence_transformers import SentenceTransformer
+
+                self.cache_dir.mkdir(parents=True, exist_ok=True)
+                self._model = cast(
+                    SentenceEmbeddingModel,
+                    SentenceTransformer(
+                        self.model_name,
+                        cache_folder=str(self.cache_dir),
+                        device="cpu",
+                        trust_remote_code=False,
+                    ),
+                )
+        return self._model
+
+    def _embed(self, text: str) -> EmbeddingResult:
+        started = perf_counter()
+        encoded = self._load_model().encode(
+            text,
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        )
+        vector = tuple(float(value) for value in encoded.tolist())
+        if len(vector) != EMBEDDING_DIMENSIONS:
+            raise ValueError(
+                "The configured embedding model returned "
+                f"{len(vector)} dimensions instead of {EMBEDDING_DIMENSIONS}."
+            )
+        if not all(math.isfinite(value) for value in vector):
+            raise ValueError("The configured embedding model returned non-finite values.")
+        return EmbeddingResult(
+            vector=vector,
+            provider_id="sentence-transformers",
+            model_id=self.model_name,
+            latency_ms=(perf_counter() - started) * 1000,
+        )
+
+    def embed(self, text: str) -> EmbeddingResult:
+        return self._embed(text)
+
+    def embed_query(self, text: str) -> EmbeddingResult:
+        return self._embed(f"{BGE_QUERY_INSTRUCTION}{text}")
+
+
+class SafeEmbeddingProvider:
+    def __init__(
+        self,
+        primary: EmbeddingProvider,
+        fallback: EmbeddingProvider | None = None,
+    ) -> None:
+        self.primary = primary
+        self.fallback = fallback or DeterministicEmbeddingProvider()
+        self._primary_failure_reason: str | None = None
+        self._failure_lock = Lock()
+
+    def _run(
+        self,
+        operation: str,
+        primary_call: Callable[[], EmbeddingResult],
+        fallback_call: Callable[[], EmbeddingResult],
+    ) -> EmbeddingResult:
+        started = perf_counter()
+        reason = self._primary_failure_reason
+        if reason is None:
+            try:
+                return primary_call()
+            except Exception as error:
+                reason = type(error).__name__
+                with self._failure_lock:
+                    self._primary_failure_reason = reason
+                logger.warning(
+                    "embedding_fallback_used",
+                    operation=operation,
+                    reason=reason,
+                )
+        fallback = fallback_call()
+        return EmbeddingResult(
+            vector=fallback.vector,
+            provider_id=fallback.provider_id,
+            model_id=fallback.model_id,
+            fallback_used=True,
+            fallback_reason=reason,
+            latency_ms=(perf_counter() - started) * 1000,
+        )
+
+    def embed(self, text: str) -> EmbeddingResult:
+        return self._run(
+            "embed",
+            lambda: self.primary.embed(text),
+            lambda: self.fallback.embed(text),
+        )
+
+    def embed_query(self, text: str) -> EmbeddingResult:
+        return self._run(
+            "embed_query",
+            lambda: self.primary.embed_query(text),
+            lambda: self.fallback.embed_query(text),
+        )
+
+
+def create_embedding_provider(settings: Settings) -> EmbeddingProvider:
+    fallback = DeterministicEmbeddingProvider()
+    if settings.embedding_provider == "fallback":
+        return fallback
+    primary = SentenceTransformerEmbeddingProvider(
+        model_name=settings.embedding_model,
+        cache_dir=settings.embedding_cache_dir,
+    )
+    return SafeEmbeddingProvider(primary=primary, fallback=fallback)
 
 
 @dataclass(frozen=True)
@@ -98,6 +273,7 @@ def plan_action_memory(
 ) -> MemoryEffects:
     if request.verb == ActionVerb.PROMISE_HELP and request.target_id == "marta":
         text = "The newcomer promised to release Marta's shipment from Bram before evening."
+        text_embedding = embeddings.embed(text)
         return MemoryEffects(
             beliefs=(
                 PlannedBelief(
@@ -116,8 +292,8 @@ def plan_action_memory(
                     salience=1.0,
                     source_kind="player",
                     source_id="player",
-                    embedding=embeddings.embed(text),
-                    embedding_model_id=embeddings.model_id,
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
                 ),
             ),
             relationships=(
@@ -156,6 +332,8 @@ def plan_action_memory(
                 latency_ms=0,
             )
         retold = retelling.value.retold_claim
+        original_embedding = embeddings.embed(original)
+        retold_embedding = embeddings.embed(retold)
         tick_number = response.snapshot.world_tick if response.snapshot.world_tick > 0 else None
         return MemoryEffects(
             beliefs=(
@@ -175,8 +353,8 @@ def plan_action_memory(
                     salience=0.95,
                     source_kind="player_action",
                     source_id="player",
-                    embedding=embeddings.embed(original),
-                    embedding_model_id=embeddings.model_id,
+                    embedding=original_embedding.vector,
+                    embedding_model_id=original_embedding.model_id,
                 ),
                 PlannedBelief(
                     proposition_key="bram-price-confrontation",
@@ -198,8 +376,8 @@ def plan_action_memory(
                     salience=0.9,
                     source_kind="hearsay",
                     source_id="bram",
-                    embedding=embeddings.embed(retold),
-                    embedding_model_id=embeddings.model_id,
+                    embedding=retold_embedding.vector,
+                    embedding_model_id=retold_embedding.model_id,
                     parent_holder_id="bram",
                     mutation_note=retelling.value.drift_note,
                     trust_at_time=0.6,

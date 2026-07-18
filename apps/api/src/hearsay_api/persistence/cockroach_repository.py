@@ -198,12 +198,7 @@ class CockroachRunRepository:
             raise ValueError("Evidence weight must be between zero and one.")
 
         def write_evidence(session: Session) -> UUID:
-            if (
-                session.scalar(
-                    select(GameRunModel.id).where(GameRunModel.id == run_id)
-                )
-                is None
-            ):
+            if session.scalar(select(GameRunModel.id).where(GameRunModel.id == run_id)) is None:
                 raise RunNotFoundError(run_id)
             proposition_id = session.scalar(
                 select(PropositionModel.id).where(
@@ -877,7 +872,11 @@ class CockroachRunRepository:
                     PropositionModel.id == BeliefModel.proposition_id,
                 )
                 .where(BeliefVersionModel.game_run_id == run_id)
-                .order_by(BeliefVersionModel.created_at, BeliefVersionModel.version)
+                .order_by(
+                    PropositionModel.proposition_key,
+                    BeliefVersionModel.holder_id,
+                    BeliefVersionModel.version,
+                )
             )
             transmission_query = (
                 select(TransmissionModel, PropositionModel.proposition_key)

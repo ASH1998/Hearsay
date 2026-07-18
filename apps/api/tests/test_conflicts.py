@@ -38,7 +38,7 @@ def make_claim(
         recency=recency,
         bias_alignment=bias_alignment,
         salience=1.0,
-        embedding=embeddings.embed(narrative),
+        embedding=embeddings.embed(narrative).vector,
         embedding_model_id=embeddings.model_id,
     )
 

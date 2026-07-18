@@ -38,7 +38,10 @@ $requiredNames = @(
     "MODAL_PROXY_URL",
     "MODAL_PROXY_TOKEN_ID",
     "MODAL_PROXY_TOKEN_SECRET",
-    "HEARSAY_MODAL_MODEL"
+    "HEARSAY_MODAL_MODEL",
+    "HEARSAY_EMBEDDING_PROVIDER",
+    "HEARSAY_EMBEDDING_MODEL",
+    "HEARSAY_EMBEDDING_CACHE_DIR"
 )
 $exampleNames = Get-Content -LiteralPath ".env.example" |
     Where-Object { $_ -match "^[A-Z][A-Z0-9_]*=" } |
@@ -65,6 +68,12 @@ if ($LASTEXITCODE -ne 0) {
 & "tools/uv/uv.exe" run python scripts/check_database.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[failed] Configured CockroachDB Cloud health/vector check"
+    $failed = $true
+}
+
+& "tools/uv/uv.exe" run python scripts/check_embeddings.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[failed] Local BGE embedding check"
     $failed = $true
 }
 

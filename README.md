@@ -55,6 +55,13 @@ offline provider. Invalid or timed-out responses are schema-rejected, retried,
 and replaced with a content-safe fallback whose provider/model provenance is
 stored with the transmission.
 
+Embeddings likewise default to `HEARSAY_EMBEDDING_PROVIDER=auto`. The API loads
+`BAAI/bge-small-en-v1.5` on CPU, caches it under `.cache/huggingface`, stores
+normalized 384-dimensional memory vectors, and adds the upstream retrieval
+instruction to recall queries. Set the provider to `fallback` for an explicitly
+offline deterministic runtime. See `THIRD_PARTY_MODELS.md` for license and
+reproducibility details.
+
 ## Current playable slice
 
 The opening loop is intentionally small but end to end:
@@ -75,8 +82,8 @@ vector recall with relational reranking. Structured Modal rumor retelling is
 validated and provenance-tracked. Conflicting claims are stored as independent
 inputs and deterministically resolved without losing either source history; a
 real Cockroach serialization race proves one coherent active belief survives.
-Real local embeddings, memory-driven dialogue, and the Managed MCP Historian are
-next.
+Local BGE embeddings now power configured development recall. Memory-driven
+dialogue and the Managed MCP Historian are next.
 
 ## Authority
 
@@ -85,3 +92,5 @@ next.
   memory proof, benchmarking, MCP Historian, and submission compliance.
 - `docs/IMPLEMENTATION_PLAN.md` is the implementation queue.
 - `docs/IMPLEMENTATION_STATUS.md` records completed gates and the next slice.
+- `THIRD_PARTY_MODELS.md` records the local embedding model, license, and
+  reproducibility details.

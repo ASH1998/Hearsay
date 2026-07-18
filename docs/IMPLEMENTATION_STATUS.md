@@ -100,13 +100,22 @@ Completed:
 - The Town Historian contract now includes every evaluated claim, the version it
   observed and actually evaluated, its outcome, resulting version, transaction
   attempts, and whether it was re-evaluated after a serialization conflict.
+- Configured development now uses local `BAAI/bge-small-en-v1.5` through
+  Sentence Transformers 5.6 on CPU. Stored memories use normalized passage
+  embeddings; recall queries use the model-card retrieval instruction.
+- Embedding results carry truthful provider/model/fallback provenance. A load,
+  shape, or non-finite-value failure logs only its exception class and stores a
+  deterministic `hearsay-hash-384-v1` vector instead of falsely claiming BGE.
+- Model and Torch/Hugging Face caches remain under ignored repository paths;
+  `THIRD_PARTY_MODELS.md` records the exact upstream model and MIT license.
 
 Validated:
 
-- Forty local API tests pass, covering immutable versions, lineage, recall,
+- Forty-three local API tests pass, covering immutable versions, lineage, recall,
   repeated claims, strict output validation, retries, all three fallback
   operations, service-level inference provenance, and every deterministic
-  conflict-policy branch.
+  conflict-policy branch, plus real-provider shape checks and truthful embedding
+  fallback provenance.
 - Four real Cockroach Cloud tests pass against `hearsay_test`, including
   384-dimensional vector storage, active-projection freshness, recall, complete
   foreign-key provenance, relationship writes, retrieval traces, evidence
@@ -125,21 +134,20 @@ Validated:
   One commits v5; Cockroach retries the other operation, which re-evaluates
   against v5 and commits v6. Both source inputs remain queryable, exactly one
   active memory remains, and Elias is durably marked contested.
+- A real cached BGE CPU probe returns normalized 384-dimensional vectors and
+  ranks a related shipment-price query above an unrelated chapel-weather query
+  (`0.786` versus `0.354` in the latest doctor run).
 - Ruff, formatting, strict mypy, ESLint, TypeScript, Vitest, the Next.js
   production build, and the Playwright signature story pass.
 
 Remaining:
 
-- Replace the deterministic embedding fallback in configured development with a
-  real local embedding provider and optional Modal acceleration.
 - Feed recalled and contested beliefs into dialogue choices and relationship
   treatment.
 - Implement the independently authenticated read-only Managed MCP Historian.
 
 ## Next implementation slice
 
-1. Replace deterministic embeddings in configured development with the local
-   384-dimensional model while retaining the test fallback.
-2. Feed recalled and contested beliefs into dialogue choices and relationship
+1. Feed recalled and contested beliefs into dialogue choices and relationship
    treatment.
-3. Configure the read-only Managed MCP Historian allowlist and audit surface.
+2. Configure the read-only Managed MCP Historian allowlist and audit surface.

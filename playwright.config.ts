@@ -24,6 +24,7 @@ export default defineConfig({
       command: apiCommand,
       env: {
         ...process.env,
+        HEARSAY_EMBEDDING_PROVIDER: "fallback",
         HEARSAY_ENV: "test",
         HEARSAY_LLM_PROVIDER: "fallback",
         HEARSAY_PERSISTENCE_BACKEND: "memory",

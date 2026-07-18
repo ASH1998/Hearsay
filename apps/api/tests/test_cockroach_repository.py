@@ -162,7 +162,9 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
     assert transmission.inference_attempts == 1
     assert transmission.inference_latency_ms is not None
 
-    embedding = DeterministicEmbeddingProvider().embed("What happened to Bram in market row?")
+    embedding = (
+        DeterministicEmbeddingProvider().embed("What happened to Bram in market row?").vector
+    )
     recall = repository.recall_memories(
         created.run_id,
         "pip",
@@ -273,7 +275,7 @@ def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state
             recency=1.0,
             bias_alignment=0.0,
             salience=1.0,
-            embedding=embeddings.embed(narrative),
+            embedding=embeddings.embed(narrative).vector,
             embedding_model_id=embeddings.model_id,
         )
 

@@ -31,6 +31,7 @@ database = [
 providers = [
   "boto3>=1.39,<2",
   "openai>=1.97,<2",
+  "sentence-transformers>=5.6,<6",
 ]
 
 [tool.uv]
