@@ -69,6 +69,12 @@ class DialogueMemoryRef(BaseModel):
     contested: bool = False
 
 
+class DialogueChoiceState(BaseModel):
+    id: str
+    label: str
+    prompt: str
+
+
 class DialogueState(BaseModel):
     speaker_id: str
     speaker_name: str
@@ -78,6 +84,8 @@ class DialogueState(BaseModel):
     model_id: str | None = None
     fallback_used: bool = False
     fallback_reason: str | None = None
+    treatment_cue: str | None = None
+    available_choices: list[DialogueChoiceState] = Field(default_factory=list)
 
 
 class WorldEvent(BaseModel):

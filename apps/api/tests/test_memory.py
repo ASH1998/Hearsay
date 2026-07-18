@@ -217,6 +217,13 @@ def test_npc_dialogue_uses_holder_scoped_recalled_memory() -> None:
         assert dialogue["model_id"] == "hearsay-rules-v1"
         assert dialogue["fallback_used"] is False
         assert dialogue["recalled_memories"][0]["proposition_key"] == ("bram-price-confrontation")
+        pip = next(npc for npc in response.json()["snapshot"]["npcs"] if npc["id"] == "pip")
+        assert pip["relationship"] == -10
+        assert dialogue["treatment_cue"].startswith("Cold:")
+        assert {choice["id"] for choice in dialogue["available_choices"]} == {
+            "ask_what_they_heard",
+            "set_record_straight",
+        }
 
 
 def test_dialogue_recall_failure_preserves_the_authored_opening() -> None:
@@ -247,3 +254,38 @@ def test_dialogue_recall_failure_preserves_the_authored_opening() -> None:
     assert response.snapshot.dialogue is not None
     assert response.snapshot.dialogue.text == (service.content.principals_by_id["marta"].opening)
     assert response.snapshot.dialogue.recalled_memories == []
+
+
+def test_remembered_promise_warms_treatment_and_unlocks_support_choices() -> None:
+    with make_client() as client:
+        run = create_run(client)
+        run_id = run["run_id"]
+        promise = client.post(
+            f"/v1/runs/{run_id}/actions",
+            json={
+                "idempotency_key": str(uuid4()),
+                "verb": "promise_help",
+                "target_id": "marta",
+            },
+        )
+        assert promise.status_code == 200
+
+        response = client.post(
+            f"/v1/runs/{run_id}/actions",
+            json={
+                "idempotency_key": str(uuid4()),
+                "verb": "talk",
+                "target_id": "marta",
+                "content": "Do you remember what I promised?",
+            },
+        )
+
+        assert response.status_code == 200
+        snapshot = response.json()["snapshot"]
+        marta = next(npc for npc in snapshot["npcs"] if npc["id"] == "marta")
+        assert marta["relationship"] == 10
+        assert snapshot["dialogue"]["treatment_cue"].startswith("Warmer:")
+        assert {choice["id"] for choice in snapshot["dialogue"]["available_choices"]} == {
+            "ask_for_favor",
+            "ask_for_support",
+        }

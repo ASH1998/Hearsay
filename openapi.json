@@ -567,6 +567,29 @@
         ],
         "title": "CreateRunResponse"
       },
+      "DialogueChoiceState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "prompt"
+        ],
+        "title": "DialogueChoiceState"
+      },
       "DialogueMemoryRef": {
         "properties": {
           "belief_id": {
@@ -654,6 +677,24 @@
               }
             ],
             "title": "Fallback Reason"
+          },
+          "treatment_cue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Treatment Cue"
+          },
+          "available_choices": {
+            "items": {
+              "$ref": "#/components/schemas/DialogueChoiceState"
+            },
+            "type": "array",
+            "title": "Available Choices"
           }
         },
         "type": "object",

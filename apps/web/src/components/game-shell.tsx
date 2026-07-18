@@ -310,7 +310,11 @@ export function GameShell() {
           </div>
           <div className="conversation__body">
             <p className="eyebrow">{selectedNpc.role}</p>
-            <h2>{selectedNpc.name}</h2>
+            <h2>
+              {selectedNpc.name} · standing{" "}
+              {selectedNpc.relationship >= 0 ? "+" : ""}
+              {selectedNpc.relationship}
+            </h2>
             <blockquote>
               {snapshot.dialogue?.speaker_id === selectedNpc.id
                 ? snapshot.dialogue.text
@@ -323,6 +327,10 @@ export function GameShell() {
                 {snapshot.dialogue.provider_id}/{snapshot.dialogue.model_id}
                 {snapshot.dialogue.fallback_used ? " · safe fallback" : ""}
               </small>
+            ) : null}
+            {snapshot.dialogue?.speaker_id === selectedNpc.id &&
+            snapshot.dialogue.treatment_cue ? (
+              <p>{snapshot.dialogue.treatment_cue}</p>
             ) : null}
             <div className="conversation__choices">
               <button
@@ -338,6 +346,20 @@ export function GameShell() {
               >
                 Talk
               </button>
+              {snapshot.dialogue?.speaker_id === selectedNpc.id
+                ? snapshot.dialogue.available_choices?.map((choice) => (
+                    <button
+                      disabled={busy}
+                      key={choice.id}
+                      type="button"
+                      onClick={() =>
+                        act("talk", selectedNpc.id, choice.prompt)
+                      }
+                    >
+                      {choice.label}
+                    </button>
+                  ))
+                : null}
               {selectedNpc.id === "marta" &&
               !snapshot.promises.some((promise) => promise.promisee_id === "marta") ? (
                 <button

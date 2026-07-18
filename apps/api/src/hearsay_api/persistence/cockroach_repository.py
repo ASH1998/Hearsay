@@ -791,6 +791,14 @@ class CockroachRunRepository:
                 ),
             )
             if relationship is None:
+                trust = min(
+                    max(0.5 + relationship_plan.trust_delta, 0.0),
+                    1.0,
+                )
+                if relationship_plan.trust_floor is not None:
+                    trust = max(trust, relationship_plan.trust_floor)
+                if relationship_plan.trust_ceiling is not None:
+                    trust = min(trust, relationship_plan.trust_ceiling)
                 session.execute(
                     insert(RelationshipModel).values(
                         game_run_id=run_id,
@@ -798,10 +806,7 @@ class CockroachRunRepository:
                         a_id=relationship_plan.a_id,
                         b_kind=relationship_plan.b_kind,
                         b_id=relationship_plan.b_id,
-                        trust=min(
-                            max(0.5 + relationship_plan.trust_delta, 0.0),
-                            1.0,
-                        ),
+                        trust=trust,
                         affinity=min(
                             max(relationship_plan.affinity_delta, -1.0),
                             1.0,
@@ -819,6 +824,16 @@ class CockroachRunRepository:
                     ),
                     1.0,
                 )
+                if relationship_plan.trust_floor is not None:
+                    relationship.trust = max(
+                        relationship.trust,
+                        relationship_plan.trust_floor,
+                    )
+                if relationship_plan.trust_ceiling is not None:
+                    relationship.trust = min(
+                        relationship.trust,
+                        relationship_plan.trust_ceiling,
+                    )
                 relationship.affinity = min(
                     max(
                         relationship.affinity + relationship_plan.affinity_delta,

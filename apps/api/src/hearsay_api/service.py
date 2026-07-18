@@ -7,7 +7,6 @@ import structlog
 from hearsay_api.content import GreyhavenContent, load_content
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
-    DialogueOutput,
     DialogueRequest,
     InferenceResult,
     RumorRetelling,
@@ -16,7 +15,9 @@ from hearsay_api.inference import (
 )
 from hearsay_api.memory import (
     DeterministicEmbeddingProvider,
+    DialogueTreatment,
     EmbeddingProvider,
+    derive_dialogue_treatment,
     plan_action_memory,
 )
 from hearsay_api.repository import (
@@ -161,6 +162,7 @@ class GameService:
             snapshot.revision += 1
 
             retelling: InferenceResult[RumorRetelling] | None = None
+            dialogue_treatment: DialogueTreatment | None = None
             if request.verb == ActionVerb.CONFRONT and request.target_id == "bram":
                 original_claim = "The newcomer confronted Bram about tripling the shipment price."
                 retelling = self.inference.retell_rumor(
@@ -178,7 +180,7 @@ class GameService:
                 pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
                 pip.speech = retelling.value.retold_claim
             if request.verb == ActionVerb.TALK:
-                self._apply_memory_driven_dialogue(
+                dialogue_treatment = self._apply_memory_driven_dialogue(
                     run_id,
                     snapshot,
                     request,
@@ -194,6 +196,7 @@ class GameService:
                 response,
                 self.embeddings,
                 retelling,
+                dialogue_treatment,
             )
             try:
                 return self.repository.update(
@@ -214,7 +217,7 @@ class GameService:
         run_id: UUID,
         snapshot: RunSnapshot,
         request: ActionRequest,
-    ) -> InferenceResult[DialogueOutput] | None:
+    ) -> DialogueTreatment | None:
         assert request.target_id is not None
         question = request.content
         if not question:
@@ -240,6 +243,12 @@ class GameService:
             (f"[contested] {memory.narrative_text}" if memory.contested else memory.narrative_text)
             for memory in recalled.memories
         ]
+        npc = self._require_npc(snapshot, request.target_id)
+        treatment = derive_dialogue_treatment(
+            recalled.memories,
+            npc.relationship,
+        )
+        npc.relationship = treatment.relationship_score
         result = self.inference.generate_dialogue(
             DialogueRequest(
                 npc_id=request.target_id,
@@ -252,7 +261,6 @@ class GameService:
                 ),
             )
         )
-        npc = self._require_npc(snapshot, request.target_id)
         snapshot.dialogue = DialogueState(
             speaker_id=npc.id,
             speaker_name=npc.name,
@@ -270,8 +278,10 @@ class GameService:
             model_id=result.model_id,
             fallback_used=result.fallback_used,
             fallback_reason=result.fallback_reason,
+            treatment_cue=treatment.cue,
+            available_choices=list(treatment.choices),
         )
-        return result
+        return treatment
 
     def _apply_action(self, snapshot: RunSnapshot, request: ActionRequest) -> WorldEvent:
         if request.verb == ActionVerb.MOVE:

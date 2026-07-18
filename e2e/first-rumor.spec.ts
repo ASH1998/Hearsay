@@ -32,6 +32,11 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
   );
   await page.getByRole("button", { name: "Talk", exact: true }).click();
   await expect(page.getByText(/Memory-informed · 1 recalled/)).toBeVisible();
+  await expect(page.getByText(/standing -10/)).toBeVisible();
+  await expect(page.getByText(/Cold: the market-row rumor/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Set the record straight" }),
+  ).toBeVisible();
   await expect(page.locator(".conversation blockquote")).toContainText(
     "ruin Bram",
   );

@@ -215,6 +215,15 @@ export interface components {
             run_id: string;
             snapshot: components["schemas"]["RunSnapshot"];
         };
+        /** DialogueChoiceState */
+        DialogueChoiceState: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Prompt */
+            prompt: string;
+        };
         /** DialogueMemoryRef */
         DialogueMemoryRef: {
             /**
@@ -253,6 +262,10 @@ export interface components {
             fallback_used: boolean;
             /** Fallback Reason */
             fallback_reason?: string | null;
+            /** Treatment Cue */
+            treatment_cue?: string | null;
+            /** Available Choices */
+            available_choices?: components["schemas"]["DialogueChoiceState"][];
         };
         /** HTTPValidationError */
         HTTPValidationError: {

@@ -117,10 +117,17 @@ Completed:
   context.
 - A retrieval failure logs only its exception class and preserves the authored
   NPC opening instead of fabricating or silently changing game state.
+- Recalled memory now projects into idempotent per-NPC treatment thresholds:
+  hostile rumor → Pip standing `-10` / trust ceiling `0.40`; contested account
+  → Elias standing `-5` / trust ceiling `0.45`; remembered promise → Marta
+  standing `+10` / trust floor `0.60`.
+- Dialogue state carries a player-visible treatment cue and functional
+  memory-conditioned follow-up chips. Thresholds are floors/ceilings rather than
+  repeatable deltas, so repeated Talk actions cannot farm or destroy trust.
 
 Validated:
 
-- Forty-five local API tests pass, covering immutable versions, lineage, recall,
+- Forty-six local API tests pass, covering immutable versions, lineage, recall,
   repeated claims, strict output validation, retries, all three fallback
   operations, service-level inference provenance, and every deterministic
   conflict-policy branch, plus real-provider shape checks and truthful embedding
@@ -149,17 +156,17 @@ Validated:
 - Local and real Cockroach tests prove Pip answers from his own mutated rumor,
   Elias answers from his contested active belief after the concurrent race, and
   the exact memory references survive snapshot restoration.
+- The browser proof visibly changes Pip to standing `-10`, explains the cold
+  treatment, and unlocks “Ask what they heard” / “Set the record straight.”
+  Cloud tests prove repeated contested conversations leave Elias at the same
+  `0.45` trust ceiling rather than applying another penalty.
 - Ruff, formatting, strict mypy, ESLint, TypeScript, Vitest, the Next.js
   production build, and the Playwright signature story pass.
 
 Remaining:
 
-- Apply recalled and contested beliefs to additional relationship treatment and
-  dialogue-choice availability.
 - Implement the independently authenticated read-only Managed MCP Historian.
 
 ## Next implementation slice
 
-1. Apply recalled and contested beliefs to relationship treatment and
-   dialogue-choice availability.
-2. Configure the read-only Managed MCP Historian allowlist and audit surface.
+1. Configure the read-only Managed MCP Historian allowlist and audit surface.

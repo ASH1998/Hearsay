@@ -345,11 +345,26 @@ def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state
     assert "[contested]" in dialogue.snapshot.dialogue.text
     assert dialogue.snapshot.dialogue.recalled_memories[0].contested is True
     assert dialogue.snapshot.dialogue.provider_id == "deterministic"
+    elias = next(npc for npc in dialogue.snapshot.npcs if npc.id == "elias")
+    assert elias.relationship == -5
+    assert dialogue.snapshot.dialogue.treatment_cue is not None
+    assert dialogue.snapshot.dialogue.treatment_cue.startswith("Guarded:")
     restored_dialogue = repository.get(created.run_id).dialogue
     assert restored_dialogue is not None
     assert restored_dialogue.recalled_memories[0].belief_id == (
         dialogue.snapshot.dialogue.recalled_memories[0].belief_id
     )
+    repeated_dialogue = service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="talk",
+            target_id="elias",
+            content="What would prove which account is true?",
+        ),
+    )
+    repeated_elias = next(npc for npc in repeated_dialogue.snapshot.npcs if npc.id == "elias")
+    assert repeated_elias.relationship == -5
 
     with repository.session_factory() as session:
         belief = session.execute(select(BeliefModel.current_version, BeliefModel.contested)).one()
@@ -359,6 +374,12 @@ def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state
         input_count = session.scalar(select(func.count()).select_from(BeliefInputModel))
         evidence_count = session.scalar(select(func.count()).select_from(EvidenceModel))
         evidence_link_count = session.scalar(select(func.count()).select_from(EvidenceLinkModel))
+        elias_player_trust = session.scalar(
+            select(RelationshipModel.trust).where(
+                RelationshipModel.a_id == "elias",
+                RelationshipModel.b_id == "player",
+            )
+        )
 
     assert belief.current_version == 6
     assert belief.contested is True
@@ -366,3 +387,4 @@ def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state
     assert input_count == 6
     assert evidence_count == 1
     assert evidence_link_count == 1
+    assert elias_player_trust == 0.45

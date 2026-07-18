@@ -85,7 +85,9 @@ real Cockroach serialization race proves one coherent active belief survives.
 Local BGE embeddings now power configured development recall. Memory-driven
 dialogue records and displays the exact belief versions behind an NPC response,
 including contested status and provider provenance. Broader relationship
-treatment and the Managed MCP Historian are next.
+treatment now changes visible standing and unlocks memory-conditioned follow-up
+chips through idempotent trust floors/ceilings. The Managed MCP Historian is the
+next proof-spine slice.
 
 ## Authority
 

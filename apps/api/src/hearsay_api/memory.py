@@ -19,7 +19,13 @@ from hearsay_api.inference import (
     RumorRetelling,
     RumorRetellingRequest,
 )
-from hearsay_api.schemas import ActionRequest, ActionResponse, ActionVerb
+from hearsay_api.schemas import (
+    ActionRequest,
+    ActionResponse,
+    ActionVerb,
+    DialogueChoiceState,
+    RecalledMemory,
+)
 
 EMBEDDING_DIMENSIONS = 384
 TOKEN_PATTERN = re.compile(r"[a-z0-9']+")
@@ -256,6 +262,17 @@ class PlannedRelationship:
     affinity_delta: float = 0.0
     fear_delta: float = 0.0
     debt_delta: float = 0.0
+    trust_floor: float | None = None
+    trust_ceiling: float | None = None
+
+
+@dataclass(frozen=True)
+class DialogueTreatment:
+    relationship_score: int
+    cue: str
+    choices: tuple[DialogueChoiceState, ...]
+    trust_floor: float | None = None
+    trust_ceiling: float | None = None
 
 
 @dataclass(frozen=True)
@@ -270,7 +287,30 @@ def plan_action_memory(
     response: ActionResponse,
     embeddings: EmbeddingProvider,
     retelling: InferenceResult[RumorRetelling] | None = None,
+    dialogue_treatment: DialogueTreatment | None = None,
 ) -> MemoryEffects:
+    if (
+        request.verb == ActionVerb.TALK
+        and request.target_id is not None
+        and dialogue_treatment is not None
+        and (
+            dialogue_treatment.trust_floor is not None
+            or dialogue_treatment.trust_ceiling is not None
+        )
+    ):
+        return MemoryEffects(
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id=request.target_id,
+                    b_kind="player",
+                    b_id="player",
+                    trust_floor=dialogue_treatment.trust_floor,
+                    trust_ceiling=dialogue_treatment.trust_ceiling,
+                ),
+            )
+        )
+
     if request.verb == ActionVerb.PROMISE_HELP and request.target_id == "marta":
         text = "The newcomer promised to release Marta's shipment from Bram before evening."
         text_embedding = embeddings.embed(text)
@@ -410,3 +450,78 @@ def plan_action_memory(
         )
 
     return MemoryEffects()
+
+
+def derive_dialogue_treatment(
+    memories: list[RecalledMemory],
+    current_relationship: int,
+) -> DialogueTreatment:
+    if any(memory.contested for memory in memories):
+        return DialogueTreatment(
+            relationship_score=min(current_relationship, -5),
+            cue="Guarded: they are weighing conflicting accounts.",
+            choices=(
+                DialogueChoiceState(
+                    id="ask_for_evidence",
+                    label="Ask what would prove it",
+                    prompt="What evidence would settle this for you?",
+                ),
+                DialogueChoiceState(
+                    id="clarify_account",
+                    label="Clarify your account",
+                    prompt="Let me clarify what really happened.",
+                ),
+            ),
+            trust_ceiling=0.45,
+        )
+
+    proposition_keys = {memory.proposition_key for memory in memories}
+    if "bram-price-confrontation" in proposition_keys:
+        return DialogueTreatment(
+            relationship_score=min(current_relationship, -10),
+            cue="Cold: the market-row rumor has changed their treatment of you.",
+            choices=(
+                DialogueChoiceState(
+                    id="ask_what_they_heard",
+                    label="Ask what they heard",
+                    prompt="Tell me exactly what you heard about Bram and me.",
+                ),
+                DialogueChoiceState(
+                    id="set_record_straight",
+                    label="Set the record straight",
+                    prompt="I want to correct the story about Bram.",
+                ),
+            ),
+            trust_ceiling=0.4,
+        )
+
+    if "player-promise-marta-shipment" in proposition_keys:
+        return DialogueTreatment(
+            relationship_score=max(current_relationship, 10),
+            cue="Warmer: they remember the promise you made.",
+            choices=(
+                DialogueChoiceState(
+                    id="ask_for_favor",
+                    label="Ask for a favor",
+                    prompt="Since you remember my promise, will you help me?",
+                ),
+                DialogueChoiceState(
+                    id="ask_for_support",
+                    label="Ask for support",
+                    prompt="Can I count on your support if I keep my word?",
+                ),
+            ),
+            trust_floor=0.6,
+        )
+
+    return DialogueTreatment(
+        relationship_score=current_relationship,
+        cue="Neutral: no recalled claim changes their treatment yet.",
+        choices=(
+            DialogueChoiceState(
+                id="ask_about_town",
+                label="Ask about the town",
+                prompt="What should a newcomer know about Greyhaven?",
+            ),
+        ),
+    )
