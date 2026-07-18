@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "initial_load_budget_bytes": 26214400,
+  "full_session_budget_bytes": 62914560,
+  "assets": [],
+  "candidate_archives": [
+    "assets/downloads/Medieval Village MegaKit[Standard].zip",
+    "assets/downloads/Stylized Nature MegaKit[Standard].zip",
+    "assets/downloads/Fantasy Props MegaKit[Standard].zip",
+    "assets/downloads/Universal Base Characters[Standard].zip",
+    "assets/downloads/Modular Character Outfits - Fantasy[Standard].zip",
+    "assets/downloads/Universal Animation Library[Standard].zip",
+    "assets/downloads/kenney_ui-pack-adventure.zip",
+    "assets/downloads/kenney_ui-audio.zip",
+    "assets/downloads/glTF-20260718T165702Z-1-001.zip"
+  ]
+}

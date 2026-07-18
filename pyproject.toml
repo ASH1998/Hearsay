@@ -1,0 +1,62 @@
+[project]
+name = "hearsay-api"
+version = "0.1.0"
+description = "Authoritative game API and memory simulation for Hearsay"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+dependencies = [
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
+  "pydantic-settings>=2.10,<3",
+  "structlog>=25.4,<26",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[dependency-groups]
+dev = [
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<7",
+  "ruff>=0.12,<1",
+]
+database = [
+  "alembic>=1.16,<2",
+  "pgvector>=0.4,<1",
+  "psycopg[binary]>=3.2,<4",
+  "sqlalchemy>=2.0,<3",
+]
+providers = [
+  "boto3>=1.39,<2",
+  "openai>=1.97,<2",
+]
+
+[tool.uv]
+default-groups = ["dev", "database", "providers"]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["apps/api/src/hearsay_api"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers"
+testpaths = ["apps/api/tests", "tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["apps/api/src", "apps/api/tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["hearsay_api"]
+mypy_path = "apps/api/src"

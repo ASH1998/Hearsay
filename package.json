@@ -1,0 +1,21 @@
+{
+  "name": "hearsay",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": "22.x",
+    "pnpm": "11.9.0"
+  },
+  "scripts": {
+    "bootstrap": "powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1",
+    "doctor": "powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1",
+    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1",
+    "test": "powershell -ExecutionPolicy Bypass -File scripts/test.ps1",
+    "assets": "powershell -ExecutionPolicy Bypass -File scripts/assets.ps1",
+    "api:export": "tools/uv/uv.exe --cache-dir .cache/uv run --python tools/python/cpython-3.12.13-windows-x86_64-none/python.exe python scripts/export_openapi.py",
+    "api:generate": "pnpm api:export && pnpm --filter @hearsay/web generate:api",
+    "typecheck": "pnpm --filter @hearsay/web typecheck",
+    "lint": "pnpm --filter @hearsay/web lint"
+  }
+}

@@ -1,0 +1,96 @@
+# Secrets and certificates
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+credentials/
+secrets/
+certs/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+build/
+dist/
+*.egg-info/
+
+# Node and Next.js
+node_modules/
+.pnpm-store/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests, local tools, and caches
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.cache/
+tools/uv/
+tools/python/
+tools/uv-tools/
+tools/blender/
+tools/ccloud/
+tools/bin/
+
+# Raw and intermediate assets
+assets/downloads/
+assets/source/
+assets/work/
+assets/tmp/
+assets/render-cache/
+assets/processed/debug/
+
+# Runtime scratch data
+logs/
+*.log
+tmp/
+.temp/
+data/local/
+replays/tmp/
+benchmarks/tmp/
+reports/generated/
+
+# Infrastructure state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+cdk.out/
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini

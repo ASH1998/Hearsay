@@ -1,0 +1,671 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hearsay Game API",
+    "description": "Authoritative game state, actions, and memory-proof surfaces.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runs": {
+      "post": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Create Run",
+        "operationId": "create_run_v1_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runs/{run_id}/snapshot": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Get Snapshot",
+        "operationId": "get_snapshot_v1_runs__run_id__snapshot_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runs/{run_id}/actions": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Take Action",
+        "operationId": "take_action_v1_runs__run_id__actions_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionRequest": {
+        "properties": {
+          "idempotency_key": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Idempotency Key"
+          },
+          "verb": {
+            "$ref": "#/components/schemas/ActionVerb"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "idempotency_key",
+          "verb"
+        ],
+        "title": "ActionRequest"
+      },
+      "ActionResponse": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Action Id"
+          },
+          "consumed_time": {
+            "type": "boolean",
+            "title": "Consumed Time"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RunSnapshot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action_id",
+          "consumed_time",
+          "snapshot"
+        ],
+        "title": "ActionResponse"
+      },
+      "ActionVerb": {
+        "type": "string",
+        "enum": [
+          "move",
+          "observe",
+          "read_notice_board",
+          "talk",
+          "promise_help",
+          "confront",
+          "sleep"
+        ],
+        "title": "ActionVerb"
+      },
+      "CreateRunRequest": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Display Name",
+            "default": "Newcomer"
+          },
+          "seed": {
+            "type": "integer",
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "default": 1729
+          }
+        },
+        "type": "object",
+        "title": "CreateRunRequest"
+      },
+      "CreateRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "snapshot": {
+            "$ref": "#/components/schemas/RunSnapshot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "snapshot"
+        ],
+        "title": "CreateRunResponse"
+      },
+      "DialogueState": {
+        "properties": {
+          "speaker_id": {
+            "type": "string",
+            "title": "Speaker Id"
+          },
+          "speaker_name": {
+            "type": "string",
+            "title": "Speaker Name"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "speaker_id",
+          "speaker_name",
+          "text"
+        ],
+        "title": "DialogueState"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LocationState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "position": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "position"
+        ],
+        "title": "LocationState"
+      },
+      "NpcState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "location_id": {
+            "type": "string",
+            "title": "Location Id"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "relationship": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": -100.0,
+            "title": "Relationship",
+            "default": 0
+          },
+          "speech": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speech"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "role",
+          "location_id",
+          "color"
+        ],
+        "title": "NpcState"
+      },
+      "PlayerState": {
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "location_id": {
+            "type": "string",
+            "title": "Location Id"
+          },
+          "traits": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Traits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "display_name",
+          "location_id"
+        ],
+        "title": "PlayerState"
+      },
+      "PromiseState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "promisee_id": {
+            "type": "string",
+            "title": "Promisee Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "deadline_day": {
+            "type": "integer",
+            "title": "Deadline Day"
+          },
+          "deadline_phase": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "afternoon",
+              "evening",
+              "night"
+            ],
+            "title": "Deadline Phase"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "kept",
+              "broken"
+            ],
+            "title": "Status",
+            "default": "active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "promisee_id",
+          "content",
+          "deadline_day",
+          "deadline_phase"
+        ],
+        "title": "PromiseState"
+      },
+      "RunSnapshot": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed"
+            ],
+            "title": "Status",
+            "default": "active"
+          },
+          "day": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Day",
+            "default": 1
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "afternoon",
+              "evening",
+              "night"
+            ],
+            "title": "Phase",
+            "default": "morning"
+          },
+          "action_count": {
+            "type": "integer",
+            "maximum": 18.0,
+            "minimum": 0.0,
+            "title": "Action Count",
+            "default": 0
+          },
+          "world_tick": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "World Tick",
+            "default": 0
+          },
+          "weather": {
+            "type": "string",
+            "enum": [
+              "clear",
+              "rain"
+            ],
+            "title": "Weather",
+            "default": "clear"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerState"
+          },
+          "locations": {
+            "items": {
+              "$ref": "#/components/schemas/LocationState"
+            },
+            "type": "array",
+            "title": "Locations"
+          },
+          "npcs": {
+            "items": {
+              "$ref": "#/components/schemas/NpcState"
+            },
+            "type": "array",
+            "title": "Npcs"
+          },
+          "promises": {
+            "items": {
+              "$ref": "#/components/schemas/PromiseState"
+            },
+            "type": "array",
+            "title": "Promises"
+          },
+          "dialogue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DialogueState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recent_events": {
+            "items": {
+              "$ref": "#/components/schemas/WorldEvent"
+            },
+            "type": "array",
+            "title": "Recent Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "seed",
+          "player",
+          "locations",
+          "npcs"
+        ],
+        "title": "RunSnapshot"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WorldEvent": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "visible": {
+            "type": "boolean",
+            "title": "Visible",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "text"
+        ],
+        "title": "WorldEvent"
+      }
+    }
+  }
+}
