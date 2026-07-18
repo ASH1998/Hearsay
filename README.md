@@ -72,8 +72,11 @@ connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
 the browser restores the current run from CockroachDB. The current memory slice
 persists immutable belief lineage and performs holder-scoped 384-dimensional
 vector recall with relational reranking. Structured Modal rumor retelling is
-validated and provenance-tracked. Real local embeddings, contradiction handling,
-and the Managed MCP Historian are next.
+validated and provenance-tracked. Conflicting claims are stored as independent
+inputs and deterministically resolved without losing either source history; a
+real Cockroach serialization race proves one coherent active belief survives.
+Real local embeddings, memory-driven dialogue, and the Managed MCP Historian are
+next.
 
 ## Authority
 

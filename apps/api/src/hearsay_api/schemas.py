@@ -123,6 +123,7 @@ class MemoryVersionState(BaseModel):
     source_id: str | None
     embedding_model_id: str
     active: bool
+    contested: bool = False
     created_at: datetime | None = None
 
 
@@ -148,11 +149,38 @@ class TransmissionState(BaseModel):
     created_at: datetime | None = None
 
 
+class BeliefInputState(BaseModel):
+    id: UUID
+    proposition_key: str
+    holder_id: str
+    source_kind: str
+    source_id: str | None
+    narrative_text: str
+    normalized_position: dict[str, object]
+    source_trust: float
+    evidence_weight: float
+    corroboration: float
+    recency: float
+    bias_alignment: float
+    incoming_strength: float
+    classification: str
+    outcome: str
+    rationale: str
+    observed_version: int | None
+    evaluated_against_version: int | None
+    resulting_belief_id: UUID | None
+    resulting_version: int | None
+    transaction_attempts: int
+    recalculated_after_conflict: bool
+    created_at: datetime | None = None
+
+
 class MemoryLineageResponse(BaseModel):
     run_id: UUID
     proposition_key: str | None = None
     versions: list[MemoryVersionState]
     transmissions: list[TransmissionState]
+    inputs: list[BeliefInputState]
 
 
 class MemoryRecallRequest(BaseModel):

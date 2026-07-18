@@ -10,6 +10,12 @@ from sqlalchemy.engine import CursorResult, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy_cockroachdb import run_transaction  # type: ignore[import-untyped]
 
+from hearsay_api.conflicts import (
+    ClaimResolution,
+    CurrentBelief,
+    IncomingClaim,
+    resolve_conflict,
+)
 from hearsay_api.memory import MemoryEffects
 from hearsay_api.persistence.database import (
     create_database_engine,
@@ -18,9 +24,12 @@ from hearsay_api.persistence.database import (
 from hearsay_api.persistence.models import (
     ActionModel,
     ActiveMemoryModel,
+    BeliefInputModel,
     BeliefModel,
     BeliefVersionModel,
     EventModel,
+    EvidenceLinkModel,
+    EvidenceModel,
     GameRunModel,
     GossipTickModel,
     PlayerModel,
@@ -33,6 +42,7 @@ from hearsay_api.repository import ConcurrentRunUpdateError, RunNotFoundError
 from hearsay_api.schemas import (
     ActionRequest,
     ActionResponse,
+    BeliefInputState,
     MemoryLineageResponse,
     MemoryRecallResponse,
     MemoryVersionState,
@@ -138,6 +148,352 @@ class CockroachRunRepository:
         if exists is None:
             raise RunNotFoundError(run_id)
         return None
+
+    def get_observed_belief_version(
+        self,
+        run_id: UUID,
+        proposition_key: str,
+        holder_id: str,
+    ) -> int | None:
+        with self.session_factory() as session:
+            version = session.scalar(
+                select(BeliefModel.current_version)
+                .join(
+                    PropositionModel,
+                    PropositionModel.id == BeliefModel.proposition_id,
+                )
+                .where(
+                    BeliefModel.game_run_id == run_id,
+                    PropositionModel.proposition_key == proposition_key,
+                    BeliefModel.holder_kind == "npc",
+                    BeliefModel.holder_id == holder_id,
+                )
+            )
+            if version is not None:
+                return version
+            exists = session.scalar(select(GameRunModel.id).where(GameRunModel.id == run_id))
+        if exists is None:
+            raise RunNotFoundError(run_id)
+        return None
+
+    def record_evidence(
+        self,
+        run_id: UUID,
+        *,
+        proposition_key: str,
+        subject_kind: str,
+        subject_id: str | None,
+        predicate: str,
+        evidence_key: str,
+        title: str,
+        description: str,
+        effect: str,
+        weight: float,
+        payload: dict[str, object] | None = None,
+        discovered_by_player: bool = False,
+    ) -> UUID:
+        if effect not in {"supports", "contradicts"}:
+            raise ValueError("Evidence effect must be supports or contradicts.")
+        if not 0 <= weight <= 1:
+            raise ValueError("Evidence weight must be between zero and one.")
+
+        def write_evidence(session: Session) -> UUID:
+            if (
+                session.scalar(
+                    select(GameRunModel.id).where(GameRunModel.id == run_id)
+                )
+                is None
+            ):
+                raise RunNotFoundError(run_id)
+            proposition_id = session.scalar(
+                select(PropositionModel.id).where(
+                    PropositionModel.game_run_id == run_id,
+                    PropositionModel.proposition_key == proposition_key,
+                )
+            )
+            if proposition_id is None:
+                proposition_id = uuid4()
+                session.execute(
+                    insert(PropositionModel).values(
+                        id=proposition_id,
+                        game_run_id=run_id,
+                        proposition_key=proposition_key,
+                        subject_kind=subject_kind,
+                        subject_id=subject_id,
+                        predicate=predicate,
+                    )
+                )
+
+            existing = session.scalar(
+                select(EvidenceModel.id).where(
+                    EvidenceModel.game_run_id == run_id,
+                    EvidenceModel.evidence_key == evidence_key,
+                )
+            )
+            if existing is None:
+                evidence_id = uuid4()
+                session.execute(
+                    insert(EvidenceModel).values(
+                        id=evidence_id,
+                        game_run_id=run_id,
+                        evidence_key=evidence_key,
+                        title=title,
+                        description=description,
+                        payload=payload or {},
+                        discovered_by_player=discovered_by_player,
+                    )
+                )
+            else:
+                evidence_id = existing
+
+            linked = session.scalar(
+                select(EvidenceLinkModel.evidence_id).where(
+                    EvidenceLinkModel.evidence_id == evidence_id,
+                    EvidenceLinkModel.proposition_id == proposition_id,
+                )
+            )
+            if linked is None:
+                session.execute(
+                    insert(EvidenceLinkModel).values(
+                        evidence_id=evidence_id,
+                        proposition_id=proposition_id,
+                        effect=effect,
+                        weight=weight,
+                    )
+                )
+            return evidence_id
+
+        return self._run_transaction(write_evidence)
+
+    def apply_claim(
+        self,
+        run_id: UUID,
+        claim: IncomingClaim,
+        *,
+        observed_version: int | None = None,
+        first_read_hook: Callable[[], None] | None = None,
+    ) -> ClaimResolution:
+        if len(claim.embedding) != 384:
+            raise ValueError("Belief embeddings must contain exactly 384 values.")
+
+        input_id = uuid4()
+        callback_attempts = 0
+
+        def write_claim(session: Session) -> ClaimResolution:
+            nonlocal callback_attempts
+            callback_attempts += 1
+
+            if session.scalar(select(GameRunModel.id).where(GameRunModel.id == run_id)) is None:
+                raise RunNotFoundError(run_id)
+
+            proposition_id = session.scalar(
+                select(PropositionModel.id).where(
+                    PropositionModel.game_run_id == run_id,
+                    PropositionModel.proposition_key == claim.proposition_key,
+                )
+            )
+            if proposition_id is None:
+                proposition_id = uuid4()
+                session.execute(
+                    insert(PropositionModel).values(
+                        id=proposition_id,
+                        game_run_id=run_id,
+                        proposition_key=claim.proposition_key,
+                        subject_kind=claim.subject_kind,
+                        subject_id=claim.subject_id,
+                        predicate=claim.predicate,
+                    )
+                )
+
+            current_row = session.execute(
+                select(
+                    BeliefModel.id,
+                    BeliefModel.current_version,
+                    BeliefModel.contested,
+                    BeliefVersionModel.narrative_text,
+                    BeliefVersionModel.normalized_position,
+                    BeliefVersionModel.confidence,
+                    BeliefVersionModel.salience,
+                    BeliefVersionModel.embedding,
+                    BeliefVersionModel.embedding_model_id,
+                )
+                .join(
+                    BeliefVersionModel,
+                    (BeliefVersionModel.belief_id == BeliefModel.id)
+                    & (BeliefVersionModel.version == BeliefModel.current_version),
+                )
+                .where(
+                    BeliefModel.game_run_id == run_id,
+                    BeliefModel.proposition_id == proposition_id,
+                    BeliefModel.holder_kind == "npc",
+                    BeliefModel.holder_id == claim.holder_id,
+                )
+            ).one_or_none()
+
+            if callback_attempts == 1 and first_read_hook is not None:
+                first_read_hook()
+
+            current = (
+                CurrentBelief(
+                    belief_id=current_row.id,
+                    version=current_row.current_version,
+                    narrative_text=current_row.narrative_text,
+                    normalized_position=current_row.normalized_position,
+                    confidence=current_row.confidence,
+                    salience=current_row.salience,
+                    contested=current_row.contested,
+                )
+                if current_row is not None
+                else None
+            )
+            decision = resolve_conflict(current, claim)
+            evaluated_version = current.version if current is not None else None
+            recalculated = observed_version is not None and evaluated_version != observed_version
+
+            if current is None:
+                belief_id = uuid4()
+                version = 1
+                session.execute(
+                    insert(BeliefModel).values(
+                        id=belief_id,
+                        game_run_id=run_id,
+                        proposition_id=proposition_id,
+                        holder_kind="npc",
+                        holder_id=claim.holder_id,
+                        current_version=version,
+                        status="active",
+                        contested=decision.contested,
+                    )
+                )
+            else:
+                belief_id = current.belief_id
+                version = current.version
+
+            if decision.create_version:
+                if current is not None:
+                    version = current.version + 1
+                    session.execute(
+                        update(BeliefModel)
+                        .where(BeliefModel.id == belief_id)
+                        .values(
+                            current_version=version,
+                            status="active",
+                            contested=decision.contested,
+                            updated_at=text("now()"),
+                        )
+                    )
+
+                preserve_current = decision.outcome == "contested" and current_row is not None
+                if preserve_current:
+                    assert current_row is not None
+                    embedding = list(current_row.embedding or claim.embedding)
+                    embedding_model_id = current_row.embedding_model_id
+                    salience = current_row.salience
+                    source_kind = "conflict_resolution"
+                else:
+                    embedding = list(claim.embedding)
+                    embedding_model_id = claim.embedding_model_id
+                    salience = claim.salience
+                    source_kind = claim.source_kind
+                session.execute(
+                    insert(BeliefVersionModel).values(
+                        belief_id=belief_id,
+                        version=version,
+                        game_run_id=run_id,
+                        holder_id=claim.holder_id,
+                        status="stored",
+                        narrative_text=decision.narrative_text,
+                        normalized_position=decision.normalized_position,
+                        confidence=decision.confidence,
+                        salience=salience,
+                        embedding=embedding,
+                        embedding_model_id=embedding_model_id,
+                        source_kind=source_kind,
+                        source_id=claim.source_id,
+                    )
+                )
+                active_values = {
+                    "belief_version": version,
+                    "status": "active",
+                    "narrative_text": decision.narrative_text,
+                    "embedding": embedding,
+                    "embedding_model_id": embedding_model_id,
+                    "confidence": decision.confidence,
+                    "salience": salience,
+                    "updated_at": datetime.now(UTC),
+                }
+                active_exists = session.scalar(
+                    select(ActiveMemoryModel.belief_id).where(
+                        ActiveMemoryModel.belief_id == belief_id
+                    )
+                )
+                if active_exists is None:
+                    session.execute(
+                        insert(ActiveMemoryModel).values(
+                            game_run_id=run_id,
+                            holder_id=claim.holder_id,
+                            belief_id=belief_id,
+                            **active_values,
+                        )
+                    )
+                else:
+                    session.execute(
+                        update(ActiveMemoryModel)
+                        .where(ActiveMemoryModel.belief_id == belief_id)
+                        .values(**active_values)
+                    )
+            elif current is not None and decision.contested != current.contested:
+                session.execute(
+                    update(BeliefModel)
+                    .where(BeliefModel.id == belief_id)
+                    .values(
+                        contested=decision.contested,
+                        updated_at=text("now()"),
+                    )
+                )
+
+            session.execute(
+                insert(BeliefInputModel).values(
+                    id=input_id,
+                    game_run_id=run_id,
+                    proposition_id=proposition_id,
+                    holder_kind="npc",
+                    holder_id=claim.holder_id,
+                    source_kind=claim.source_kind,
+                    source_id=claim.source_id,
+                    narrative_text=claim.narrative_text,
+                    normalized_position=claim.normalized_position,
+                    source_trust=claim.source_trust,
+                    evidence_weight=claim.evidence_weight,
+                    corroboration=claim.corroboration,
+                    recency=claim.recency,
+                    bias_alignment=claim.bias_alignment,
+                    incoming_strength=decision.incoming_strength,
+                    classification=decision.classification,
+                    outcome=decision.outcome,
+                    rationale=decision.rationale,
+                    observed_version=observed_version,
+                    evaluated_against_version=evaluated_version,
+                    resulting_belief_id=belief_id,
+                    resulting_version=version,
+                    transaction_attempts=callback_attempts,
+                    recalculated_after_conflict=recalculated,
+                )
+            )
+            return ClaimResolution(
+                input_id=input_id,
+                belief_id=belief_id,
+                belief_version=version,
+                classification=decision.classification,
+                outcome=decision.outcome,
+                contested=decision.contested,
+                observed_version=observed_version,
+                evaluated_against_version=evaluated_version,
+                transaction_attempts=callback_attempts,
+                recalculated_after_conflict=recalculated,
+            )
+
+        return self._run_transaction(write_claim)
 
     def update(
         self,
@@ -513,6 +869,7 @@ class CockroachRunRepository:
                     BeliefVersionModel,
                     PropositionModel.proposition_key,
                     BeliefModel.current_version,
+                    BeliefModel.contested,
                 )
                 .join(BeliefModel, BeliefModel.id == BeliefVersionModel.belief_id)
                 .join(
@@ -531,6 +888,15 @@ class CockroachRunRepository:
                 .where(TransmissionModel.game_run_id == run_id)
                 .order_by(TransmissionModel.created_at)
             )
+            input_query = (
+                select(BeliefInputModel, PropositionModel.proposition_key)
+                .join(
+                    PropositionModel,
+                    PropositionModel.id == BeliefInputModel.proposition_id,
+                )
+                .where(BeliefInputModel.game_run_id == run_id)
+                .order_by(BeliefInputModel.created_at, BeliefInputModel.id)
+            )
             if proposition_key is not None:
                 version_query = version_query.where(
                     PropositionModel.proposition_key == proposition_key
@@ -538,8 +904,10 @@ class CockroachRunRepository:
                 transmission_query = transmission_query.where(
                     PropositionModel.proposition_key == proposition_key
                 )
+                input_query = input_query.where(PropositionModel.proposition_key == proposition_key)
             version_rows = session.execute(version_query).all()
             transmission_rows = session.execute(transmission_query).all()
+            input_rows = session.execute(input_query).all()
 
         versions = [
             MemoryVersionState(
@@ -555,9 +923,10 @@ class CockroachRunRepository:
                 source_id=version.source_id,
                 embedding_model_id=version.embedding_model_id,
                 active=version.version == current_version,
+                contested=contested and version.version == current_version,
                 created_at=version.created_at,
             )
-            for version, key, current_version in version_rows
+            for version, key, current_version, contested in version_rows
         ]
         transmissions = [
             TransmissionState(
@@ -583,11 +952,40 @@ class CockroachRunRepository:
             )
             for transmission, key in transmission_rows
         ]
+        inputs = [
+            BeliefInputState(
+                id=item.id,
+                proposition_key=key,
+                holder_id=item.holder_id,
+                source_kind=item.source_kind,
+                source_id=item.source_id,
+                narrative_text=item.narrative_text,
+                normalized_position=item.normalized_position,
+                source_trust=item.source_trust,
+                evidence_weight=item.evidence_weight,
+                corroboration=item.corroboration,
+                recency=item.recency,
+                bias_alignment=item.bias_alignment,
+                incoming_strength=item.incoming_strength,
+                classification=item.classification,
+                outcome=item.outcome,
+                rationale=item.rationale,
+                observed_version=item.observed_version,
+                evaluated_against_version=item.evaluated_against_version,
+                resulting_belief_id=item.resulting_belief_id,
+                resulting_version=item.resulting_version,
+                transaction_attempts=item.transaction_attempts,
+                recalculated_after_conflict=item.recalculated_after_conflict,
+                created_at=item.created_at,
+            )
+            for item, key in input_rows
+        ]
         return MemoryLineageResponse(
             run_id=run_id,
             proposition_key=proposition_key,
             versions=versions,
             transmissions=transmissions,
+            inputs=inputs,
         )
 
     def recall_memories(
@@ -710,6 +1108,9 @@ class CockroachRunRepository:
 
         def clear(session: Session) -> None:
             session.execute(delete(RetrievalTraceModel))
+            session.execute(delete(BeliefInputModel))
+            session.execute(delete(EvidenceLinkModel))
+            session.execute(delete(EvidenceModel))
             session.execute(delete(TransmissionModel))
             session.execute(delete(GossipTickModel))
             session.execute(delete(RelationshipModel))

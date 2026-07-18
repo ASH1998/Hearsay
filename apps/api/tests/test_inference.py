@@ -187,6 +187,28 @@ def test_modal_provider_rejects_an_introduced_named_entity() -> None:
         provider.retell_rumor(make_request())
 
 
+def test_modal_provider_allows_a_capitalized_sentence_opening() -> None:
+    fake = FakeOpenAI(
+        RumorRetelling(
+            retold_claim="Apparently, the newcomer tried to shame Bram over his price.",
+            semantic_position={"intent": "shame_bram"},
+            drift_note="The price dispute gained a motive.",
+            confidence_delta=-0.08,
+        ).model_dump_json()
+    )
+    provider = ModalInferenceProvider(
+        base_url="https://example.invalid",
+        token_id="unused",
+        token_secret="unused",
+        model_id="test-model",
+        client=cast(OpenAI, fake),
+    )
+
+    result = provider.retell_rumor(make_request())
+
+    assert result.retold_claim.startswith("Apparently")
+
+
 def test_safe_provider_retries_then_returns_a_sanitized_fallback() -> None:
     provider = SafeInferenceProvider(
         primary=FailingInferenceProvider(),

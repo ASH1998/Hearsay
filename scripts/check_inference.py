@@ -5,6 +5,7 @@ from hearsay_api.inference import (
     DeterministicInferenceProvider,
     ModalInferenceProvider,
     RumorRetellingRequest,
+    SafeInferenceProvider,
 )
 
 
@@ -33,9 +34,18 @@ def main() -> int:
             model_id=model_id,
             timeout_seconds=45,
         )
-        result = provider.retell_rumor(request)
-        if not result.retold_claim.strip() or not result.semantic_position.model_dump(
-            exclude_none=True
+        safe_provider = SafeInferenceProvider(
+            primary=provider,
+            max_attempts=2,
+        )
+        inference = safe_provider.retell_rumor(request)
+        if inference.fallback_used:
+            raise RuntimeError(
+                "Modal did not produce a safe structured rumor after bounded retries "
+                f"({inference.fallback_reason})."
+            )
+        if not inference.value.retold_claim.strip() or not (
+            inference.value.semantic_position.model_dump(exclude_none=True)
         ):
             raise RuntimeError("Modal returned an incomplete structured rumor.")
         print(

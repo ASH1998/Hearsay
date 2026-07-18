@@ -14,6 +14,17 @@ logger = structlog.get_logger(__name__)
 WORD_PATTERN = re.compile(r"[A-Za-z][A-Za-z'-]*")
 CAPITALIZED_TOKEN_PATTERN = re.compile(r"\b[A-Z][A-Za-z'-]*")
 GRAMMATICAL_CAPITALS = {"a", "an", "he", "i", "it", "she", "the", "they", "we"}
+KNOWN_GREYHAVEN_ENTITIES = {
+    "bram",
+    "elias",
+    "greyhaven",
+    "marta",
+    "nessa",
+    "orin",
+    "pip",
+    "rhea",
+    "talia",
+}
 
 if TYPE_CHECKING:
     from hearsay_api.config import Settings
@@ -220,7 +231,7 @@ class ModalInferenceProvider:
                     "schema": schema.model_json_schema(),
                 },
             },
-            temperature=0.2,
+            temperature=0,
             max_tokens=2_000,
         )
         content = response.choices[0].message.content
@@ -252,11 +263,14 @@ class ModalInferenceProvider:
             token.lower()
             for token in WORD_PATTERN.findall(f"{request.original_claim} {request.context}")
         }
-        introduced_names = {
-            token
-            for token in CAPITALIZED_TOKEN_PATTERN.findall(retelling.retold_claim)
-            if token.lower() not in allowed_tokens and token.lower() not in GRAMMATICAL_CAPITALS
-        }
+        introduced_names = set()
+        for match in CAPITALIZED_TOKEN_PATTERN.finditer(retelling.retold_claim):
+            token = match.group(0)
+            normalized = token.lower()
+            if normalized in allowed_tokens or normalized in GRAMMATICAL_CAPITALS:
+                continue
+            if normalized in KNOWN_GREYHAVEN_ENTITIES or match.start() > 0:
+                introduced_names.add(token)
         if introduced_names:
             raise ValueError("The retold claim introduced an undeclared named entity.")
         return retelling

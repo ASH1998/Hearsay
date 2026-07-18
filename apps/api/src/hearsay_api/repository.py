@@ -232,6 +232,7 @@ class InMemoryRunRepository:
             proposition_key=proposition_key,
             versions=versions,
             transmissions=transmissions,
+            inputs=[],
         )
 
     def recall_memories(

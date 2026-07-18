@@ -364,6 +364,147 @@ class TransmissionModel(Base):
     )
 
 
+class EvidenceModel(Base):
+    __tablename__ = "evidence"
+    __table_args__ = (
+        UniqueConstraint(
+            "game_run_id",
+            "evidence_key",
+            name="evidence_run_key",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(SQLUUID(as_uuid=True), primary_key=True)
+    game_run_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("game_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    evidence_key: Mapped[str] = mapped_column(String(96), nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+    discovered_by_player: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class EvidenceLinkModel(Base):
+    __tablename__ = "evidence_links"
+    __table_args__ = (
+        CheckConstraint(
+            "effect IN ('supports', 'contradicts')",
+            name="evidence_link_effect",
+        ),
+        CheckConstraint(
+            "weight >= 0 AND weight <= 1",
+            name="evidence_link_weight_range",
+        ),
+    )
+
+    evidence_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("evidence.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    proposition_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("propositions.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    effect: Mapped[str] = mapped_column(String(16), nullable=False)
+    weight: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class BeliefInputModel(Base):
+    __tablename__ = "belief_inputs"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["resulting_belief_id", "resulting_version"],
+            ["belief_versions.belief_id", "belief_versions.version"],
+        ),
+        CheckConstraint(
+            "source_trust >= 0 AND source_trust <= 1",
+            name="belief_input_source_trust_range",
+        ),
+        CheckConstraint(
+            "evidence_weight >= -1 AND evidence_weight <= 1",
+            name="belief_input_evidence_weight_range",
+        ),
+        CheckConstraint(
+            "corroboration >= 0 AND corroboration <= 1",
+            name="belief_input_corroboration_range",
+        ),
+        CheckConstraint(
+            "recency >= 0 AND recency <= 1",
+            name="belief_input_recency_range",
+        ),
+        CheckConstraint(
+            "bias_alignment >= -1 AND bias_alignment <= 1",
+            name="belief_input_bias_alignment_range",
+        ),
+        CheckConstraint(
+            "incoming_strength >= 0 AND incoming_strength <= 1",
+            name="belief_input_strength_range",
+        ),
+        CheckConstraint(
+            "transaction_attempts >= 1",
+            name="belief_input_transaction_attempts_positive",
+        ),
+        Index(
+            "belief_inputs_run_proposition_holder_created_idx",
+            "game_run_id",
+            "proposition_id",
+            "holder_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(SQLUUID(as_uuid=True), primary_key=True)
+    game_run_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("game_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    proposition_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("propositions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    holder_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    holder_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_id: Mapped[str | None] = mapped_column(String(64))
+    narrative_text: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_position: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    source_trust: Mapped[float] = mapped_column(Float, nullable=False)
+    evidence_weight: Mapped[float] = mapped_column(Float, nullable=False)
+    corroboration: Mapped[float] = mapped_column(Float, nullable=False)
+    recency: Mapped[float] = mapped_column(Float, nullable=False)
+    bias_alignment: Mapped[float] = mapped_column(Float, nullable=False)
+    incoming_strength: Mapped[float] = mapped_column(Float, nullable=False)
+    classification: Mapped[str] = mapped_column(String(16), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(24), nullable=False)
+    rationale: Mapped[str] = mapped_column(Text, nullable=False)
+    observed_version: Mapped[int | None] = mapped_column(Integer)
+    evaluated_against_version: Mapped[int | None] = mapped_column(Integer)
+    resulting_belief_id: Mapped[UUID | None] = mapped_column(SQLUUID(as_uuid=True))
+    resulting_version: Mapped[int | None] = mapped_column(Integer)
+    transaction_attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    recalculated_after_conflict: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
 class RelationshipModel(Base):
     __tablename__ = "relationships"
     __table_args__ = (

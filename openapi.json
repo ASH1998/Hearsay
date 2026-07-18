@@ -361,6 +361,174 @@
         ],
         "title": "ActionVerb"
       },
+      "BeliefInputState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "holder_id": {
+            "type": "string",
+            "title": "Holder Id"
+          },
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "narrative_text": {
+            "type": "string",
+            "title": "Narrative Text"
+          },
+          "normalized_position": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Normalized Position"
+          },
+          "source_trust": {
+            "type": "number",
+            "title": "Source Trust"
+          },
+          "evidence_weight": {
+            "type": "number",
+            "title": "Evidence Weight"
+          },
+          "corroboration": {
+            "type": "number",
+            "title": "Corroboration"
+          },
+          "recency": {
+            "type": "number",
+            "title": "Recency"
+          },
+          "bias_alignment": {
+            "type": "number",
+            "title": "Bias Alignment"
+          },
+          "incoming_strength": {
+            "type": "number",
+            "title": "Incoming Strength"
+          },
+          "classification": {
+            "type": "string",
+            "title": "Classification"
+          },
+          "outcome": {
+            "type": "string",
+            "title": "Outcome"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "observed_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Version"
+          },
+          "evaluated_against_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluated Against Version"
+          },
+          "resulting_belief_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resulting Belief Id"
+          },
+          "resulting_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resulting Version"
+          },
+          "transaction_attempts": {
+            "type": "integer",
+            "title": "Transaction Attempts"
+          },
+          "recalculated_after_conflict": {
+            "type": "boolean",
+            "title": "Recalculated After Conflict"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "proposition_key",
+          "holder_id",
+          "source_kind",
+          "source_id",
+          "narrative_text",
+          "normalized_position",
+          "source_trust",
+          "evidence_weight",
+          "corroboration",
+          "recency",
+          "bias_alignment",
+          "incoming_strength",
+          "classification",
+          "outcome",
+          "rationale",
+          "observed_version",
+          "evaluated_against_version",
+          "resulting_belief_id",
+          "resulting_version",
+          "transaction_attempts",
+          "recalculated_after_conflict"
+        ],
+        "title": "BeliefInputState"
+      },
       "CreateRunRequest": {
         "properties": {
           "display_name": {
@@ -510,13 +678,21 @@
             },
             "type": "array",
             "title": "Transmissions"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/BeliefInputState"
+            },
+            "type": "array",
+            "title": "Inputs"
           }
         },
         "type": "object",
         "required": [
           "run_id",
           "versions",
-          "transmissions"
+          "transmissions",
+          "inputs"
         ],
         "title": "MemoryLineageResponse"
       },
@@ -645,6 +821,11 @@
           "active": {
             "type": "boolean",
             "title": "Active"
+          },
+          "contested": {
+            "type": "boolean",
+            "title": "Contested",
+            "default": false
           },
           "created_at": {
             "anyOf": [

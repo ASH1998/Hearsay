@@ -70,7 +70,7 @@ Completed:
   provenance-constrained transmissions, relationships, and retrieval traces.
 - A 384-dimensional cosine vector index on `active_memories`, prefixed by exact
   run, holder, and status fields. Both cloud databases are at migration
-  `20260719_0005`.
+  `20260719_0006`.
 - Deterministic embedding fixtures/fallbacks with explicit model provenance;
   embedding generation occurs before the serializable write transaction.
 - Marta’s promise writes a durable belief and social debt. Bram’s confrontation
@@ -90,15 +90,27 @@ Completed:
   deterministic fallback was used; the Historian exposes that provenance.
 - `HEARSAY_LLM_PROVIDER=auto` selects the configured Modal endpoint when all
   credentials exist and uses the deterministic provider when working offline.
+- Durable `evidence`, `evidence_links`, and provenance-preserving
+  `belief_inputs` record accepted, corroborated, contested, rejected, and
+  needs-evidence claims independently from the one active belief pointer.
+- A deterministic conflict policy compares source trust, evidence,
+  corroboration, recency, and bias. Close contradictions preserve the current
+  semantic position at reduced confidence and mark it contested; strong or weak
+  claims cross explicit accept/reject margins.
+- The Town Historian contract now includes every evaluated claim, the version it
+  observed and actually evaluated, its outcome, resulting version, transaction
+  attempts, and whether it was re-evaluated after a serialization conflict.
 
 Validated:
 
-- Thirty-two local API tests pass, covering immutable versions, lineage, recall,
+- Forty local API tests pass, covering immutable versions, lineage, recall,
   repeated claims, strict output validation, retries, all three fallback
-  operations, and service-level inference provenance.
-- Three real Cockroach Cloud tests pass against `hearsay_test`, including
+  operations, service-level inference provenance, and every deterministic
+  conflict-policy branch.
+- Four real Cockroach Cloud tests pass against `hearsay_test`, including
   384-dimensional vector storage, active-projection freshness, recall, complete
-  foreign-key provenance, relationship writes, and retrieval traces.
+  foreign-key provenance, relationship writes, retrieval traces, evidence
+  links, and contested inputs.
 - A real `EXPLAIN` plan is forced through
   `active_memories_retrieval_vector_idx`.
 - The browser story now proves create → promise → confrontation → visible Pip
@@ -109,6 +121,10 @@ Validated:
 - A real structured rumor request passes against the configured Modal endpoint
   with `thinkingmachines/Inkling-NVFP4`; the closed semantic schema prevents
   unbounded model-generated fields.
+- In the synchronized signature race, Marta and Bram both read Elias belief v4.
+  One commits v5; Cockroach retries the other operation, which re-evaluates
+  against v5 and commits v6. Both source inputs remain queryable, exactly one
+  active memory remains, and Elias is durably marked contested.
 - Ruff, formatting, strict mypy, ESLint, TypeScript, Vitest, the Next.js
   production build, and the Playwright signature story pass.
 
@@ -116,16 +132,14 @@ Remaining:
 
 - Replace the deterministic embedding fallback in configured development with a
   real local embedding provider and optional Modal acceleration.
-- Add contradiction policy, contested inputs, evidence links, and the signature
-  concurrent conflicting-belief race.
+- Feed recalled and contested beliefs into dialogue choices and relationship
+  treatment.
 - Implement the independently authenticated read-only Managed MCP Historian.
 
 ## Next implementation slice
 
-1. Implement contradiction resolution and the concurrent conflicting-belief
-   race without losing either source history.
-2. Add evidence support/contradiction links and feed recalled beliefs into
-   dialogue choices and relationship treatment.
-3. Replace deterministic embeddings in configured development with the local
+1. Replace deterministic embeddings in configured development with the local
    384-dimensional model while retaining the test fallback.
-4. Configure the read-only Managed MCP Historian allowlist and audit surface.
+2. Feed recalled and contested beliefs into dialogue choices and relationship
+   treatment.
+3. Configure the read-only Managed MCP Historian allowlist and audit surface.

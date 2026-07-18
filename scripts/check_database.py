@@ -32,7 +32,7 @@ def main() -> int:
         raise RuntimeError("CockroachDB vector indexes are not enabled.")
     if not vector_index_present:
         raise RuntimeError("The Hearsay scoped vector index is missing.")
-    if migration_revision != "20260719_0005":
+    if migration_revision != "20260719_0006":
         raise RuntimeError("The Hearsay application database is not at migration head.")
     print(
         f"CockroachDB database '{database_name}' is healthy at {migration_revision}; "

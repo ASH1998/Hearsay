@@ -3,21 +3,26 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.engine import make_url
 
+from hearsay_api.conflicts import ClaimResolution, IncomingClaim
 from hearsay_api.memory import DeterministicEmbeddingProvider
 from hearsay_api.persistence.cockroach_repository import CockroachRunRepository
 from hearsay_api.persistence.database import normalize_cockroach_url
 from hearsay_api.persistence.models import (
     ActionModel,
     ActiveMemoryModel,
+    BeliefInputModel,
     BeliefModel,
     BeliefVersionModel,
     EventModel,
+    EvidenceLinkModel,
+    EvidenceModel,
     GameRunModel,
     RelationshipModel,
     RetrievalTraceModel,
@@ -228,3 +233,115 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
         index["index_name"] == "active_memories_retrieval_vector_idx" for index in vector_indexes
     )
     assert "active_memories_retrieval_vector_idx" in "\n".join(str(row[0]) for row in explain_rows)
+
+
+def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=23))
+    embeddings = DeterministicEmbeddingProvider()
+    repository.record_evidence(
+        created.run_id,
+        proposition_key="relic-culprit",
+        subject_kind="mystery",
+        subject_id="relic-theft",
+        predicate="relic_stolen_by",
+        evidence_key="signed-harbor-ledger",
+        title="Signed harbor ledger",
+        description="A signed ledger places Bram's payment beside the crate.",
+        effect="supports",
+        weight=0.8,
+        discovered_by_player=True,
+    )
+
+    def claim(source_id: str, suspect: str) -> IncomingClaim:
+        narrative = f"{source_id.title()} says {suspect.title()} arranged the relic theft."
+        return IncomingClaim(
+            proposition_key="relic-culprit",
+            subject_kind="mystery",
+            subject_id="relic-theft",
+            predicate="relic_stolen_by",
+            holder_id="elias",
+            narrative_text=narrative,
+            normalized_position={"suspect": suspect},
+            source_kind="npc",
+            source_id=source_id,
+            source_trust=0.8,
+            evidence_weight=0.3,
+            corroboration=0.3,
+            recency=1.0,
+            bias_alignment=0.0,
+            salience=1.0,
+            embedding=embeddings.embed(narrative),
+            embedding_model_id=embeddings.model_id,
+        )
+
+    for source_id in ("orin", "pip", "rhea", "nessa"):
+        repository.apply_claim(
+            created.run_id,
+            claim(source_id, "talia"),
+        )
+
+    observed_version = repository.get_observed_belief_version(
+        created.run_id,
+        "relic-culprit",
+        "elias",
+    )
+    assert observed_version == 4
+    start_together = Barrier(2)
+    competing = (
+        claim("marta", "bram"),
+        claim("bram", "nessa"),
+    )
+
+    def submit(item: IncomingClaim) -> ClaimResolution:
+        return repository.apply_claim(
+            created.run_id,
+            item,
+            observed_version=observed_version,
+            first_read_hook=start_together.wait,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        resolutions = list(executor.map(submit, competing))
+
+    assert {result.outcome for result in resolutions} == {"contested"}
+    assert {result.belief_version for result in resolutions} == {5, 6}
+    assert any(result.transaction_attempts > 1 for result in resolutions)
+    assert any(result.recalculated_after_conflict for result in resolutions)
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "relic-culprit",
+    )
+    elias_versions = [version for version in lineage.versions if version.holder_id == "elias"]
+    assert [version.version for version in elias_versions] == [1, 2, 3, 4, 5, 6]
+    assert [version.active for version in elias_versions].count(True) == 1
+    assert elias_versions[-1].active is True
+    assert elias_versions[-1].contested is True
+
+    concurrent_inputs = [item for item in lineage.inputs if item.source_id in {"marta", "bram"}]
+    assert {item.source_id for item in concurrent_inputs} == {"marta", "bram"}
+    assert {item.observed_version for item in concurrent_inputs} == {4}
+    assert {item.evaluated_against_version for item in concurrent_inputs} == {
+        4,
+        5,
+    }
+    assert {item.resulting_version for item in concurrent_inputs} == {5, 6}
+
+    with repository.session_factory() as session:
+        belief = session.execute(select(BeliefModel.current_version, BeliefModel.contested)).one()
+        active_version = session.scalar(
+            select(ActiveMemoryModel.belief_version).where(ActiveMemoryModel.holder_id == "elias")
+        )
+        input_count = session.scalar(select(func.count()).select_from(BeliefInputModel))
+        evidence_count = session.scalar(select(func.count()).select_from(EvidenceModel))
+        evidence_link_count = session.scalar(select(func.count()).select_from(EvidenceLinkModel))
+
+    assert belief.current_version == 6
+    assert belief.contested is True
+    assert active_version == 6
+    assert input_count == 6
+    assert evidence_count == 1
+    assert evidence_link_count == 1

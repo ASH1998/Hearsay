@@ -139,6 +139,60 @@ export interface components {
          * @enum {string}
          */
         ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "confront" | "sleep";
+        /** BeliefInputState */
+        BeliefInputState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Proposition Key */
+            proposition_key: string;
+            /** Holder Id */
+            holder_id: string;
+            /** Source Kind */
+            source_kind: string;
+            /** Source Id */
+            source_id: string | null;
+            /** Narrative Text */
+            narrative_text: string;
+            /** Normalized Position */
+            normalized_position: {
+                [key: string]: unknown;
+            };
+            /** Source Trust */
+            source_trust: number;
+            /** Evidence Weight */
+            evidence_weight: number;
+            /** Corroboration */
+            corroboration: number;
+            /** Recency */
+            recency: number;
+            /** Bias Alignment */
+            bias_alignment: number;
+            /** Incoming Strength */
+            incoming_strength: number;
+            /** Classification */
+            classification: string;
+            /** Outcome */
+            outcome: string;
+            /** Rationale */
+            rationale: string;
+            /** Observed Version */
+            observed_version: number | null;
+            /** Evaluated Against Version */
+            evaluated_against_version: number | null;
+            /** Resulting Belief Id */
+            resulting_belief_id: string | null;
+            /** Resulting Version */
+            resulting_version: number | null;
+            /** Transaction Attempts */
+            transaction_attempts: number;
+            /** Recalculated After Conflict */
+            recalculated_after_conflict: boolean;
+            /** Created At */
+            created_at?: string | null;
+        };
         /** CreateRunRequest */
         CreateRunRequest: {
             /**
@@ -206,6 +260,8 @@ export interface components {
             versions: components["schemas"]["MemoryVersionState"][];
             /** Transmissions */
             transmissions: components["schemas"]["TransmissionState"][];
+            /** Inputs */
+            inputs: components["schemas"]["BeliefInputState"][];
         };
         /** MemoryRecallRequest */
         MemoryRecallRequest: {
@@ -269,6 +325,11 @@ export interface components {
             embedding_model_id: string;
             /** Active */
             active: boolean;
+            /**
+             * Contested
+             * @default false
+             */
+            contested: boolean;
             /** Created At */
             created_at?: string | null;
         };

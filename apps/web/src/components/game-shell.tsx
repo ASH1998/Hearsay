@@ -358,7 +358,8 @@ export function GameShell() {
           <h2>Town Historian</h2>
           <p className="historian__summary">
             {lineage.versions.length} immutable versions ·{" "}
-            {lineage.transmissions.length} recorded retelling
+            {lineage.transmissions.length} recorded retelling ·{" "}
+            {lineage.inputs.length} evaluated claim
           </p>
           <div className="historian__chain">
             {lineage.versions.map((version) => (
@@ -386,6 +387,17 @@ export function GameShell() {
                   ? ` · deterministic fallback (${transmission.fallback_reason ?? "provider error"})`
                   : ""}
               </small>
+            </p>
+          ))}
+          {lineage.inputs.map((input) => (
+            <p className="historian__mutation" key={input.id}>
+              <strong>Claim {input.outcome}:</strong>{" "}
+              {input.source_id ?? input.source_kind} → {input.holder_id} ·{" "}
+              {input.classification} against v
+              {input.evaluated_against_version ?? "none"}
+              {input.recalculated_after_conflict
+                ? ` · re-evaluated after serialization conflict (${input.transaction_attempts} attempts)`
+                : ""}
             </p>
           ))}
         </section>
