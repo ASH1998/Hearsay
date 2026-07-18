@@ -220,6 +220,32 @@ def test_unknown_run_is_404() -> None:
         assert response.status_code == 404
 
 
+def test_historian_fallback_is_visible_and_never_claimed_as_mcp_proof() -> None:
+    with make_client() as client:
+        run = create_run(client)
+        run_id = run["run_id"]
+        client.post(
+            f"/v1/runs/{run_id}/actions",
+            json={
+                "idempotency_key": str(uuid4()),
+                "verb": "confront",
+                "target_id": "bram",
+            },
+        )
+
+        response = client.post(
+            f"/v1/runs/{run_id}/historian/trace",
+            json={"proposition_key": "bram-price-confrontation"},
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["audit"]["managed_mcp"] is False
+        assert body["audit"]["sponsor_proof"] is False
+        assert body["audit"]["fallback_reason"] == "managed_mcp_not_configured"
+        assert body["lineage"]["versions"]
+
+
 def test_content_can_be_instantiated_independently() -> None:
     request = CreateRunRequest(display_name="Test", seed=1)
     assert request.seed == 1

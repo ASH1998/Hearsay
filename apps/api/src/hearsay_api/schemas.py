@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Phase = Literal["morning", "afternoon", "evening", "night"]
 RunStatus = Literal["active", "completed"]
@@ -201,6 +201,55 @@ class MemoryLineageResponse(BaseModel):
     versions: list[MemoryVersionState]
     transmissions: list[TransmissionState]
     inputs: list[BeliefInputState]
+
+
+class HistorianTraceRequest(BaseModel):
+    proposition_key: str = Field(
+        min_length=1,
+        max_length=96,
+        pattern=r"^[a-z0-9][a-z0-9._:-]*$",
+    )
+
+
+class HistorianAuditState(BaseModel):
+    id: UUID
+    run_id: UUID
+    operation: Literal["trace_rumor"] = "trace_rumor"
+    proposition_key: str
+    provider_id: str
+    attempted_provider_id: str
+    tool_name: str | None = None
+    auth_mode: str
+    cluster_fingerprint: str | None = None
+    managed_mcp: bool
+    sponsor_proof: bool
+    success: bool
+    fallback_used: bool
+    fallback_reason: str | None = None
+    query_id: str
+    result_counts: dict[str, int] = Field(default_factory=dict)
+    latency_ms: float = Field(ge=0)
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def sponsor_proof_requires_successful_managed_read(self) -> HistorianAuditState:
+        if self.sponsor_proof and not (
+            self.managed_mcp
+            and self.success
+            and not self.fallback_used
+            and self.tool_name == "select_query"
+            and self.auth_mode == "service-account-api-key"
+        ):
+            raise ValueError(
+                "Historian sponsor proof requires a successful independently "
+                "authenticated Managed MCP select_query."
+            )
+        return self
+
+
+class HistorianTraceResponse(BaseModel):
+    audit: HistorianAuditState
+    lineage: MemoryLineageResponse
 
 
 class MemoryRecallRequest(BaseModel):

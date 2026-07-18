@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -11,6 +12,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.engine import make_url
 
 from hearsay_api.conflicts import ClaimResolution, IncomingClaim
+from hearsay_api.historian import HistorianService
 from hearsay_api.memory import DeterministicEmbeddingProvider
 from hearsay_api.persistence.cockroach_repository import CockroachRunRepository
 from hearsay_api.persistence.database import normalize_cockroach_url
@@ -24,11 +26,12 @@ from hearsay_api.persistence.models import (
     EvidenceLinkModel,
     EvidenceModel,
     GameRunModel,
+    HistorianAuditModel,
     RelationshipModel,
     RetrievalTraceModel,
     TransmissionModel,
 )
-from hearsay_api.schemas import ActionRequest, CreateRunRequest
+from hearsay_api.schemas import ActionRequest, CreateRunRequest, HistorianTraceRequest
 from hearsay_api.service import GameService
 
 TEST_DATABASE_URL = os.getenv("HEARSAY_TEST_DATABASE_URL")
@@ -388,3 +391,40 @@ def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state
     assert evidence_count == 1
     assert evidence_link_count == 1
     assert elias_player_trust == 0.45
+
+
+def test_historian_fallback_audit_is_durable_and_cannot_claim_mcp_proof(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=31))
+    service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="confront",
+            target_id="bram",
+        ),
+    )
+    historian = HistorianService(
+        repository=repository,
+        provider_mode="auto",
+        database_name="hearsay_test",
+    )
+
+    response = asyncio.run(
+        historian.trace_rumor(
+            created.run_id,
+            HistorianTraceRequest(
+                proposition_key="bram-price-confrontation",
+            ),
+        )
+    )
+
+    with repository.session_factory() as session:
+        persisted = session.get(HistorianAuditModel, response.audit.id)
+        assert persisted is not None
+        assert persisted.game_run_id == created.run_id
+        assert persisted.managed_mcp is False
+        assert persisted.sponsor_proof is False
+        assert persisted.fallback_reason == "managed_mcp_not_configured"

@@ -8,6 +8,7 @@ export type Phase = GeneratedSnapshot["phase"];
 export type LocationState = Schemas["LocationState"];
 export type PromiseState = Schemas["PromiseState"];
 export type MemoryLineage = Schemas["MemoryLineageResponse"];
+export type HistorianTrace = Schemas["HistorianTraceResponse"];
 export type NpcState = Omit<Schemas["NpcState"], "speech"> & {
   speech: string | null;
 };
@@ -84,6 +85,16 @@ export async function loadMemoryLineage(
     ? `?proposition_key=${encodeURIComponent(propositionKey)}`
     : "";
   return request<MemoryLineage>(`/v1/runs/${runId}/memories${query}`);
+}
+
+export async function traceRumorWithHistorian(
+  runId: string,
+  propositionKey: string,
+): Promise<HistorianTrace> {
+  return request<HistorianTrace>(`/v1/runs/${runId}/historian/trace`, {
+    method: "POST",
+    body: JSON.stringify({ proposition_key: propositionKey }),
+  });
 }
 
 export function clockLabel(snapshot: RunSnapshot): string {

@@ -10,6 +10,7 @@ from hearsay_api.memory import MemoryEffects
 from hearsay_api.schemas import (
     ActionRequest,
     ActionResponse,
+    HistorianAuditState,
     MemoryLineageResponse,
     MemoryRecallResponse,
     MemoryVersionState,
@@ -24,6 +25,7 @@ class StoredRun:
     snapshot: RunSnapshot
     action_results: dict[UUID, ActionResponse] = field(default_factory=dict)
     memory_effects: list[MemoryEffects] = field(default_factory=list)
+    historian_audits: list[HistorianAuditState] = field(default_factory=list)
 
 
 class RunNotFoundError(KeyError):
@@ -70,6 +72,12 @@ class RunRepository(Protocol):
         query_embedding: tuple[float, ...],
         limit: int,
     ) -> MemoryRecallResponse: ...
+
+    def record_historian_audit(
+        self,
+        run_id: UUID,
+        audit: HistorianAuditState,
+    ) -> None: ...
 
 
 class InMemoryRunRepository:
@@ -287,3 +295,21 @@ class InMemoryRunRepository:
             query=query_text,
             memories=recalled[:limit],
         )
+
+    def record_historian_audit(
+        self,
+        run_id: UUID,
+        audit: HistorianAuditState,
+    ) -> None:
+        with self._lock:
+            try:
+                self._runs[run_id].historian_audits.append(deepcopy(audit))
+            except KeyError as error:
+                raise RunNotFoundError(run_id) from error
+
+    def get_historian_audits(self, run_id: UUID) -> list[HistorianAuditState]:
+        with self._lock:
+            try:
+                return deepcopy(self._runs[run_id].historian_audits)
+            except KeyError as error:
+                raise RunNotFoundError(run_id) from error

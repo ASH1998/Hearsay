@@ -60,6 +60,41 @@ class Settings(BaseSettings):
         le=20,
         alias="HEARSAY_TRANSACTION_MAX_RETRIES",
     )
+    historian_provider: Literal["auto", "fallback", "managed_mcp"] = Field(
+        default="auto",
+        alias="HEARSAY_HISTORIAN_PROVIDER",
+    )
+    historian_mcp_url: str = Field(
+        default="https://cockroachlabs.cloud/mcp",
+        alias="HEARSAY_HISTORIAN_MCP_URL",
+    )
+    historian_mcp_cluster_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "HEARSAY_HISTORIAN_MCP_CLUSTER_ID",
+            "COCKROACH_MCP_CLUSTER_ID",
+        ),
+        exclude=True,
+    )
+    historian_mcp_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "HEARSAY_HISTORIAN_MCP_API_KEY",
+            "COCKROACH_MCP_API_KEY",
+        ),
+        exclude=True,
+    )
+    historian_database: str = Field(
+        default="hearsay",
+        pattern=r"^[A-Za-z_][A-Za-z0-9_]{0,62}$",
+        alias="HEARSAY_HISTORIAN_DATABASE",
+    )
+    historian_timeout_seconds: float = Field(
+        default=20,
+        ge=1,
+        le=60,
+        alias="HEARSAY_HISTORIAN_TIMEOUT_SECONDS",
+    )
     llm_provider: Literal["auto", "fallback", "modal"] = Field(
         default="auto",
         alias="HEARSAY_LLM_PROVIDER",

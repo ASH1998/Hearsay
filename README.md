@@ -44,6 +44,24 @@ only `hearsay_test`; the application uses `hearsay`. This repository uses the
 user-managed Cockroach Cloud instance configured in the ignored `.env`; it does
 not require a local Docker database.
 
+The Town Historian has a separate server-side Managed MCP credential. Create a
+Cockroach Cloud service-account API key for the Historian and copy the cluster
+ID from the Cloud Console overview URL, then add:
+
+```dotenv
+HEARSAY_HISTORIAN_PROVIDER=managed_mcp
+COCKROACH_MCP_CLUSTER_ID=your-cluster-id
+COCKROACH_MCP_API_KEY=your-independent-api-key
+```
+
+The Historian connects to Cockroach Labs' official
+`https://cockroachlabs.cloud/mcp` endpoint, dynamically verifies the
+`select_query` input schema, and exposes only a fixed lineage query. No raw SQL
+or MCP tool name comes from the browser. In `auto` mode, missing or failed MCP
+authentication keeps the game usable through a clearly labeled direct-database
+fallback; that response always carries `sponsor_proof=false` and is not valid
+hackathon MCP evidence.
+
 Cloud credentials are optional. With
 `HEARSAY_PERSISTENCE_BACKEND=memory`, the API uses an explicit deterministic
 development fallback; it never silently switches authoritative state.
@@ -86,8 +104,10 @@ Local BGE embeddings now power configured development recall. Memory-driven
 dialogue records and displays the exact belief versions behind an NPC response,
 including contested status and provider provenance. Broader relationship
 treatment now changes visible standing and unlocks memory-conditioned follow-up
-chips through idempotent trust floors/ceilings. The Managed MCP Historian is the
-next proof-spine slice.
+chips through idempotent trust floors/ceilings. The Town Historian now returns a
+durably audited lineage response, invokes only the allowlisted Managed MCP
+`select_query` tool when separately authenticated, and makes direct fallback
+state impossible to mistake for sponsor proof.
 
 ## Authority
 

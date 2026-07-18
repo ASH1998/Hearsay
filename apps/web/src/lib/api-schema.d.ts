@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/runs/{run_id}/historian/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trace Rumor */
+        post: operations["trace_rumor_v1_runs__run_id__historian_trace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/runs/{run_id}/memories/recall": {
         parameters: {
             query?: never;
@@ -271,6 +288,70 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HistorianAuditState */
+        HistorianAuditState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /**
+             * Operation
+             * @default trace_rumor
+             * @constant
+             */
+            operation: "trace_rumor";
+            /** Proposition Key */
+            proposition_key: string;
+            /** Provider Id */
+            provider_id: string;
+            /** Attempted Provider Id */
+            attempted_provider_id: string;
+            /** Tool Name */
+            tool_name?: string | null;
+            /** Auth Mode */
+            auth_mode: string;
+            /** Cluster Fingerprint */
+            cluster_fingerprint?: string | null;
+            /** Managed Mcp */
+            managed_mcp: boolean;
+            /** Sponsor Proof */
+            sponsor_proof: boolean;
+            /** Success */
+            success: boolean;
+            /** Fallback Used */
+            fallback_used: boolean;
+            /** Fallback Reason */
+            fallback_reason?: string | null;
+            /** Query Id */
+            query_id: string;
+            /** Result Counts */
+            result_counts?: {
+                [key: string]: number;
+            };
+            /** Latency Ms */
+            latency_ms: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /** HistorianTraceRequest */
+        HistorianTraceRequest: {
+            /** Proposition Key */
+            proposition_key: string;
+        };
+        /** HistorianTraceResponse */
+        HistorianTraceResponse: {
+            audit: components["schemas"]["HistorianAuditState"];
+            lineage: components["schemas"]["MemoryLineageResponse"];
         };
         /** LocationState */
         LocationState: {
@@ -753,6 +834,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemoryLineageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trace_rumor_v1_runs__run_id__historian_trace_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistorianTraceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistorianTraceResponse"];
                 };
             };
             /** @description Validation Error */

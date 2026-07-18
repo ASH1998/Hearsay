@@ -552,3 +552,39 @@ class RetrievalTraceModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class HistorianAuditModel(Base):
+    __tablename__ = "historian_audits"
+    __table_args__ = (
+        Index(
+            "historian_audits_run_created_idx",
+            "game_run_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(SQLUUID(as_uuid=True), primary_key=True)
+    game_run_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("game_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    operation: Mapped[str] = mapped_column(String(32), nullable=False)
+    proposition_key: Mapped[str] = mapped_column(String(96), nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    attempted_provider_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    tool_name: Mapped[str | None] = mapped_column(String(64))
+    auth_mode: Mapped[str] = mapped_column(String(32), nullable=False)
+    cluster_fingerprint: Mapped[str | None] = mapped_column(String(16))
+    managed_mcp: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    sponsor_proof: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    success: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    fallback_used: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    fallback_reason: Mapped[str | None] = mapped_column(String(96))
+    query_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    result_counts: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    latency_ms: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

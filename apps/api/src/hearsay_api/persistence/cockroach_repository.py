@@ -32,6 +32,7 @@ from hearsay_api.persistence.models import (
     EvidenceModel,
     GameRunModel,
     GossipTickModel,
+    HistorianAuditModel,
     PlayerModel,
     PropositionModel,
     RelationshipModel,
@@ -43,6 +44,7 @@ from hearsay_api.schemas import (
     ActionRequest,
     ActionResponse,
     BeliefInputState,
+    HistorianAuditState,
     MemoryLineageResponse,
     MemoryRecallResponse,
     MemoryVersionState,
@@ -1120,10 +1122,44 @@ class CockroachRunRepository:
 
         return self._run_transaction(retrieve)
 
+    def record_historian_audit(
+        self,
+        run_id: UUID,
+        audit: HistorianAuditState,
+    ) -> None:
+        def write_audit(session: Session) -> None:
+            if session.scalar(select(GameRunModel.id).where(GameRunModel.id == run_id)) is None:
+                raise RunNotFoundError(run_id)
+            session.execute(
+                insert(HistorianAuditModel).values(
+                    id=audit.id,
+                    game_run_id=run_id,
+                    operation=audit.operation,
+                    proposition_key=audit.proposition_key,
+                    provider_id=audit.provider_id,
+                    attempted_provider_id=audit.attempted_provider_id,
+                    tool_name=audit.tool_name,
+                    auth_mode=audit.auth_mode,
+                    cluster_fingerprint=audit.cluster_fingerprint,
+                    managed_mcp=audit.managed_mcp,
+                    sponsor_proof=audit.sponsor_proof,
+                    success=audit.success,
+                    fallback_used=audit.fallback_used,
+                    fallback_reason=audit.fallback_reason,
+                    query_id=audit.query_id,
+                    result_counts=audit.result_counts,
+                    latency_ms=audit.latency_ms,
+                    created_at=audit.created_at,
+                )
+            )
+
+        self._run_transaction(write_audit)
+
     def clear_all(self) -> None:
         """Delete test data. This is intentionally not exposed by the API."""
 
         def clear(session: Session) -> None:
+            session.execute(delete(HistorianAuditModel))
             session.execute(delete(RetrievalTraceModel))
             session.execute(delete(BeliefInputModel))
             session.execute(delete(EvidenceLinkModel))

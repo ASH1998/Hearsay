@@ -41,7 +41,12 @@ $requiredNames = @(
     "HEARSAY_MODAL_MODEL",
     "HEARSAY_EMBEDDING_PROVIDER",
     "HEARSAY_EMBEDDING_MODEL",
-    "HEARSAY_EMBEDDING_CACHE_DIR"
+    "HEARSAY_EMBEDDING_CACHE_DIR",
+    "HEARSAY_HISTORIAN_PROVIDER",
+    "HEARSAY_HISTORIAN_MCP_URL",
+    "COCKROACH_MCP_CLUSTER_ID",
+    "COCKROACH_MCP_API_KEY",
+    "HEARSAY_HISTORIAN_DATABASE"
 )
 $exampleNames = Get-Content -LiteralPath ".env.example" |
     Where-Object { $_ -match "^[A-Z][A-Z0-9_]*=" } |
@@ -80,6 +85,12 @@ if ($LASTEXITCODE -ne 0) {
 & "tools/uv/uv.exe" run python scripts/check_inference.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[failed] Modal structured-output check"
+    $failed = $true
+}
+
+& "tools/uv/uv.exe" run python scripts/check_historian.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[failed] CockroachDB Cloud Managed MCP Historian check"
     $failed = $true
 }
 

@@ -227,6 +227,59 @@
         }
       }
     },
+    "/v1/runs/{run_id}/historian/trace": {
+      "post": {
+        "tags": [
+          "historian"
+        ],
+        "summary": "Trace Rumor",
+        "operationId": "trace_rumor_v1_runs__run_id__historian_trace_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistorianTraceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistorianTraceResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/runs/{run_id}/memories/recall": {
       "post": {
         "tags": [
@@ -717,6 +770,161 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HistorianAuditState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "operation": {
+            "type": "string",
+            "const": "trace_rumor",
+            "title": "Operation",
+            "default": "trace_rumor"
+          },
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "attempted_provider_id": {
+            "type": "string",
+            "title": "Attempted Provider Id"
+          },
+          "tool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Name"
+          },
+          "auth_mode": {
+            "type": "string",
+            "title": "Auth Mode"
+          },
+          "cluster_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster Fingerprint"
+          },
+          "managed_mcp": {
+            "type": "boolean",
+            "title": "Managed Mcp"
+          },
+          "sponsor_proof": {
+            "type": "boolean",
+            "title": "Sponsor Proof"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "fallback_used": {
+            "type": "boolean",
+            "title": "Fallback Used"
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "query_id": {
+            "type": "string",
+            "title": "Query Id"
+          },
+          "result_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Result Counts"
+          },
+          "latency_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Latency Ms"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "run_id",
+          "proposition_key",
+          "provider_id",
+          "attempted_provider_id",
+          "auth_mode",
+          "managed_mcp",
+          "sponsor_proof",
+          "success",
+          "fallback_used",
+          "query_id",
+          "latency_ms",
+          "created_at"
+        ],
+        "title": "HistorianAuditState"
+      },
+      "HistorianTraceRequest": {
+        "properties": {
+          "proposition_key": {
+            "type": "string",
+            "maxLength": 96,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9._:-]*$",
+            "title": "Proposition Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposition_key"
+        ],
+        "title": "HistorianTraceRequest"
+      },
+      "HistorianTraceResponse": {
+        "properties": {
+          "audit": {
+            "$ref": "#/components/schemas/HistorianAuditState"
+          },
+          "lineage": {
+            "$ref": "#/components/schemas/MemoryLineageResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audit",
+          "lineage"
+        ],
+        "title": "HistorianTraceResponse"
       },
       "LocationState": {
         "properties": {

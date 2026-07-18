@@ -6,6 +6,11 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, stat
 from fastapi.middleware.cors import CORSMiddleware
 
 from hearsay_api.config import Settings, get_settings
+from hearsay_api.historian import (
+    HistorianService,
+    HistorianUnavailableError,
+    create_historian_service,
+)
 from hearsay_api.inference import create_inference_provider
 from hearsay_api.memory import create_embedding_provider
 from hearsay_api.persistence import create_repository
@@ -15,6 +20,8 @@ from hearsay_api.schemas import (
     ActionResponse,
     CreateRunRequest,
     CreateRunResponse,
+    HistorianTraceRequest,
+    HistorianTraceResponse,
     MemoryLineageResponse,
     MemoryRecallRequest,
     MemoryRecallResponse,
@@ -26,6 +33,7 @@ from hearsay_api.service import GameService, InvalidActionError
 def create_app(
     service: GameService | None = None,
     settings: Settings | None = None,
+    historian: HistorianService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
     game_service = service or GameService(
@@ -33,6 +41,10 @@ def create_app(
         embeddings=create_embedding_provider(resolved_settings),
         inference=create_inference_provider(resolved_settings),
         max_concurrency_retries=resolved_settings.transaction_max_retries,
+    )
+    historian_service = historian or create_historian_service(
+        resolved_settings,
+        game_service.repository,
     )
     application = FastAPI(
         title="Hearsay Game API",
@@ -105,6 +117,22 @@ def create_app(
             return game_service.get_memory_lineage(run_id, proposition_key)
         except RunNotFoundError as error:
             raise HTTPException(status_code=404, detail="Run not found.") from error
+
+    @application.post(
+        "/v1/runs/{run_id}/historian/trace",
+        response_model=HistorianTraceResponse,
+        tags=["historian"],
+    )
+    async def trace_rumor(
+        run_id: UUID,
+        request: HistorianTraceRequest,
+    ) -> HistorianTraceResponse:
+        try:
+            return await historian_service.trace_rumor(run_id, request)
+        except RunNotFoundError as error:
+            raise HTTPException(status_code=404, detail="Run not found.") from error
+        except HistorianUnavailableError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
 
     @application.post(
         "/v1/runs/{run_id}/memories/recall",

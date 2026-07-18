@@ -44,6 +44,8 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
   await page.getByRole("button", { name: "Close conversation" }).click();
   await page.getByRole("button", { name: "Trace Pip's rumor" }).click();
   await expect(page.getByRole("heading", { name: "Town Historian" })).toBeVisible();
+  await expect(page.getByText("Development fallback · not MCP proof")).toBeVisible();
+  await expect(page.getByText(/sponsor proof false/)).toBeVisible();
   await expect(
     page.getByText(
       "A price dispute became a claim about malicious intent.",

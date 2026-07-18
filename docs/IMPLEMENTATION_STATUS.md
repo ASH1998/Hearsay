@@ -70,7 +70,7 @@ Completed:
   provenance-constrained transmissions, relationships, and retrieval traces.
 - A 384-dimensional cosine vector index on `active_memories`, prefixed by exact
   run, holder, and status fields. Both cloud databases are at migration
-  `20260719_0006`.
+  `20260719_0007`.
 - Deterministic embedding fixtures/fallbacks with explicit model provenance;
   embedding generation occurs before the serializable write transaction.
 - Marta’s promise writes a durable belief and social debt. Bram’s confrontation
@@ -124,22 +124,43 @@ Completed:
 - Dialogue state carries a player-visible treatment cue and functional
   memory-conditioned follow-up chips. Thresholds are floors/ceilings rather than
   repeatable deltas, so repeated Talk actions cannot farm or destroy trust.
+- A server-side Town Historian client now targets Cockroach Labs' official
+  `https://cockroachlabs.cloud/mcp` Streamable HTTP endpoint with a separately
+  supplied cluster ID and service-account API key.
+- The first Historian operation is fixed to rumor lineage and may invoke only
+  the advertised `select_query` tool. It discovers that tool's typed input
+  schema, adapts only the database/query field names, rejects unknown required
+  inputs, and rejects writes or multiple SQL statements before transport.
+- Managed MCP lineage reads return the same validated immutable-version,
+  transmission, and belief-input contract as direct repository inspection. MCP
+  credentials, raw authorization headers, and the cluster ID are never returned
+  or persisted; the audit stores only a one-way cluster fingerprint.
+- Every Historian attempt writes a durable `historian_audits` row with provider,
+  attempted provider, tool, authentication mode, fixed query ID, result counts,
+  latency, success, and sanitized fallback class.
+- The proof contract fails closed in forced `managed_mcp` mode. In `auto`, an
+  unavailable or unconfigured MCP connection uses a conspicuously labeled
+  fallback, with both API and UI forcing `managed_mcp=false` and
+  `sponsor_proof=false`.
 
 Validated:
 
-- Forty-six local API tests pass, covering immutable versions, lineage, recall,
+- Fifty-six local API tests pass, covering immutable versions, lineage, recall,
   repeated claims, strict output validation, retries, all three fallback
   operations, service-level inference provenance, and every deterministic
   conflict-policy branch, plus real-provider shape checks and truthful embedding
   fallback provenance.
-- Four real Cockroach Cloud tests pass against `hearsay_test`, including
+- Five real Cockroach Cloud tests pass against `hearsay_test`, including
   384-dimensional vector storage, active-projection freshness, recall, complete
   foreign-key provenance, relationship writes, retrieval traces, evidence
   links, and contested inputs.
+- The fifth Cloud test proves a fallback Historian attempt is durably audited
+  on the real cluster and cannot set the Managed MCP sponsor-proof bit.
 - A real `EXPLAIN` plan is forced through
   `active_memories_retrieval_vector_idx`.
 - The browser story now proves create → promise → confrontation → visible Pip
-  rumor → visible Historian lineage → refresh.
+  rumor → visible Historian lineage with an explicit “not MCP proof” fallback
+  label → refresh.
 - `doctor` verifies the configured `hearsay` database migration head, VECTOR
   function support, vector-index cluster setting, and scoped index presence
   without emitting credentials.
@@ -165,8 +186,13 @@ Validated:
 
 Remaining:
 
-- Implement the independently authenticated read-only Managed MCP Historian.
+- Add `COCKROACH_MCP_CLUSTER_ID` and `COCKROACH_MCP_API_KEY` to the ignored
+  `.env`, authorize that independent identity for read access, and capture a
+  real successful Managed MCP `select_query` proof. The current `.env` has the
+  SQL connection and Modal credentials but no MCP identity, so no real MCP
+  success is claimed.
 
 ## Next implementation slice
 
-1. Configure the read-only Managed MCP Historian allowlist and audit surface.
+1. Continue the playable mystery/evidence loop while the external MCP identity
+   remains a narrowly documented credential handoff.

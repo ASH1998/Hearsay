@@ -313,10 +313,23 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
   provenance-linked rumor transmissions for the gameplay Historian view.
 - `POST /v1/runs/{id}/memories/recall` performs holder-scoped vector retrieval,
   relational reranking, and records a retrieval trace.
+- `POST /v1/runs/{id}/historian/trace` reconstructs one allowlisted proposition
+  through the official CockroachDB Cloud Managed MCP `select_query` tool when
+  independently authenticated. Its response includes a durable audit envelope;
+  `sponsor_proof=true` is impossible on a direct-database or in-memory fallback.
 - WebSocket stream delivers state transitions, NPC reactions, and dialogue events.
 - Historian endpoints expose redacted, explainable memory provenance and retrieval traces.
 - Director endpoints are token-protected, provide test/demo controls only when explicitly enabled in development, and are never exposed as a public gameplay surface.
-- The Historian uses the official Managed MCP Server through a server-side allowlist limited to schema reads, `SELECT`, and `EXPLAIN`; database/MCP credentials never reach the client.
+- The Historian uses the official Managed MCP Server at
+  `https://cockroachlabs.cloud/mcp` through a server-side allowlist. The first
+  implemented operation invokes only `select_query`; future schema and plan
+  operations may add only the documented read tools. Discovered write tools are
+  never callable through the Historian. The independently supplied cluster ID
+  and API key never reach the browser, logs, query text, or audit rows.
+- `HEARSAY_HISTORIAN_PROVIDER=managed_mcp` fails closed when independent MCP
+  credentials or the read tool are unavailable. `auto` may retain a playable
+  direct-Cockroach fallback, but both the API and browser label it
+  `not MCP proof`, store the reason, and set `sponsor_proof=false`.
 
 ## Quality Gates
 

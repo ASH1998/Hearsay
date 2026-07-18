@@ -6,11 +6,11 @@ import { TownScene } from "@/components/town-scene";
 import {
   clockLabel,
   createRun,
-  loadMemoryLineage,
   loadRun,
   takeAction,
+  traceRumorWithHistorian,
   type ActionVerb,
-  type MemoryLineage,
+  type HistorianTrace,
   type NpcState,
   type RunSnapshot,
 } from "@/lib/api";
@@ -56,7 +56,7 @@ function playThunder() {
 export function GameShell() {
   const [snapshot, setSnapshot] = useState<RunSnapshot | null>(null);
   const [selectedNpc, setSelectedNpc] = useState<NpcState | null>(null);
-  const [lineage, setLineage] = useState<MemoryLineage | null>(null);
+  const [historian, setHistorian] = useState<HistorianTrace | null>(null);
   const [historianOpen, setHistorianOpen] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,11 +116,11 @@ export function GameShell() {
     setBusy(true);
     setError(null);
     try {
-      const nextLineage = await loadMemoryLineage(
+      const nextTrace = await traceRumorWithHistorian(
         snapshot.run_id,
         "bram-price-confrontation",
       );
-      setLineage(nextLineage);
+      setHistorian(nextTrace);
       setSelectedNpc(null);
       setHistorianOpen(true);
     } catch (reason) {
@@ -384,7 +384,7 @@ export function GameShell() {
         </section>
       ) : null}
 
-      {historianOpen && lineage ? (
+      {historianOpen && historian ? (
         <section className="historian" aria-label="Town Historian">
           <button
             className="historian__close"
@@ -394,15 +394,24 @@ export function GameShell() {
           >
             ×
           </button>
-          <p className="eyebrow">Independent memory record</p>
+          <p className="eyebrow">
+            {historian.audit.sponsor_proof
+              ? "Independent Managed MCP record"
+              : "Development fallback · not MCP proof"}
+          </p>
           <h2>Town Historian</h2>
           <p className="historian__summary">
-            {lineage.versions.length} immutable versions ·{" "}
-            {lineage.transmissions.length} recorded retelling ·{" "}
-            {lineage.inputs.length} evaluated claim
+            {historian.audit.sponsor_proof
+              ? `Verified through ${historian.audit.tool_name ?? "Managed MCP"} · audit ${historian.audit.id.slice(0, 8)}`
+              : `Direct ${historian.audit.provider_id} read · ${historian.audit.fallback_reason ?? "fallback"} · sponsor proof false`}
+          </p>
+          <p className="historian__summary">
+            {historian.lineage.versions.length} immutable versions ·{" "}
+            {historian.lineage.transmissions.length} recorded retelling ·{" "}
+            {historian.lineage.inputs.length} evaluated claim
           </p>
           <div className="historian__chain">
-            {lineage.versions.map((version) => (
+            {historian.lineage.versions.map((version) => (
               <article key={`${version.belief_id}-${version.version}`}>
                 <span>
                   {snapshot.npcs.find((npc) => npc.id === version.holder_id)
@@ -417,7 +426,7 @@ export function GameShell() {
               </article>
             ))}
           </div>
-          {lineage.transmissions.map((transmission) => (
+          {historian.lineage.transmissions.map((transmission) => (
             <p className="historian__mutation" key={transmission.id}>
               <strong>Mutation recorded:</strong> {transmission.mutation_note}
               <small>
@@ -429,7 +438,7 @@ export function GameShell() {
               </small>
             </p>
           ))}
-          {lineage.inputs.map((input) => (
+          {historian.lineage.inputs.map((input) => (
             <p className="historian__mutation" key={input.id}>
               <strong>Claim {input.outcome}:</strong>{" "}
               {input.source_id ?? input.source_kind} → {input.holder_id} ·{" "}
