@@ -43,7 +43,7 @@ def test_create_run_returns_authoritative_opening_snapshot() -> None:
             "alley",
             "midwife",
         }
-        assert len(snapshot["npcs"]) == 8
+        assert len(snapshot["npcs"]) == 20
 
 
 def test_free_movement_does_not_consume_time() -> None:
@@ -244,6 +244,36 @@ def test_historian_fallback_is_visible_and_never_claimed_as_mcp_proof() -> None:
         assert body["audit"]["sponsor_proof"] is False
         assert body["audit"]["fallback_reason"] == "managed_mcp_not_configured"
         assert body["lineage"]["versions"]
+
+
+def test_election_endpoint_is_unavailable_until_resolved_then_explains_votes() -> None:
+    with make_client() as client:
+        run = create_run(client)
+        run_id = run["run_id"]
+        assert client.get(f"/v1/runs/{run_id}/election").status_code == 409
+
+        for verb, target in (
+            ("sleep", None),
+            ("declare_candidacy", "rhea"),
+            ("sleep", None),
+            ("sleep", None),
+        ):
+            response = client.post(
+                f"/v1/runs/{run_id}/actions",
+                json={
+                    "idempotency_key": str(uuid4()),
+                    "verb": verb,
+                    "target_id": target,
+                },
+            )
+            assert response.status_code == 200
+
+        election = client.get(f"/v1/runs/{run_id}/election")
+        assert election.status_code == 200
+        body = election.json()
+        assert body["player_votes"] + body["rhea_votes"] == 20
+        assert len(body["votes"]) == 20
+        assert all(vote["inputs"] for vote in body["votes"])
 
 
 def test_content_can_be_instantiated_independently() -> None:

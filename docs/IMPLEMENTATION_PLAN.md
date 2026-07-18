@@ -317,6 +317,10 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
   through the official CockroachDB Cloud Managed MCP `select_query` tool when
   independently authenticated. Its response includes a durable audit envelope;
   `sponsor_proof=true` is impossible on a direct-database or in-memory fallback.
+- `GET /v1/runs/{id}/election` returns the resolved 20-vote tally, ending,
+  per-voter score, every deterministic input, top-three decisive inputs, and
+  exact belief/version references. Before midnight it returns a conflict rather
+  than predicting or fabricating a result.
 - WebSocket stream delivers state transitions, NPC reactions, and dialogue events.
 - Historian endpoints expose redacted, explainable memory provenance and retrieval traces.
 - Director endpoints are token-protected, provide test/demo controls only when explicitly enabled in development, and are never exposed as a public gameplay surface.

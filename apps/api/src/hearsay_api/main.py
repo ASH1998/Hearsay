@@ -20,6 +20,7 @@ from hearsay_api.schemas import (
     ActionResponse,
     CreateRunRequest,
     CreateRunResponse,
+    ElectionState,
     HistorianTraceRequest,
     HistorianTraceResponse,
     MemoryLineageResponse,
@@ -76,6 +77,20 @@ def create_app(
     )
     def create_run(request: CreateRunRequest) -> CreateRunResponse:
         return game_service.create_run(request)
+
+    @application.get(
+        "/v1/runs/{run_id}/election",
+        response_model=ElectionState,
+        tags=["election"],
+    )
+    def get_election(run_id: UUID) -> ElectionState:
+        try:
+            snapshot = game_service.get_snapshot(run_id)
+        except RunNotFoundError as error:
+            raise HTTPException(status_code=404, detail="Run not found.") from error
+        if snapshot.election is None:
+            raise HTTPException(status_code=409, detail="Election has not resolved.")
+        return snapshot.election
 
     @application.get(
         "/v1/runs/{run_id}/snapshot",

@@ -588,3 +588,92 @@ class HistorianAuditModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class ElectionModel(Base):
+    __tablename__ = "elections"
+    __table_args__ = (
+        UniqueConstraint("game_run_id", name="elections_run_unique"),
+        CheckConstraint(
+            "player_votes >= 0 AND player_votes <= 20",
+            name="elections_player_votes_range",
+        ),
+        CheckConstraint(
+            "rhea_votes >= 0 AND rhea_votes <= 20",
+            name="elections_rhea_votes_range",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(SQLUUID(as_uuid=True), primary_key=True)
+    game_run_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("game_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    player_votes: Mapped[int] = mapped_column(Integer, nullable=False)
+    rhea_votes: Mapped[int] = mapped_column(Integer, nullable=False)
+    winner: Mapped[str] = mapped_column(String(16), nullable=False)
+    tie_favors_rhea: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    ending_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    resolved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VoteModel(Base):
+    __tablename__ = "votes"
+    __table_args__ = (
+        UniqueConstraint("election_id", "voter_id", name="votes_election_voter"),
+        Index("votes_run_choice_idx", "game_run_id", "choice"),
+    )
+
+    id: Mapped[UUID] = mapped_column(SQLUUID(as_uuid=True), primary_key=True)
+    election_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("elections.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    game_run_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("game_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    voter_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    choice: Mapped[str] = mapped_column(String(16), nullable=False)
+    player_score: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class VoteInputModel(Base):
+    __tablename__ = "vote_inputs"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["belief_id", "belief_version"],
+            ["belief_versions.belief_id", "belief_versions.version"],
+        ),
+        CheckConstraint(
+            "decisive_rank IS NULL OR (decisive_rank >= 1 AND decisive_rank <= 3)",
+            name="vote_inputs_decisive_rank_range",
+        ),
+        Index("vote_inputs_vote_rank_idx", "vote_id", "decisive_rank"),
+    )
+
+    id: Mapped[UUID] = mapped_column(SQLUUID(as_uuid=True), primary_key=True)
+    vote_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("votes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    game_run_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("game_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    input_kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    input_key: Mapped[str] = mapped_column(String(96), nullable=False)
+    input_value: Mapped[Any] = mapped_column(JSONB)
+    weight: Mapped[float] = mapped_column(Float, nullable=False)
+    contribution: Mapped[float] = mapped_column(Float, nullable=False)
+    explanation: Mapped[str] = mapped_column(Text, nullable=False)
+    belief_id: Mapped[UUID | None] = mapped_column(SQLUUID(as_uuid=True))
+    belief_version: Mapped[int | None] = mapped_column(Integer)
+    decisive_rank: Mapped[int | None] = mapped_column(Integer)

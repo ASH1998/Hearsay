@@ -94,6 +94,9 @@ The opening loop is intentionally small but end to end:
 6. Return to Bram before evening and pay to release Marta's shipment—or let the
    deadline pass. The ledger, notice-board traits, Pip's chatter, Marta's
    treatment, and immutable promise memory all reflect the outcome.
+7. Sleep to Day 2, declare against Rhea, and advance to election night. All 20
+   residents vote from stored disposition, traits, relationships, and memories;
+   the ending shows which exact inputs turned the tally.
 
 Movement, eavesdropping, and the notice board are free actions. Walk through
 connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
@@ -114,6 +117,10 @@ state impossible to mistake for sponsor proof.
 Timed promises now resolve into observed outcomes: keeping Marta's word produces
 Reliable/Generous traits and grateful endorsement dialogue, while missing the
 deadline produces Dishonest/Troublemaker traits and a durable public retelling.
+All 20 Greyhaven residents now participate in a deterministic midnight election.
+The seeded kept-promise path wins `11–9`; a `10–10` tie remains with Rhea. Every
+vote and decisive input is durable in CockroachDB, and the ending panel cites
+the exact belief version where memory changed a vote.
 
 ## Authority
 

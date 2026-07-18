@@ -22,6 +22,7 @@ from hearsay_api.persistence.models import (
     BeliefInputModel,
     BeliefModel,
     BeliefVersionModel,
+    ElectionModel,
     EventModel,
     EvidenceLinkModel,
     EvidenceModel,
@@ -30,6 +31,8 @@ from hearsay_api.persistence.models import (
     RelationshipModel,
     RetrievalTraceModel,
     TransmissionModel,
+    VoteInputModel,
+    VoteModel,
 )
 from hearsay_api.schemas import ActionRequest, CreateRunRequest, HistorianTraceRequest
 from hearsay_api.service import GameService
@@ -489,3 +492,72 @@ def test_broken_promise_persists_both_visible_events_and_memory_consequence(
     assert len(event_kinds) == 6
     assert marta_trust is not None
     assert marta_trust <= 0.25
+
+
+def test_election_persists_twenty_votes_and_exact_decision_inputs(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=61))
+    actions = (
+        ("promise_help", "marta"),
+        ("settle_shipment", "bram"),
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    )
+    for verb, target in actions:
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == 11
+    assert election.rhea_votes == 9
+    assert election.winner == "player"
+    assert election.ending.key == "narrow_win"
+
+    with repository.session_factory() as session:
+        persisted_election = session.get(ElectionModel, election.id)
+        vote_count = session.scalar(
+            select(func.count())
+            .select_from(VoteModel)
+            .where(VoteModel.game_run_id == created.run_id)
+        )
+        input_count = session.scalar(
+            select(func.count())
+            .select_from(VoteInputModel)
+            .where(VoteInputModel.game_run_id == created.run_id)
+        )
+        pip_memory_input = session.execute(
+            select(
+                VoteInputModel.belief_id,
+                VoteInputModel.belief_version,
+                VoteInputModel.explanation,
+            )
+            .join(VoteModel, VoteModel.id == VoteInputModel.vote_id)
+            .where(
+                VoteModel.voter_id == "pip",
+                VoteInputModel.input_kind == "belief",
+                VoteInputModel.input_key == "player-promise-marta-shipment",
+            )
+        ).one()
+
+    assert persisted_election is not None
+    assert persisted_election.ending_key == "narrow_win"
+    assert vote_count == 20
+    assert input_count is not None
+    assert input_count >= 40
+    assert pip_memory_input.belief_id is not None
+    assert pip_memory_input.belief_version == 1
+    assert "promise was kept" in pip_memory_input.explanation
+
+    restored = repository.get(created.run_id)
+    assert restored.election == election

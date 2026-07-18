@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/runs/{run_id}/election": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Election */
+        get: operations["get_election_v1_runs__run_id__election_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/runs/{run_id}/snapshot": {
         parameters: {
             query?: never;
@@ -155,7 +172,7 @@ export interface components {
          * ActionVerb
          * @enum {string}
          */
-        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "confront" | "sleep";
+        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "sleep";
         /** BeliefInputState */
         BeliefInputState: {
             /**
@@ -283,6 +300,44 @@ export interface components {
             treatment_cue?: string | null;
             /** Available Choices */
             available_choices?: components["schemas"]["DialogueChoiceState"][];
+        };
+        /** ElectionState */
+        ElectionState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Player Votes */
+            player_votes: number;
+            /** Rhea Votes */
+            rhea_votes: number;
+            /**
+             * Winner
+             * @enum {string}
+             */
+            winner: "player" | "rhea";
+            /** Tie Favors Rhea */
+            tie_favors_rhea: boolean;
+            /** Votes */
+            votes: components["schemas"]["VoteState"][];
+            ending: components["schemas"]["EndingState"];
+        };
+        /** EndingState */
+        EndingState: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "landslide" | "narrow_win" | "narrow_loss" | "humiliation" | "exposed" | "run_out_of_town";
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Player Won */
+            player_won: boolean;
+            /** Decisive Voter Ids */
+            decisive_voter_ids?: string[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -485,6 +540,11 @@ export interface components {
             location_id: string;
             /** Traits */
             traits?: string[];
+            /**
+             * Candidate
+             * @default false
+             */
+            candidate: boolean;
         };
         /** PromiseState */
         PromiseState: {
@@ -599,6 +659,7 @@ export interface components {
             /** Promises */
             promises?: components["schemas"]["PromiseState"][];
             dialogue?: components["schemas"]["DialogueState"] | null;
+            election?: components["schemas"]["ElectionState"] | null;
             /** Recent Events */
             recent_events?: components["schemas"]["WorldEvent"][];
         };
@@ -671,6 +732,54 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VoteInputState */
+        VoteInputState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "base" | "trait" | "relationship" | "belief";
+            /** Key */
+            key: string;
+            /** Value */
+            value: string | number | boolean | null;
+            /** Weight */
+            weight: number;
+            /** Contribution */
+            contribution: number;
+            /** Explanation */
+            explanation: string;
+            /** Belief Id */
+            belief_id?: string | null;
+            /** Belief Version */
+            belief_version?: number | null;
+            /** Decisive Rank */
+            decisive_rank?: number | null;
+        };
+        /** VoteState */
+        VoteState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Voter Id */
+            voter_id: string;
+            /**
+             * Choice
+             * @enum {string}
+             */
+            choice: "player" | "rhea";
+            /** Player Score */
+            player_score: number;
+            /** Inputs */
+            inputs: components["schemas"]["VoteInputState"][];
+        };
         /** WorldEvent */
         WorldEvent: {
             /**
@@ -739,6 +848,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreateRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_election_v1_runs__run_id__election_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectionState"];
                 };
             };
             /** @description Validation Error */

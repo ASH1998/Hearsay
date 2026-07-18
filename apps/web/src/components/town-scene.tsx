@@ -512,15 +512,20 @@ function Scene({
         {snapshot.npcs.map((npc) => {
           const location = locations.get(npc.location_id);
           if (!location) return null;
-          const offset = npc.id.charCodeAt(0) % 3;
+          const peers = snapshot.npcs.filter(
+            (resident) => resident.location_id === npc.location_id,
+          );
+          const peerIndex = peers.findIndex((resident) => resident.id === npc.id);
+          const angle = (peerIndex / Math.max(peers.length, 1)) * Math.PI * 2;
+          const radius = peers.length > 1 ? 0.65 : 0;
           return (
             <AnimatedResident
               key={npc.id}
               npc={npc}
               position={[
-                location.position[0] + offset * 0.5,
+                location.position[0] + Math.cos(angle) * radius,
                 0,
-                location.position[2] + offset * 0.34,
+                location.position[2] + Math.sin(angle) * radius,
               ]}
               onClick={() => onNpcClick(npc)}
             />

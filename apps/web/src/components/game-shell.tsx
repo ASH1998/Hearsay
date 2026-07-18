@@ -165,6 +165,7 @@ export function GameShell() {
         snapshot.locations.find((location) => location.id === neighborId),
       )
       .filter((location) => location !== undefined) ?? [];
+  const gameOver = snapshot.status === "completed";
 
   const move = (locationId: string) => {
     void act("move", locationId);
@@ -253,6 +254,11 @@ export function GameShell() {
             Chalk says: {snapshot.player.traits.join(" · ")}
           </p>
         ) : null}
+        <p className="muted">
+          {snapshot.player.candidate
+            ? "Ballot: the newcomer is standing against Rhea"
+            : "Ballot: Rhea is currently unopposed"}
+        </p>
         <button
           className="secondary"
           type="button"
@@ -273,28 +279,87 @@ export function GameShell() {
         ) : null}
       </section>
 
+      {snapshot.election ? (
+        <section className="historian" aria-label="Election result">
+          <p className="eyebrow">Election night · auditable result</p>
+          <h2>{snapshot.election.ending.title}</h2>
+          <p className="historian__summary">
+            Newcomer {snapshot.election.player_votes}–{snapshot.election.rhea_votes} Rhea
+            {snapshot.election.tie_favors_rhea
+              ? " · a tied ballot stays with Rhea"
+              : ""}
+          </p>
+          <p>{snapshot.election.ending.summary}</p>
+          <div className="historian__chain">
+            {(snapshot.election.ending.decisive_voter_ids ?? []).map((voterId) => {
+              const vote = snapshot.election?.votes.find(
+                (item) => item.voter_id === voterId,
+              );
+              if (!vote) return null;
+              const voter = snapshot.npcs.find((npc) => npc.id === voterId);
+              return (
+                <article key={vote.id}>
+                  <span>
+                    {voter?.name ?? voterId} voted {vote.choice === "player" ? "for you" : "for Rhea"}
+                  </span>
+                  {vote.inputs
+                    .filter((input) => input.decisive_rank !== null)
+                    .sort(
+                      (left, right) =>
+                        (left.decisive_rank ?? 4) - (right.decisive_rank ?? 4),
+                    )
+                    .map((input) => (
+                      <small key={input.id}>
+                        {input.contribution >= 0 ? "+" : ""}
+                        {input.contribution.toFixed(2)} · {input.explanation}
+                        {input.belief_id
+                          ? ` · belief ${input.belief_id.slice(0, 8)} v${input.belief_version}`
+                          : ""}
+                      </small>
+                    ))}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       <section className="actions" aria-label="Available actions">
-        <button type="button" disabled={busy} onClick={() => act("observe")}>
+        <button type="button" disabled={busy || gameOver} onClick={() => act("observe")}>
           Eavesdrop
           <small>Free action</small>
         </button>
-        <button type="button" disabled={busy} onClick={() => setSelectedNpc(
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "marta") ?? null,
         )}>
           Find Marta
           <small>The Gull & Anchor</small>
         </button>
-        <button type="button" disabled={busy} onClick={() => setSelectedNpc(
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "bram") ?? null,
         )}>
           Find Bram
           <small>Market row</small>
         </button>
-        <button type="button" disabled={busy} onClick={() => setSelectedNpc(
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "pip") ?? null,
         )}>
           Find Pip
           <small>Town square</small>
+        </button>
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+          snapshot.npcs.find((npc) => npc.id === "rhea") ?? null,
+        )}>
+          Find Rhea
+          <small>Guildhouse steps</small>
+        </button>
+        <button
+          type="button"
+          disabled={busy || gameOver}
+          onClick={() => act("sleep")}
+        >
+          Sleep until morning
+          <small>Advance to the next day</small>
         </button>
       </section>
 
@@ -402,6 +467,17 @@ export function GameShell() {
                     </button>
                   ) : null}
                 </>
+              ) : null}
+              {selectedNpc.id === "rhea" &&
+              snapshot.day >= 2 &&
+              !snapshot.player.candidate ? (
+                <button
+                  disabled={busy}
+                  type="button"
+                  onClick={() => act("declare_candidacy", "rhea")}
+                >
+                  Declare candidacy for mayor
+                </button>
               ) : null}
             </div>
           </div>

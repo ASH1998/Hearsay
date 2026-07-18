@@ -402,8 +402,8 @@ button:disabled {
   right: 1.5rem;
   bottom: 5rem;
   display: grid;
-  width: min(21rem, calc(100vw - 3rem));
-  grid-template-columns: repeat(2, 1fr);
+  width: min(34rem, calc(100vw - 3rem));
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
 }
 
@@ -594,6 +594,7 @@ button:disabled {
     right: 0.7rem;
     bottom: 4.2rem;
     width: calc(100vw - 9.2rem);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .conversation {

@@ -21,7 +21,8 @@
       "role": "Innkeeper",
       "location": "inn",
       "color": "#d86f45",
-      "opening": "Bram has my shipment tied up at the docks. Help me before evening, and I won't forget it."
+      "opening": "Bram has my shipment tied up at the docks. Help me before evening, and I won't forget it.",
+      "voter_bias": 0.0
     },
     {
       "id": "elias",
@@ -29,7 +30,8 @@
       "role": "Constable",
       "location": "constable",
       "color": "#496e8f",
-      "opening": "Greyhaven keeps its own order. See that you don't disturb it."
+      "opening": "Greyhaven keeps its own order. See that you don't disturb it.",
+      "voter_bias": -0.35
     },
     {
       "id": "orin",
@@ -37,7 +39,8 @@
       "role": "Priest",
       "location": "chapel",
       "color": "#806f8e",
-      "opening": "Words have a longer life than their speakers."
+      "opening": "Words have a longer life than their speakers.",
+      "voter_bias": -0.2
     },
     {
       "id": "nessa",
@@ -45,7 +48,8 @@
       "role": "Fisher",
       "location": "docks",
       "color": "#2b8c86",
-      "opening": "The tide answers to nobody, least of all merchants."
+      "opening": "The tide answers to nobody, least of all merchants.",
+      "voter_bias": -0.1
     },
     {
       "id": "bram",
@@ -53,7 +57,8 @@
       "role": "Merchant",
       "location": "market",
       "color": "#b68b37",
-      "opening": "Triple is simply what urgency costs."
+      "opening": "Triple is simply what urgency costs.",
+      "voter_bias": -0.55
     },
     {
       "id": "talia",
@@ -61,7 +66,8 @@
       "role": "Midwife",
       "location": "midwife",
       "color": "#6c9b63",
-      "opening": "Most troubles improve when someone arrives before being asked."
+      "opening": "Most troubles improve when someone arrives before being asked.",
+      "voter_bias": 0.05
     },
     {
       "id": "pip",
@@ -69,7 +75,8 @@
       "role": "Town gossip",
       "location": "square",
       "color": "#bf5979",
-      "opening": "You're the newcomer with the royal purse, aren't you? Or was it a royal warrant?"
+      "opening": "You're the newcomer with the royal purse, aren't you? Or was it a royal warrant?",
+      "voter_bias": -0.15
     },
     {
       "id": "rhea",
@@ -77,15 +84,158 @@
       "role": "Guild leader",
       "location": "guildhouse",
       "color": "#8a4a42",
-      "opening": "Elections in three days. The town could use a fresh name—or a useful fool."
+      "opening": "Elections in three days. The town could use a fresh name—or a useful fool.",
+      "voter_bias": -1.0
+    }
+  ],
+  "ambients": [
+    {
+      "id": "jonas",
+      "name": "Jonas Pike",
+      "role": "Dockhand",
+      "location": "docks",
+      "color": "#4f7f8f",
+      "opening": "Cargo tells you who owes whom, if you know how to count.",
+      "voter_bias": 0.05
+    },
+    {
+      "id": "mae",
+      "name": "Mae Dorr",
+      "role": "Dockhand",
+      "location": "docks",
+      "color": "#52758c",
+      "opening": "A hand that helps before the rain is a hand I remember.",
+      "voter_bias": -0.05
+    },
+    {
+      "id": "oswin",
+      "name": "Oswin Bell",
+      "role": "Baker",
+      "location": "square",
+      "color": "#a87b4f",
+      "opening": "Everyone wants tomorrow's bread on yesterday's credit.",
+      "voter_bias": -0.2
+    },
+    {
+      "id": "del",
+      "name": "Del Sayer",
+      "role": "Fishwife",
+      "location": "docks",
+      "color": "#3b8b81",
+      "opening": "The tide brings truth in eventually. Usually smelling worse.",
+      "voter_bias": 0.0
+    },
+    {
+      "id": "hettie",
+      "name": "Hettie Voss",
+      "role": "Stall keeper",
+      "location": "market",
+      "color": "#b28645",
+      "opening": "Rhea knows how to keep the market predictable.",
+      "voter_bias": -0.35
+    },
+    {
+      "id": "cal",
+      "name": "Cal Moss",
+      "role": "Stall keeper",
+      "location": "market",
+      "color": "#9c7141",
+      "opening": "I vote for whoever keeps customers walking this row.",
+      "voter_bias": -0.25
+    },
+    {
+      "id": "edda",
+      "name": "Edda Grey",
+      "role": "Town elder",
+      "location": "chapel",
+      "color": "#7a7088",
+      "opening": "New names make old promises very easily.",
+      "voter_bias": -0.3
+    },
+    {
+      "id": "will",
+      "name": "Will Harker",
+      "role": "Town elder",
+      "location": "inn",
+      "color": "#796b5d",
+      "opening": "Rhea has faults. At least we already know their price.",
+      "voter_bias": -0.45
+    },
+    {
+      "id": "fen",
+      "name": "Fen Lark",
+      "role": "Farmhand",
+      "location": "road",
+      "color": "#718b50",
+      "opening": "A mayor ought to know which end of a crate is heavy.",
+      "voter_bias": 0.1
+    },
+    {
+      "id": "lina",
+      "name": "Lina Thread",
+      "role": "Seamstress",
+      "location": "square",
+      "color": "#9f6682",
+      "opening": "Reputation is only a seam. Pull it and see what holds.",
+      "voter_bias": -0.1
+    },
+    {
+      "id": "tob",
+      "name": "Tob Rill",
+      "role": "Tavern regular",
+      "location": "inn",
+      "color": "#8a5e43",
+      "opening": "Buy no speeches before you've heard the second telling.",
+      "voter_bias": 0.0
+    },
+    {
+      "id": "kit",
+      "name": "Kit Wren",
+      "role": "Courier",
+      "location": "road",
+      "color": "#c07455",
+      "opening": "I know who answers a knock and who lets a message freeze.",
+      "voter_bias": 0.15
+    }
+  ],
+  "endings": [
+    {
+      "id": "landslide",
+      "title": "The Town Turns",
+      "summary": "Greyhaven chooses the newcomer by a margin even Rhea cannot explain away."
+    },
+    {
+      "id": "narrow_win",
+      "title": "By One Voice",
+      "summary": "The final name is yours, carried over the line by the memories you changed."
+    },
+    {
+      "id": "narrow_loss",
+      "title": "The Tied Bell",
+      "summary": "Rhea keeps the guildhouse. One changed mind would have changed the town."
+    },
+    {
+      "id": "humiliation",
+      "title": "No Seconding Voice",
+      "summary": "Your candidacy ends as a story the tavern tells more loudly than your speech."
+    },
+    {
+      "id": "exposed",
+      "title": "The Story Unravels",
+      "summary": "The town compares your word with its memory and finds the seam."
+    },
+    {
+      "id": "run_out_of_town",
+      "title": "The Road Remembers",
+      "summary": "Greyhaven sends you back down the road under a chorus of every threat it kept."
     }
   ],
   "public_traits": [
-    "reliable",
-    "generous",
-    "dangerous",
-    "dishonest",
-    "influential",
-    "troublemaker"
+    "Reliable",
+    "Generous",
+    "Dangerous",
+    "Dishonest",
+    "Influential",
+    "Troublemaker"
   ]
 }

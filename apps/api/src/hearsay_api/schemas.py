@@ -10,6 +10,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Phase = Literal["morning", "afternoon", "evening", "night"]
 RunStatus = Literal["active", "completed"]
 Weather = Literal["clear", "rain"]
+VoteChoice = Literal["player", "rhea"]
+EndingKey = Literal[
+    "landslide",
+    "narrow_win",
+    "narrow_loss",
+    "humiliation",
+    "exposed",
+    "run_out_of_town",
+]
 
 
 class ActionVerb(StrEnum):
@@ -19,6 +28,7 @@ class ActionVerb(StrEnum):
     TALK = "talk"
     PROMISE_HELP = "promise_help"
     SETTLE_SHIPMENT = "settle_shipment"
+    DECLARE_CANDIDACY = "declare_candidacy"
     CONFRONT = "confront"
     SLEEP = "sleep"
 
@@ -100,6 +110,46 @@ class PlayerState(BaseModel):
     display_name: str
     location_id: str
     traits: list[str] = Field(default_factory=list)
+    candidate: bool = False
+
+
+class VoteInputState(BaseModel):
+    id: UUID
+    kind: Literal["base", "trait", "relationship", "belief"]
+    key: str
+    value: str | float | bool | None
+    weight: float
+    contribution: float
+    explanation: str
+    belief_id: UUID | None = None
+    belief_version: int | None = None
+    decisive_rank: int | None = Field(default=None, ge=1, le=3)
+
+
+class VoteState(BaseModel):
+    id: UUID
+    voter_id: str
+    choice: VoteChoice
+    player_score: float
+    inputs: list[VoteInputState]
+
+
+class EndingState(BaseModel):
+    key: EndingKey
+    title: str
+    summary: str
+    player_won: bool
+    decisive_voter_ids: list[str] = Field(default_factory=list)
+
+
+class ElectionState(BaseModel):
+    id: UUID
+    player_votes: int = Field(ge=0, le=20)
+    rhea_votes: int = Field(ge=0, le=20)
+    winner: VoteChoice
+    tie_favors_rhea: bool
+    votes: list[VoteState]
+    ending: EndingState
 
 
 class RunSnapshot(BaseModel):
@@ -117,6 +167,7 @@ class RunSnapshot(BaseModel):
     npcs: list[NpcState]
     promises: list[PromiseState] = Field(default_factory=list)
     dialogue: DialogueState | None = None
+    election: ElectionState | None = None
     recent_events: list[WorldEvent] = Field(default_factory=list)
 
 

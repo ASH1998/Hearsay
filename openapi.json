@@ -72,6 +72,49 @@
         }
       }
     },
+    "/v1/runs/{run_id}/election": {
+      "get": {
+        "tags": [
+          "election"
+        ],
+        "summary": "Get Election",
+        "operationId": "get_election_v1_runs__run_id__election_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElectionState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/runs/{run_id}/snapshot": {
       "get": {
         "tags": [
@@ -410,6 +453,7 @@
           "talk",
           "promise_help",
           "settle_shipment",
+          "declare_candidacy",
           "confront",
           "sleep"
         ],
@@ -758,6 +802,103 @@
           "text"
         ],
         "title": "DialogueState"
+      },
+      "ElectionState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "player_votes": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Player Votes"
+          },
+          "rhea_votes": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "title": "Rhea Votes"
+          },
+          "winner": {
+            "type": "string",
+            "enum": [
+              "player",
+              "rhea"
+            ],
+            "title": "Winner"
+          },
+          "tie_favors_rhea": {
+            "type": "boolean",
+            "title": "Tie Favors Rhea"
+          },
+          "votes": {
+            "items": {
+              "$ref": "#/components/schemas/VoteState"
+            },
+            "type": "array",
+            "title": "Votes"
+          },
+          "ending": {
+            "$ref": "#/components/schemas/EndingState"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "player_votes",
+          "rhea_votes",
+          "winner",
+          "tie_favors_rhea",
+          "votes",
+          "ending"
+        ],
+        "title": "ElectionState"
+      },
+      "EndingState": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "landslide",
+              "narrow_win",
+              "narrow_loss",
+              "humiliation",
+              "exposed",
+              "run_out_of_town"
+            ],
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "player_won": {
+            "type": "boolean",
+            "title": "Player Won"
+          },
+          "decisive_voter_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisive Voter Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "summary",
+          "player_won"
+        ],
+        "title": "EndingState"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1248,6 +1389,11 @@
             },
             "type": "array",
             "title": "Traits"
+          },
+          "candidate": {
+            "type": "boolean",
+            "title": "Candidate",
+            "default": false
           }
         },
         "type": "object",
@@ -1479,6 +1625,16 @@
               }
             ]
           },
+          "election": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ElectionState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "recent_events": {
             "items": {
               "$ref": "#/components/schemas/WorldEvent"
@@ -1703,6 +1859,146 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VoteInputState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "base",
+              "trait",
+              "relationship",
+              "belief"
+            ],
+            "title": "Kind"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "weight": {
+            "type": "number",
+            "title": "Weight"
+          },
+          "contribution": {
+            "type": "number",
+            "title": "Contribution"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "belief_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Belief Id"
+          },
+          "belief_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Belief Version"
+          },
+          "decisive_rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisive Rank"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "key",
+          "value",
+          "weight",
+          "contribution",
+          "explanation"
+        ],
+        "title": "VoteInputState"
+      },
+      "VoteState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "voter_id": {
+            "type": "string",
+            "title": "Voter Id"
+          },
+          "choice": {
+            "type": "string",
+            "enum": [
+              "player",
+              "rhea"
+            ],
+            "title": "Choice"
+          },
+          "player_score": {
+            "type": "number",
+            "title": "Player Score"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/VoteInputState"
+            },
+            "type": "array",
+            "title": "Inputs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "voter_id",
+          "choice",
+          "player_score",
+          "inputs"
+        ],
+        "title": "VoteState"
       },
       "WorldEvent": {
         "properties": {

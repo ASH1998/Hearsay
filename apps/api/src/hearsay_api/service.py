@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import structlog
 
 from hearsay_api.content import GreyhavenContent, load_content
+from hearsay_api.election import resolve_election
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
     DialogueRequest,
@@ -101,7 +102,7 @@ class GameService:
                 color=item.color,
                 speech=item.opening if item.id == "marta" else None,
             )
-            for item in self.content.principals
+            for item in self.content.residents
         ]
         snapshot = RunSnapshot(
             run_id=run_id,
@@ -169,6 +170,26 @@ class GameService:
                 )[:8]
                 if snapshot.action_count % 2 == 0:
                     self._run_gossip_tick(snapshot)
+            if snapshot.action_count >= 18 and snapshot.election is None:
+                lineage = self.repository.list_memory_lineage(run_id)
+                snapshot.election = resolve_election(
+                    snapshot,
+                    self.content,
+                    lineage,
+                )
+                snapshot.recent_events = (
+                    [
+                        self._event(
+                            "election_resolved",
+                            (
+                                f"Greyhaven votes {snapshot.election.player_votes}–"
+                                f"{snapshot.election.rhea_votes}. "
+                                f"{snapshot.election.ending.title}."
+                            ),
+                        )
+                    ]
+                    + snapshot.recent_events
+                )[:8]
             promise_transitions = tuple(
                 PromiseTransition(
                     promisee_id=promise.promisee_id,
@@ -321,7 +342,7 @@ class GameService:
             )
         if request.verb == ActionVerb.TALK:
             npc = self._require_npc(snapshot, request.target_id)
-            principal = self.content.principals_by_id[npc.id]
+            principal = self.content.residents_by_id[npc.id]
             snapshot.dialogue = DialogueState(
                 speaker_id=npc.id,
                 speaker_name=npc.name,
@@ -374,6 +395,26 @@ class GameService:
             return self._event(
                 "promise_kept",
                 "Bram releases Marta's shipment. You kept your word before evening.",
+            )
+        if request.verb == ActionVerb.DECLARE_CANDIDACY:
+            if request.target_id != "rhea":
+                raise InvalidActionError("Declare your candidacy to Rhea at the guildhouse.")
+            if snapshot.day < 2:
+                raise InvalidActionError("Greyhaven will not accept declarations before day two.")
+            if snapshot.player.candidate:
+                raise InvalidActionError("You already declared your candidacy.")
+            snapshot.player.candidate = True
+            snapshot.dialogue = DialogueState(
+                speaker_id="rhea",
+                speaker_name="Rhea Kest",
+                text=(
+                    "Then stand in the square at midnight and learn whether "
+                    "Greyhaven remembers your name kindly."
+                ),
+            )
+            return self._event(
+                "candidacy_declared",
+                "You declare for mayor. Rhea's smile does not reach her eyes.",
             )
         if request.verb == ActionVerb.CONFRONT:
             if request.target_id != "bram":

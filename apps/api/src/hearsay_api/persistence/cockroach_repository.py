@@ -27,6 +27,7 @@ from hearsay_api.persistence.models import (
     BeliefInputModel,
     BeliefModel,
     BeliefVersionModel,
+    ElectionModel,
     EventModel,
     EvidenceLinkModel,
     EvidenceModel,
@@ -38,6 +39,8 @@ from hearsay_api.persistence.models import (
     RelationshipModel,
     RetrievalTraceModel,
     TransmissionModel,
+    VoteInputModel,
+    VoteModel,
 )
 from hearsay_api.repository import ConcurrentRunUpdateError, RunNotFoundError
 from hearsay_api.schemas import (
@@ -597,6 +600,8 @@ class CockroachRunRepository:
                     )
                 )
             self._apply_memory_effects(session, run_id, memory_effects)
+            if snapshot.election is not None and current.snapshot.get("election") is None:
+                self._persist_election(session, run_id, snapshot)
             return ActionResponse.model_validate(response_json)
 
         return self._run_transaction(update_run)
@@ -1170,10 +1175,65 @@ class CockroachRunRepository:
 
         self._run_transaction(write_audit)
 
+    @staticmethod
+    def _persist_election(
+        session: Session,
+        run_id: UUID,
+        snapshot: RunSnapshot,
+    ) -> None:
+        election = snapshot.election
+        assert election is not None
+        session.execute(
+            insert(ElectionModel).values(
+                id=election.id,
+                game_run_id=run_id,
+                player_votes=election.player_votes,
+                rhea_votes=election.rhea_votes,
+                winner=election.winner,
+                tie_favors_rhea=election.tie_favors_rhea,
+                ending_key=election.ending.key,
+            )
+        )
+        for vote in election.votes:
+            session.execute(
+                insert(VoteModel).values(
+                    id=vote.id,
+                    election_id=election.id,
+                    game_run_id=run_id,
+                    voter_id=vote.voter_id,
+                    choice=vote.choice,
+                    player_score=vote.player_score,
+                )
+            )
+            if vote.inputs:
+                session.execute(
+                    insert(VoteInputModel),
+                    [
+                        {
+                            "id": item.id,
+                            "vote_id": vote.id,
+                            "game_run_id": run_id,
+                            "input_kind": item.kind,
+                            "input_key": item.key,
+                            "input_value": item.value,
+                            "weight": item.weight,
+                            "contribution": item.contribution,
+                            "explanation": item.explanation,
+                            "belief_id": item.belief_id,
+                            "belief_version": item.belief_version,
+                            "decisive_rank": item.decisive_rank,
+                        }
+                        for item in vote.inputs
+                    ],
+                )
+
     def clear_all(self) -> None:
         """Delete test data. This is intentionally not exposed by the API."""
 
         def clear(session: Session) -> None:
+            session.execute(delete(VoteInputModel))
+            session.execute(delete(VoteModel))
+            session.execute(delete(ElectionModel))
             session.execute(delete(HistorianAuditModel))
             session.execute(delete(RetrievalTraceModel))
             session.execute(delete(BeliefInputModel))

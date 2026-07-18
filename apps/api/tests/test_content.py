@@ -11,6 +11,9 @@ def test_greyhaven_content_references_are_complete() -> None:
 
     assert len(content.locations) == 12
     assert len(content.principals) == 8
+    assert len(content.ambients) == 12
+    assert len(content.residents) == 20
+    assert len(content.endings) == 6
     assert len(content.public_traits) == 6
     assert all(location.neighbors for location in content.locations)
 

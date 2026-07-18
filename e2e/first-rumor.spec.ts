@@ -79,4 +79,28 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
     page.getByText("Kept · Marta's shipment was released"),
   ).toBeVisible();
   await expect(page.getByText("Tick 2")).toBeVisible();
+
+  await page.getByRole("button", { name: "Sleep until morning" }).click();
+  await expect(page.getByText("Day 2 · morning")).toBeVisible();
+  await page.getByRole("button", { name: /Find Rhea/ }).click();
+  await page
+    .getByRole("button", { name: "Declare candidacy for mayor" })
+    .click();
+  await expect(
+    page.getByText("Ballot: the newcomer is standing against Rhea"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Close conversation" }).click();
+
+  await page.getByRole("button", { name: "Sleep until morning" }).click();
+  await expect(page.getByText("Day 3 · morning")).toBeVisible();
+  await page.getByRole("button", { name: "Sleep until morning" }).click();
+
+  await expect(page.getByRole("heading", { name: "By One Voice" })).toBeVisible();
+  await expect(page.getByText("Newcomer 11–9 Rhea")).toBeVisible();
+  await expect(
+    page
+      .locator(".historian small")
+      .filter({ hasText: "shipment promise was kept" })
+      .filter({ hasText: "v1" }),
+  ).toBeVisible();
 });
