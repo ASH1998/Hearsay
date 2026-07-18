@@ -57,11 +57,15 @@ The opening loop is intentionally small but end to end:
 3. Confront Bram about his price.
 4. After the second consequential action, Pip visibly repeats a distorted
    version and the authoritative action clock advances.
+5. Open “Trace Pip’s rumor” in the Town Ledger to inspect Bram’s source belief,
+   Pip’s immutable retelling, and the recorded mutation.
 
 Movement, eavesdropping, and the notice board are free actions. Walk through
 connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
-the browser restores the current run from CockroachDB. Full belief provenance
-and vector retrieval are the next data slice.
+the browser restores the current run from CockroachDB. The current memory slice
+persists immutable belief lineage and performs holder-scoped 384-dimensional
+vector recall with relational reranking. Real local embeddings, structured model
+outputs, contradiction handling, and the Managed MCP Historian are next.
 
 ## Authority
 

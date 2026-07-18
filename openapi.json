@@ -167,6 +167,118 @@
           }
         }
       }
+    },
+    "/v1/runs/{run_id}/memories": {
+      "get": {
+        "tags": [
+          "memory"
+        ],
+        "summary": "Get Memory Lineage",
+        "operationId": "get_memory_lineage_v1_runs__run_id__memories_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "proposition_key",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Proposition Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryLineageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/runs/{run_id}/memories/recall": {
+      "post": {
+        "tags": [
+          "memory"
+        ],
+        "summary": "Recall Memories",
+        "operationId": "recall_memories_v1_runs__run_id__memories_recall_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoryRecallRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRecallResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -367,6 +479,203 @@
         ],
         "title": "LocationState"
       },
+      "MemoryLineageResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "proposition_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposition Key"
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryVersionState"
+            },
+            "type": "array",
+            "title": "Versions"
+          },
+          "transmissions": {
+            "items": {
+              "$ref": "#/components/schemas/TransmissionState"
+            },
+            "type": "array",
+            "title": "Transmissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "versions",
+          "transmissions"
+        ],
+        "title": "MemoryLineageResponse"
+      },
+      "MemoryRecallRequest": {
+        "properties": {
+          "holder_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Holder Id"
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 8
+          }
+        },
+        "type": "object",
+        "required": [
+          "holder_id",
+          "query"
+        ],
+        "title": "MemoryRecallRequest"
+      },
+      "MemoryRecallResponse": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Trace Id"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id"
+          },
+          "holder_id": {
+            "type": "string",
+            "title": "Holder Id"
+          },
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "memories": {
+            "items": {
+              "$ref": "#/components/schemas/RecalledMemory"
+            },
+            "type": "array",
+            "title": "Memories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trace_id",
+          "run_id",
+          "holder_id",
+          "query",
+          "memories"
+        ],
+        "title": "MemoryRecallResponse"
+      },
+      "MemoryVersionState": {
+        "properties": {
+          "belief_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Belief Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "holder_id": {
+            "type": "string",
+            "title": "Holder Id"
+          },
+          "narrative_text": {
+            "type": "string",
+            "title": "Narrative Text"
+          },
+          "normalized_position": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Normalized Position"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "salience": {
+            "type": "number",
+            "title": "Salience"
+          },
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "embedding_model_id": {
+            "type": "string",
+            "title": "Embedding Model Id"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "belief_id",
+          "version",
+          "proposition_key",
+          "holder_id",
+          "narrative_text",
+          "normalized_position",
+          "confidence",
+          "salience",
+          "source_kind",
+          "source_id",
+          "embedding_model_id",
+          "active"
+        ],
+        "title": "MemoryVersionState"
+      },
       "NpcState": {
         "properties": {
           "id": {
@@ -493,6 +802,67 @@
         ],
         "title": "PromiseState"
       },
+      "RecalledMemory": {
+        "properties": {
+          "belief_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Belief Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "narrative_text": {
+            "type": "string",
+            "title": "Narrative Text"
+          },
+          "semantic_similarity": {
+            "type": "number",
+            "title": "Semantic Similarity"
+          },
+          "final_score": {
+            "type": "number",
+            "title": "Final Score"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "salience": {
+            "type": "number",
+            "title": "Salience"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "belief_id",
+          "version",
+          "proposition_key",
+          "narrative_text",
+          "semantic_similarity",
+          "final_score",
+          "confidence",
+          "salience",
+          "source_id"
+        ],
+        "title": "RecalledMemory"
+      },
       "RunSnapshot": {
         "properties": {
           "run_id": {
@@ -610,6 +980,136 @@
           "npcs"
         ],
         "title": "RunSnapshot"
+      },
+      "TransmissionState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "proposition_key": {
+            "type": "string",
+            "title": "Proposition Key"
+          },
+          "speaker_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Id"
+          },
+          "listener_id": {
+            "type": "string",
+            "title": "Listener Id"
+          },
+          "from_belief_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Belief Id"
+          },
+          "from_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Version"
+          },
+          "to_belief_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "To Belief Id"
+          },
+          "to_version": {
+            "type": "integer",
+            "title": "To Version"
+          },
+          "original_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Text"
+          },
+          "retold_text": {
+            "type": "string",
+            "title": "Retold Text"
+          },
+          "mutation_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mutation Note"
+          },
+          "trust_at_time": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trust At Time"
+          },
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "proposition_key",
+          "speaker_id",
+          "listener_id",
+          "from_belief_id",
+          "from_version",
+          "to_belief_id",
+          "to_version",
+          "original_text",
+          "retold_text",
+          "mutation_note",
+          "trust_at_time",
+          "model_id"
+        ],
+        "title": "TransmissionState"
       },
       "ValidationError": {
         "properties": {

@@ -309,6 +309,10 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 - `POST /v1/runs` creates a new game run.
 - `GET /v1/runs/{id}/snapshot` returns the authoritative state needed by the client.
 - `POST /v1/runs/{id}/actions` validates and resolves player actions.
+- `GET /v1/runs/{id}/memories` returns immutable belief versions and
+  provenance-linked rumor transmissions for the gameplay Historian view.
+- `POST /v1/runs/{id}/memories/recall` performs holder-scoped vector retrieval,
+  relational reranking, and records a retrieval trace.
 - WebSocket stream delivers state transitions, NPC reactions, and dialogue events.
 - Historian endpoints expose redacted, explainable memory provenance and retrieval traces.
 - Director endpoints are token-protected, provide test/demo controls only when explicitly enabled in development, and are never exposed as a public gameplay surface.

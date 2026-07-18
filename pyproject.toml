@@ -48,7 +48,7 @@ build-backend = "hatchling.build"
 addopts = "-q --strict-markers"
 testpaths = ["apps/api/tests", "tests"]
 markers = [
-  "cockroach: requires a disposable CockroachDB database",
+  "cockroach: requires the isolated configured hearsay_test Cockroach Cloud database",
 ]
 
 [tool.ruff]

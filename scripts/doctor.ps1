@@ -32,6 +32,7 @@ $requiredNames = @(
     "HEARSAY_API_PORT",
     "HEARSAY_WEB_ORIGIN",
     "NEXT_PUBLIC_API_BASE_URL",
+    "HEARSAY_PERSISTENCE_BACKEND",
     "DATABASE_URL"
 )
 $exampleNames = Get-Content -LiteralPath ".env.example" |
@@ -49,6 +50,18 @@ foreach ($name in $requiredNames) {
 
 $archiveCount = (Get-ChildItem -LiteralPath "assets/downloads" -File -ErrorAction SilentlyContinue).Count
 Write-Host "[info] Raw asset candidates present: $archiveCount"
+
+& "tools/uv/uv.exe" run python scripts/build_assets.py --validate-only
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[failed] Runtime asset validation"
+    $failed = $true
+}
+
+& "tools/uv/uv.exe" run python scripts/check_database.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[failed] Configured CockroachDB Cloud health/vector check"
+    $failed = $true
+}
 
 if ($failed) {
     throw "Doctor found blocking local setup issues. Run 'pnpm bootstrap' and retry."

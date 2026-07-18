@@ -3,6 +3,11 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 from hearsay_api.content import GreyhavenContent, load_content
+from hearsay_api.memory import (
+    DeterministicEmbeddingProvider,
+    EmbeddingProvider,
+    plan_action_memory,
+)
 from hearsay_api.repository import (
     ConcurrentRunUpdateError,
     InMemoryRunRepository,
@@ -16,6 +21,9 @@ from hearsay_api.schemas import (
     CreateRunResponse,
     DialogueState,
     LocationState,
+    MemoryLineageResponse,
+    MemoryRecallRequest,
+    MemoryRecallResponse,
     NpcState,
     PlayerState,
     PromiseState,
@@ -40,10 +48,12 @@ class GameService:
         self,
         repository: RunRepository | None = None,
         content: GreyhavenContent | None = None,
+        embeddings: EmbeddingProvider | None = None,
         max_concurrency_retries: int = 4,
     ) -> None:
         self.repository = repository or InMemoryRunRepository()
         self.content = content or load_content()
+        self.embeddings = embeddings or DeterministicEmbeddingProvider()
         self.max_concurrency_retries = max_concurrency_retries
 
     def create_run(self, request: CreateRunRequest) -> CreateRunResponse:
@@ -88,6 +98,27 @@ class GameService:
     def get_snapshot(self, run_id: UUID) -> RunSnapshot:
         return self._hydrate_content(self.repository.get(run_id))
 
+    def get_memory_lineage(
+        self,
+        run_id: UUID,
+        proposition_key: str | None = None,
+    ) -> MemoryLineageResponse:
+        return self.repository.list_memory_lineage(run_id, proposition_key)
+
+    def recall_memories(
+        self,
+        run_id: UUID,
+        request: MemoryRecallRequest,
+    ) -> MemoryRecallResponse:
+        query_embedding = self.embeddings.embed(request.query)
+        return self.repository.recall_memories(
+            run_id,
+            request.holder_id,
+            request.query,
+            query_embedding,
+            request.limit,
+        )
+
     def take_action(self, run_id: UUID, request: ActionRequest) -> ActionResponse:
         cached = self.repository.get_action_result(run_id, request.idempotency_key)
         if cached is not None:
@@ -112,6 +143,7 @@ class GameService:
                 consumed_time=consumed_time,
                 snapshot=snapshot,
             )
+            memory_effects = plan_action_memory(request, response, self.embeddings)
             try:
                 return self.repository.update(
                     run_id,
@@ -119,6 +151,7 @@ class GameService:
                     request,
                     request.idempotency_key,
                     response,
+                    memory_effects,
                 )
             except ConcurrentRunUpdateError:
                 if attempt == self.max_concurrency_retries:

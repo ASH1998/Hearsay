@@ -10,5 +10,7 @@ tools/uv/uv --version
 tools/uv/uv run python --version
 test -f .env.example
 test -f assets/manifest.json
+tools/uv/uv run python scripts/build_assets.py --validate-only
+tools/uv/uv run python scripts/check_database.py
 
 printf '%s\n' "Doctor passed."

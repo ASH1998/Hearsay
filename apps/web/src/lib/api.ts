@@ -7,6 +7,7 @@ export type ActionVerb = Schemas["ActionVerb"];
 export type Phase = GeneratedSnapshot["phase"];
 export type LocationState = Schemas["LocationState"];
 export type PromiseState = Schemas["PromiseState"];
+export type MemoryLineage = Schemas["MemoryLineageResponse"];
 export type NpcState = Omit<Schemas["NpcState"], "speech"> & {
   speech: string | null;
 };
@@ -71,6 +72,16 @@ export async function takeAction(
     },
   );
   return body.snapshot;
+}
+
+export async function loadMemoryLineage(
+  runId: string,
+  propositionKey?: string,
+): Promise<MemoryLineage> {
+  const query = propositionKey
+    ? `?proposition_key=${encodeURIComponent(propositionKey)}`
+    : "";
+  return request<MemoryLineage>(`/v1/runs/${runId}/memories${query}`);
 }
 
 export function clockLabel(snapshot: RunSnapshot): string {

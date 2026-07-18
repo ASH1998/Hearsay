@@ -6,12 +6,23 @@ from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.engine import make_url
 
+from hearsay_api.memory import DeterministicEmbeddingProvider
 from hearsay_api.persistence.cockroach_repository import CockroachRunRepository
 from hearsay_api.persistence.database import normalize_cockroach_url
-from hearsay_api.persistence.models import ActionModel, EventModel, GameRunModel
+from hearsay_api.persistence.models import (
+    ActionModel,
+    ActiveMemoryModel,
+    BeliefModel,
+    BeliefVersionModel,
+    EventModel,
+    GameRunModel,
+    RelationshipModel,
+    RetrievalTraceModel,
+    TransmissionModel,
+)
 from hearsay_api.schemas import ActionRequest, CreateRunRequest
 from hearsay_api.service import GameService
 
@@ -111,3 +122,103 @@ def test_concurrent_actions_commit_complete_monotonic_history(
     assert revisions == [1, 2]
     assert persisted_revision == 2
     assert event_count == 3
+
+
+def test_signature_rumor_is_transactional_recallable_and_provenanced(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=19))
+
+    for verb, target in (("promise_help", "marta"), ("confront", "bram")):
+        service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "bram-price-confrontation",
+    )
+    assert len(lineage.versions) == 2
+    assert len(lineage.transmissions) == 1
+    transmission = lineage.transmissions[0]
+    assert transmission.speaker_id == "bram"
+    assert transmission.listener_id == "pip"
+    assert transmission.original_text != transmission.retold_text
+
+    embedding = DeterministicEmbeddingProvider().embed("What happened to Bram in market row?")
+    recall = repository.recall_memories(
+        created.run_id,
+        "pip",
+        "What happened to Bram in market row?",
+        embedding,
+        4,
+    )
+    assert recall.memories
+    assert recall.memories[0].proposition_key == "bram-price-confrontation"
+
+    service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="confront",
+            target_id="bram",
+        ),
+    )
+    revised_lineage = repository.list_memory_lineage(
+        created.run_id,
+        "bram-price-confrontation",
+    )
+    for holder_id in ("bram", "pip"):
+        holder_versions = [
+            version for version in revised_lineage.versions if version.holder_id == holder_id
+        ]
+        assert [version.version for version in holder_versions] == [1, 2]
+        assert [version.active for version in holder_versions] == [False, True]
+
+    with repository.session_factory() as session:
+        belief_count = session.scalar(select(func.count()).select_from(BeliefModel))
+        version_count = session.scalar(select(func.count()).select_from(BeliefVersionModel))
+        transmission_count = session.scalar(select(func.count()).select_from(TransmissionModel))
+        relationship_count = session.scalar(select(func.count()).select_from(RelationshipModel))
+        trace_count = session.scalar(select(func.count()).select_from(RetrievalTraceModel))
+        pip_dimensions = session.scalar(
+            select(func.vector_dims(ActiveMemoryModel.embedding))
+            .where(ActiveMemoryModel.holder_id == "pip")
+            .limit(1)
+        )
+        active_memory_count = session.scalar(select(func.count()).select_from(ActiveMemoryModel))
+        vector_indexes = list(session.execute(text("SHOW INDEXES FROM active_memories")).mappings())
+        explain_rows = session.execute(
+            text(
+                "EXPLAIN SELECT belief_id, belief_version "
+                "FROM active_memories@{FORCE_INDEX=active_memories_retrieval_vector_idx} "
+                "WHERE game_run_id = :run_id "
+                "AND holder_id = :holder_id "
+                "AND status = 'active' "
+                "ORDER BY embedding <=> CAST(:embedding AS VECTOR(384)) "
+                "LIMIT 8"
+            ),
+            {
+                "run_id": created.run_id,
+                "holder_id": "pip",
+                "embedding": str(list(embedding)),
+            },
+        ).all()
+
+    assert belief_count == 3
+    assert version_count == 5
+    assert transmission_count == 2
+    assert relationship_count == 3
+    assert trace_count == 1
+    assert active_memory_count == 3
+    assert pip_dimensions == 384
+    assert any(
+        index["index_name"] == "active_memories_retrieval_vector_idx" for index in vector_indexes
+    )
+    assert "active_memories_retrieval_vector_idx" in "\n".join(str(row[0]) for row in explain_rows)

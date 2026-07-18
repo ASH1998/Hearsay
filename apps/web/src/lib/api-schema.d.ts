@@ -72,6 +72,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/runs/{run_id}/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Memory Lineage */
+        get: operations["get_memory_lineage_v1_runs__run_id__memories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/runs/{run_id}/memories/recall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recall Memories */
+        post: operations["recall_memories_v1_runs__run_id__memories_recall_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -159,6 +193,85 @@ export interface components {
              */
             neighbors: string[];
         };
+        /** MemoryLineageResponse */
+        MemoryLineageResponse: {
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Proposition Key */
+            proposition_key?: string | null;
+            /** Versions */
+            versions: components["schemas"]["MemoryVersionState"][];
+            /** Transmissions */
+            transmissions: components["schemas"]["TransmissionState"][];
+        };
+        /** MemoryRecallRequest */
+        MemoryRecallRequest: {
+            /** Holder Id */
+            holder_id: string;
+            /** Query */
+            query: string;
+            /**
+             * Limit
+             * @default 8
+             */
+            limit: number;
+        };
+        /** MemoryRecallResponse */
+        MemoryRecallResponse: {
+            /**
+             * Trace Id
+             * Format: uuid
+             */
+            trace_id: string;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Holder Id */
+            holder_id: string;
+            /** Query */
+            query: string;
+            /** Memories */
+            memories: components["schemas"]["RecalledMemory"][];
+        };
+        /** MemoryVersionState */
+        MemoryVersionState: {
+            /**
+             * Belief Id
+             * Format: uuid
+             */
+            belief_id: string;
+            /** Version */
+            version: number;
+            /** Proposition Key */
+            proposition_key: string;
+            /** Holder Id */
+            holder_id: string;
+            /** Narrative Text */
+            narrative_text: string;
+            /** Normalized Position */
+            normalized_position: {
+                [key: string]: unknown;
+            };
+            /** Confidence */
+            confidence: number;
+            /** Salience */
+            salience: number;
+            /** Source Kind */
+            source_kind: string;
+            /** Source Id */
+            source_id: string | null;
+            /** Embedding Model Id */
+            embedding_model_id: string;
+            /** Active */
+            active: boolean;
+            /** Created At */
+            created_at?: string | null;
+        };
         /** NpcState */
         NpcState: {
             /** Id */
@@ -212,6 +325,30 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "kept" | "broken";
+        };
+        /** RecalledMemory */
+        RecalledMemory: {
+            /**
+             * Belief Id
+             * Format: uuid
+             */
+            belief_id: string;
+            /** Version */
+            version: number;
+            /** Proposition Key */
+            proposition_key: string;
+            /** Narrative Text */
+            narrative_text: string;
+            /** Semantic Similarity */
+            semantic_similarity: number;
+            /** Final Score */
+            final_score: number;
+            /** Confidence */
+            confidence: number;
+            /** Salience */
+            salience: number;
+            /** Source Id */
+            source_id: string | null;
         };
         /** RunSnapshot */
         RunSnapshot: {
@@ -270,6 +407,43 @@ export interface components {
             dialogue?: components["schemas"]["DialogueState"] | null;
             /** Recent Events */
             recent_events?: components["schemas"]["WorldEvent"][];
+        };
+        /** TransmissionState */
+        TransmissionState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Proposition Key */
+            proposition_key: string;
+            /** Speaker Id */
+            speaker_id: string | null;
+            /** Listener Id */
+            listener_id: string;
+            /** From Belief Id */
+            from_belief_id: string | null;
+            /** From Version */
+            from_version: number | null;
+            /**
+             * To Belief Id
+             * Format: uuid
+             */
+            to_belief_id: string;
+            /** To Version */
+            to_version: number;
+            /** Original Text */
+            original_text: string | null;
+            /** Retold Text */
+            retold_text: string;
+            /** Mutation Note */
+            mutation_note: string | null;
+            /** Trust At Time */
+            trust_at_time: number | null;
+            /** Model Id */
+            model_id: string;
+            /** Created At */
+            created_at?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -418,6 +592,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_memory_lineage_v1_runs__run_id__memories_get: {
+        parameters: {
+            query?: {
+                proposition_key?: string | null;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryLineageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    recall_memories_v1_runs__run_id__memories_recall_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryRecallRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRecallResponse"];
                 };
             };
             /** @description Validation Error */

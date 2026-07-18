@@ -6,9 +6,11 @@ import { TownScene } from "@/components/town-scene";
 import {
   clockLabel,
   createRun,
+  loadMemoryLineage,
   loadRun,
   takeAction,
   type ActionVerb,
+  type MemoryLineage,
   type NpcState,
   type RunSnapshot,
 } from "@/lib/api";
@@ -54,6 +56,8 @@ function playThunder() {
 export function GameShell() {
   const [snapshot, setSnapshot] = useState<RunSnapshot | null>(null);
   const [selectedNpc, setSelectedNpc] = useState<NpcState | null>(null);
+  const [lineage, setLineage] = useState<MemoryLineage | null>(null);
+  const [historianOpen, setHistorianOpen] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +111,29 @@ export function GameShell() {
     [selectedNpc, snapshot],
   );
 
+  const openHistorian = useCallback(async () => {
+    if (!snapshot) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const nextLineage = await loadMemoryLineage(
+        snapshot.run_id,
+        "bram-price-confrontation",
+      );
+      setLineage(nextLineage);
+      setSelectedNpc(null);
+      setHistorianOpen(true);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "The Historian could not reconstruct that story.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [snapshot]);
+
   if (!snapshot) {
     return (
       <main className="arrival">
@@ -148,6 +175,7 @@ export function GameShell() {
       className="game"
       data-weather={snapshot.weather}
       data-conversation={selectedNpc ? "open" : "closed"}
+      data-historian={historianOpen ? "open" : "closed"}
     >
       <div className="scene" aria-label="A miniature view of Greyhaven">
         <TownScene
@@ -224,6 +252,16 @@ export function GameShell() {
         >
           Read the notice board
         </button>
+        {snapshot.world_tick > 0 ? (
+          <button
+            className="secondary"
+            type="button"
+            disabled={busy}
+            onClick={openHistorian}
+          >
+            Trace Pip&apos;s rumor
+          </button>
+        ) : null}
       </section>
 
       <section className="actions" aria-label="Available actions">
@@ -303,6 +341,46 @@ export function GameShell() {
               ) : null}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {historianOpen && lineage ? (
+        <section className="historian" aria-label="Town Historian">
+          <button
+            className="historian__close"
+            type="button"
+            aria-label="Close Town Historian"
+            onClick={() => setHistorianOpen(false)}
+          >
+            ×
+          </button>
+          <p className="eyebrow">Independent memory record</p>
+          <h2>Town Historian</h2>
+          <p className="historian__summary">
+            {lineage.versions.length} immutable versions ·{" "}
+            {lineage.transmissions.length} recorded retelling
+          </p>
+          <div className="historian__chain">
+            {lineage.versions.map((version) => (
+              <article key={`${version.belief_id}-${version.version}`}>
+                <span>
+                  {snapshot.npcs.find((npc) => npc.id === version.holder_id)
+                    ?.name ?? version.holder_id}{" "}
+                  · v{version.version}
+                </span>
+                <blockquote>{version.narrative_text}</blockquote>
+                <small>
+                  {Math.round(version.confidence * 100)}% confidence · source{" "}
+                  {version.source_id ?? version.source_kind}
+                </small>
+              </article>
+            ))}
+          </div>
+          {lineage.transmissions.map((transmission) => (
+            <p className="historian__mutation" key={transmission.id}>
+              <strong>Mutation recorded:</strong> {transmission.mutation_note}
+            </p>
+          ))}
         </section>
       ) : null}
 

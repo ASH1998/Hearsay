@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 from uuid import UUID
@@ -107,3 +108,69 @@ class ActionResponse(BaseModel):
     action_id: UUID
     consumed_time: bool
     snapshot: RunSnapshot
+
+
+class MemoryVersionState(BaseModel):
+    belief_id: UUID
+    version: int
+    proposition_key: str
+    holder_id: str
+    narrative_text: str
+    normalized_position: dict[str, object]
+    confidence: float
+    salience: float
+    source_kind: str
+    source_id: str | None
+    embedding_model_id: str
+    active: bool
+    created_at: datetime | None = None
+
+
+class TransmissionState(BaseModel):
+    id: UUID
+    proposition_key: str
+    speaker_id: str | None
+    listener_id: str
+    from_belief_id: UUID | None
+    from_version: int | None
+    to_belief_id: UUID
+    to_version: int
+    original_text: str | None
+    retold_text: str
+    mutation_note: str | None
+    trust_at_time: float | None
+    model_id: str
+    created_at: datetime | None = None
+
+
+class MemoryLineageResponse(BaseModel):
+    run_id: UUID
+    proposition_key: str | None = None
+    versions: list[MemoryVersionState]
+    transmissions: list[TransmissionState]
+
+
+class MemoryRecallRequest(BaseModel):
+    holder_id: str = Field(min_length=1, max_length=64)
+    query: str = Field(min_length=1, max_length=500)
+    limit: int = Field(default=8, ge=1, le=20)
+
+
+class RecalledMemory(BaseModel):
+    belief_id: UUID
+    version: int
+    proposition_key: str
+    narrative_text: str
+    semantic_similarity: float
+    final_score: float
+    confidence: float
+    salience: float
+    source_id: str | None
+
+
+class MemoryRecallResponse(BaseModel):
+    trace_id: UUID
+    run_id: UUID
+    holder_id: str
+    query: str
+    memories: list[RecalledMemory]

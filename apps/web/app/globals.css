@@ -157,6 +157,79 @@ button:focus-visible {
   z-index: 2;
 }
 
+.historian {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  width: min(42rem, calc(100vw - 3rem));
+  max-height: calc(100vh - 8rem);
+  overflow: auto;
+  border: 1px solid rgb(232 223 198 / 48%);
+  border-top: 4px solid var(--gold);
+  padding: 1.4rem;
+  background: rgb(18 27 27 / 97%);
+  box-shadow: 0 30px 90px rgb(0 0 0 / 64%);
+  color: var(--paper);
+  transform: translate(-50%, -50%);
+}
+
+.historian h2 {
+  margin: 0.15rem 0;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+}
+
+.historian__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  font-size: 1.8rem;
+}
+
+.historian__summary {
+  margin: 0 0 1rem;
+  color: rgb(232 223 198 / 65%);
+}
+
+.historian__chain {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.historian__chain article {
+  border: 1px solid rgb(232 223 198 / 16%);
+  padding: 0.9rem;
+  background: rgb(232 223 198 / 6%);
+}
+
+.historian__chain span,
+.historian__chain small {
+  color: var(--gold);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.historian__chain blockquote {
+  margin: 0.55rem 0 0.7rem;
+  font-family: var(--font-display);
+  line-height: 1.5;
+}
+
+.historian__mutation {
+  margin: 0.9rem 0 0;
+  border-left: 3px solid var(--rust);
+  padding: 0.75rem 0.9rem;
+  background: rgb(155 73 51 / 14%);
+  font-family: var(--font-display);
+}
+
 .topbar {
   display: flex;
   top: 0;
@@ -534,6 +607,24 @@ button:disabled {
   .game[data-conversation="open"] .ledger,
   .game[data-conversation="open"] .actions {
     display: none;
+  }
+
+  .game[data-historian="open"] .where,
+  .game[data-historian="open"] .waypoints,
+  .game[data-historian="open"] .ledger,
+  .game[data-historian="open"] .actions {
+    display: none;
+  }
+
+  .historian {
+    top: 4.8rem;
+    width: calc(100vw - 1.4rem);
+    max-height: calc(100vh - 9rem);
+    transform: translateX(-50%);
+  }
+
+  .historian__chain {
+    grid-template-columns: 1fr;
   }
 
   .portrait {

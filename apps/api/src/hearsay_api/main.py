@@ -13,6 +13,9 @@ from hearsay_api.schemas import (
     ActionResponse,
     CreateRunRequest,
     CreateRunResponse,
+    MemoryLineageResponse,
+    MemoryRecallRequest,
+    MemoryRecallResponse,
     RunSnapshot,
 )
 from hearsay_api.service import GameService, InvalidActionError
@@ -84,6 +87,34 @@ def create_app(
             raise HTTPException(status_code=404, detail="Run not found.") from error
         except InvalidActionError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @application.get(
+        "/v1/runs/{run_id}/memories",
+        response_model=MemoryLineageResponse,
+        tags=["memory"],
+    )
+    def get_memory_lineage(
+        run_id: UUID,
+        proposition_key: str | None = None,
+    ) -> MemoryLineageResponse:
+        try:
+            return game_service.get_memory_lineage(run_id, proposition_key)
+        except RunNotFoundError as error:
+            raise HTTPException(status_code=404, detail="Run not found.") from error
+
+    @application.post(
+        "/v1/runs/{run_id}/memories/recall",
+        response_model=MemoryRecallResponse,
+        tags=["memory"],
+    )
+    def recall_memories(
+        run_id: UUID,
+        request: MemoryRecallRequest,
+    ) -> MemoryRecallResponse:
+        try:
+            return game_service.recall_memories(run_id, request)
+        except RunNotFoundError as error:
+            raise HTTPException(status_code=404, detail="Run not found.") from error
 
     @application.websocket("/v1/runs/{run_id}/stream")
     async def stream_run(websocket: WebSocket, run_id: UUID) -> None:

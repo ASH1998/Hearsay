@@ -31,6 +31,16 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
     "The newcomer tried to ruin Bram in the middle of market row.",
   );
 
+  await page.getByRole("button", { name: "Close conversation" }).click();
+  await page.getByRole("button", { name: "Trace Pip's rumor" }).click();
+  await expect(page.getByRole("heading", { name: "Town Historian" })).toBeVisible();
+  await expect(
+    page.getByText(
+      "A price dispute became a claim about malicious intent.",
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Close Town Historian" }).click();
+
   await page.reload();
   await expect(
     page.getByText("Release the inn's shipment from Bram before evening."),
