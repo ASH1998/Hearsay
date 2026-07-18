@@ -68,6 +68,21 @@ CockroachDB
 - Dialogue, intent extraction, rumor retelling, contradiction analysis, and decision explanation use this provider interface.
 - LLM and embedding calls occur outside database transactions; strict-schema validated results are committed afterward. Invalid, unavailable, or timed-out model work uses deterministic content-safe fallbacks and logs the reason.
 
+### Project CockroachDB Instance
+
+- Hearsay uses the user-managed Cockroach Cloud instance configured in the
+  repository's ignored `.env` through `command_to_create_cert`,
+  `command_to_connect`, `username`, and `password` (or an explicit
+  `DATABASE_URL`).
+- The application database on that instance is `hearsay`. Destructive
+  integration tests are restricted to the separate `hearsay_test` database.
+- `pnpm db:migrate` creates/migrates `hearsay`; `pnpm db:test` creates/migrates
+  and validates only `hearsay_test`. Both commands support the supplied
+  Cockroach Cloud certificate flow on Windows.
+- Do not add or use a local CockroachDB Docker container as the normal
+  development or test database. Keep credentials in `.env` only and never copy
+  them into source, generated artifacts, logs, or documentation.
+
 ### Memory Model
 
 The game will store facts as provenance-preserving records and maintain a retrieval-efficient active projection.
@@ -103,8 +118,8 @@ Before the first commit, replace the existing one-line `.gitignore` and create `
 5. Define Python dependencies in `pyproject.toml` and synchronize them using `tools/uv/uv.exe sync --all-groups`.
 6. Pin Node 22 and `pnpm@11.9.0` via `packageManager`. Use pnpm for the frontend; add `.npmrc` with a repository-local `.pnpm-store` and keep `node_modules` inside the repository.
 7. Add portable, optional tools under `tools/` only when needed: Blender for asset conversion and `ccloud` for later Cockroach Cloud administration. Verify downloaded tools by checksum.
-8. Add idempotent PowerShell and POSIX `bootstrap`, `doctor`, `dev`, `test`, and `assets` scripts. Bootstrap installs tools, Python, `.venv`, dependencies, and Playwright then validates assets. Doctor checks tool versions, Docker, non-secret environment-variable names, Cockroach connectivity/vector support, Modal structured output, assets, and ports. Test runs unit, integration, browser, benchmark-smoke, formatting/type, and secret checks. Assets extracts, curates, optimizes, validates, and reports runtime sizes.
-9. Add Docker Compose for local API, worker, and disposable test database. Cockroach Cloud remains the development target for sponsor-specific integration tests.
+8. Add idempotent PowerShell and POSIX `bootstrap`, `doctor`, `dev`, `test`, and `assets` scripts. Bootstrap installs tools, Python, `.venv`, dependencies, and Playwright then validates assets. Doctor checks tool versions, non-secret environment-variable names, the configured Cockroach Cloud connectivity/vector support, Modal structured output, assets, and ports. Test runs unit, integration, browser, benchmark-smoke, formatting/type, and secret checks. Assets extracts, curates, optimizes, validates, and reports runtime sizes.
+9. Use the user-provided Cockroach Cloud instance for development and sponsor-specific integration tests. Maintain separate `hearsay` and `hearsay_test` databases and do not require Docker for the application or database workflow.
 
 ### Planned Dependencies
 
@@ -247,7 +262,7 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 
 ### Milestone 1 — Playable Foundation
 
-- Scaffold frontend, backend, tests, local Compose configuration, and developer scripts.
+- Scaffold frontend, backend, tests, Cockroach Cloud configuration, and developer scripts.
 - Build an optimized inn, square, and docks scene with a controllable player, collision, camera, three animated NPCs, interaction prompts, speech bubbles, dialogue panel, day/evening lighting, rain, and save/load run creation.
 - Prove the browser client can create a run, take an action, and receive authoritative state from the API.
 - Add the asset manifest and attribution page.
@@ -286,7 +301,7 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 
 - Run formatting, linting, type checks, unit tests, integration tests, browser tests, asset-budget checks, content validation, and benchmark tests.
 - Run seeded automated win, loss, and rumor-driven playthroughs; human playtesting remains a post-Goal manual task.
-- Produce deployment-ready but unapplied Docker, EC2, S3/CloudFront, IAM, parameter/secret, and Bedrock configuration templates sized for the user’s 2 vCPU / 4 GB EC2 instance.
+- Produce deployment-ready but unapplied native EC2 service, S3/CloudFront, IAM, parameter/secret, and Bedrock configuration templates sized for the user’s 2 vCPU / 4 GB EC2 instance.
 - Finalize README, setup instructions, `.env.example`, architecture notes, licensing/attribution, operations runbook, benchmark report, feedback template, Devpost draft copy, and under-three-minute demo-video storyboard/script.
 
 ## APIs and Runtime Contracts

@@ -23,7 +23,6 @@ Completed:
 - Compact React Three Fiber town proof with day-phase lighting, resident
   markers, speech bubbles, interaction panels, clock, ledger, and waypoints.
 - OpenAPI export and generated TypeScript contracts.
-- Docker Compose definitions for CockroachDB 26.1.6, API, and web.
 - Empty-but-valid runtime asset manifest with 25 MB initial and 60 MB session
   budgets.
 - SQLAlchemy/Alembic persistence with players, versioned run snapshots,
@@ -36,7 +35,7 @@ Completed:
 Validated:
 
 - `scripts/doctor.ps1` passes with Node 22.14, pnpm 11.9, uv 0.11.15,
-  repository-local Python 3.12.13, Docker, environment names, and source assets.
+  repository-local Python 3.12.13, environment names, and source assets.
 - Ruff, formatting, strict mypy, and seventeen local API tests pass.
 - The configured Cockroach Cloud cluster is healthy; the `hearsay` application
   database is at migration head.

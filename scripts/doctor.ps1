@@ -25,7 +25,6 @@ Check-Command "Node" { node --version }
 Check-Command "pnpm" { corepack pnpm@11.9.0 --version }
 Check-Command "uv" { & "tools/uv/uv.exe" --version }
 Check-Command "Python project runtime" { & "tools/uv/uv.exe" run python --version }
-Check-Command "Docker" { docker --version }
 
 $requiredNames = @(
     "HEARSAY_ENV",

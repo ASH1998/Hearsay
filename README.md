@@ -39,8 +39,9 @@ pnpm db:test
 
 The migration and test commands translate Cockroach Cloud's certificate command
 to the Windows PostgreSQL certificate location. Database tests create and clear
-only `hearsay_test`; the application uses `hearsay`. A disposable Docker Compose
-stack remains available as an optional credential-free path.
+only `hearsay_test`; the application uses `hearsay`. This repository uses the
+user-managed Cockroach Cloud instance configured in the ignored `.env`; it does
+not require a local Docker database.
 
 Cloud credentials are optional. With
 `HEARSAY_PERSISTENCE_BACKEND=memory`, the API uses an explicit deterministic

@@ -8,7 +8,6 @@ node --version
 pnpm --version
 tools/uv/uv --version
 tools/uv/uv run python --version
-docker --version
 test -f .env.example
 test -f assets/manifest.json
 
