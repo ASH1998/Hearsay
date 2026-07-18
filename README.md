@@ -48,6 +48,13 @@ Cloud credentials are optional. With
 `HEARSAY_PERSISTENCE_BACKEND=memory`, the API uses an explicit deterministic
 development fallback; it never silently switches authoritative state.
 
+Inference defaults to `HEARSAY_LLM_PROVIDER=auto`: when the Modal URL and both
+tokens are present in `.env`, development uses the configured
+`thinkingmachines/Inkling-NVFP4` endpoint. Without them it uses a deterministic
+offline provider. Invalid or timed-out responses are schema-rejected, retried,
+and replaced with a content-safe fallback whose provider/model provenance is
+stored with the transmission.
+
 ## Current playable slice
 
 The opening loop is intentionally small but end to end:
@@ -64,8 +71,9 @@ Movement, eavesdropping, and the notice board are free actions. Walk through
 connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
 the browser restores the current run from CockroachDB. The current memory slice
 persists immutable belief lineage and performs holder-scoped 384-dimensional
-vector recall with relational reranking. Real local embeddings, structured model
-outputs, contradiction handling, and the Managed MCP Historian are next.
+vector recall with relational reranking. Structured Modal rumor retelling is
+validated and provenance-tracked. Real local embeddings, contradiction handling,
+and the Managed MCP Historian are next.
 
 ## Authority
 

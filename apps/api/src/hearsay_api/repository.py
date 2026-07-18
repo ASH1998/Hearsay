@@ -211,7 +211,14 @@ class InMemoryRunRepository:
                             retold_text=planned.narrative_text,
                             mutation_note=planned.mutation_note,
                             trust_at_time=planned.trust_at_time,
-                            model_id="hearsay-deterministic-rules-v1",
+                            provider_id=(planned.retelling_provider_id or "deterministic"),
+                            model_id=(
+                                planned.retelling_model_id or "hearsay-deterministic-rules-v1"
+                            ),
+                            fallback_used=planned.fallback_used,
+                            fallback_reason=planned.fallback_reason,
+                            inference_attempts=planned.inference_attempts,
+                            inference_latency_ms=planned.inference_latency_ms,
                         )
                     )
 

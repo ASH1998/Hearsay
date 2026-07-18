@@ -33,7 +33,12 @@ $requiredNames = @(
     "HEARSAY_WEB_ORIGIN",
     "NEXT_PUBLIC_API_BASE_URL",
     "HEARSAY_PERSISTENCE_BACKEND",
-    "DATABASE_URL"
+    "DATABASE_URL",
+    "HEARSAY_LLM_PROVIDER",
+    "MODAL_PROXY_URL",
+    "MODAL_PROXY_TOKEN_ID",
+    "MODAL_PROXY_TOKEN_SECRET",
+    "HEARSAY_MODAL_MODEL"
 )
 $exampleNames = Get-Content -LiteralPath ".env.example" |
     Where-Object { $_ -match "^[A-Z][A-Z0-9_]*=" } |
@@ -60,6 +65,12 @@ if ($LASTEXITCODE -ne 0) {
 & "tools/uv/uv.exe" run python scripts/check_database.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[failed] Configured CockroachDB Cloud health/vector check"
+    $failed = $true
+}
+
+& "tools/uv/uv.exe" run python scripts/check_inference.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[failed] Modal structured-output check"
     $failed = $true
 }
 

@@ -6,6 +6,12 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
+from hearsay_api.inference import (
+    DeterministicInferenceProvider,
+    InferenceResult,
+    RumorRetelling,
+    RumorRetellingRequest,
+)
 from hearsay_api.schemas import ActionRequest, ActionResponse, ActionVerb
 
 EMBEDDING_DIMENSIONS = 384
@@ -57,6 +63,12 @@ class PlannedBelief:
     parent_holder_id: str | None = None
     mutation_note: str | None = None
     trust_at_time: float | None = None
+    retelling_provider_id: str | None = None
+    retelling_model_id: str | None = None
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+    inference_attempts: int = 0
+    inference_latency_ms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +94,7 @@ def plan_action_memory(
     request: ActionRequest,
     response: ActionResponse,
     embeddings: EmbeddingProvider,
+    retelling: InferenceResult[RumorRetelling] | None = None,
 ) -> MemoryEffects:
     if request.verb == ActionVerb.PROMISE_HELP and request.target_id == "marta":
         text = "The newcomer promised to release Marta's shipment from Bram before evening."
@@ -122,7 +135,27 @@ def plan_action_memory(
 
     if request.verb == ActionVerb.CONFRONT and request.target_id == "bram":
         original = "The newcomer confronted Bram about tripling the shipment price."
-        retold = "The newcomer tried to ruin Bram in the middle of market row."
+        if retelling is None:
+            fallback_provider = DeterministicInferenceProvider()
+            fallback_value = fallback_provider.retell_rumor(
+                RumorRetellingRequest(
+                    original_claim=original,
+                    speaker_id="bram",
+                    listener_id="pip",
+                    trust=0.6,
+                    context="A public dispute in Greyhaven market row.",
+                )
+            )
+            retelling = InferenceResult(
+                value=fallback_value,
+                provider_id=fallback_provider.provider_id,
+                model_id=fallback_provider.model_id,
+                fallback_used=False,
+                fallback_reason=None,
+                attempts=1,
+                latency_ms=0,
+            )
+        retold = retelling.value.retold_claim
         tick_number = response.snapshot.world_tick if response.snapshot.world_tick > 0 else None
         return MemoryEffects(
             beliefs=(
@@ -153,20 +186,29 @@ def plan_action_memory(
                     holder_id="pip",
                     narrative_text=retold,
                     normalized_position={
+                        **retelling.value.semantic_position.model_dump(exclude_none=True),
                         "stance": "accepted",
                         "price_challenged": True,
-                        "intent": "ruin_bram",
                         "public": True,
                     },
-                    confidence=0.72,
+                    confidence=min(
+                        max(0.88 + retelling.value.confidence_delta, 0.0),
+                        1.0,
+                    ),
                     salience=0.9,
                     source_kind="hearsay",
                     source_id="bram",
                     embedding=embeddings.embed(retold),
                     embedding_model_id=embeddings.model_id,
                     parent_holder_id="bram",
-                    mutation_note="A price dispute became a claim about malicious intent.",
+                    mutation_note=retelling.value.drift_note,
                     trust_at_time=0.6,
+                    retelling_provider_id=retelling.provider_id,
+                    retelling_model_id=retelling.model_id,
+                    fallback_used=retelling.fallback_used,
+                    fallback_reason=retelling.fallback_reason,
+                    inference_attempts=retelling.attempts,
+                    inference_latency_ms=retelling.latency_ms,
                 ),
             ),
             relationships=(

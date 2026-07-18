@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, stat
 from fastapi.middleware.cors import CORSMiddleware
 
 from hearsay_api.config import Settings, get_settings
+from hearsay_api.inference import create_inference_provider
 from hearsay_api.persistence import create_repository
 from hearsay_api.repository import RunNotFoundError
 from hearsay_api.schemas import (
@@ -28,6 +29,7 @@ def create_app(
     resolved_settings = settings or get_settings()
     game_service = service or GameService(
         repository=create_repository(resolved_settings),
+        inference=create_inference_provider(resolved_settings),
         max_concurrency_retries=resolved_settings.transaction_max_retries,
     )
     application = FastAPI(

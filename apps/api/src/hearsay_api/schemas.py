@@ -139,7 +139,12 @@ class TransmissionState(BaseModel):
     retold_text: str
     mutation_note: str | None
     trust_at_time: float | None
+    provider_id: str = "deterministic"
     model_id: str
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+    inference_attempts: int = 0
+    inference_latency_ms: float | None = None
     created_at: datetime | None = None
 
 

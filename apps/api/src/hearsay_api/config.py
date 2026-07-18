@@ -59,6 +59,41 @@ class Settings(BaseSettings):
         le=20,
         alias="HEARSAY_TRANSACTION_MAX_RETRIES",
     )
+    llm_provider: Literal["auto", "fallback", "modal"] = Field(
+        default="auto",
+        alias="HEARSAY_LLM_PROVIDER",
+    )
+    modal_proxy_url: str | None = Field(
+        default=None,
+        validation_alias="MODAL_PROXY_URL",
+        exclude=True,
+    )
+    modal_proxy_token_id: SecretStr | None = Field(
+        default=None,
+        validation_alias="MODAL_PROXY_TOKEN_ID",
+        exclude=True,
+    )
+    modal_proxy_token_secret: SecretStr | None = Field(
+        default=None,
+        validation_alias="MODAL_PROXY_TOKEN_SECRET",
+        exclude=True,
+    )
+    modal_model: str = Field(
+        default="thinkingmachines/Inkling-NVFP4",
+        alias="HEARSAY_MODAL_MODEL",
+    )
+    inference_timeout_seconds: float = Field(
+        default=45,
+        ge=1,
+        le=180,
+        alias="HEARSAY_INFERENCE_TIMEOUT_SECONDS",
+    )
+    inference_max_attempts: int = Field(
+        default=2,
+        ge=1,
+        le=3,
+        alias="HEARSAY_INFERENCE_MAX_ATTEMPTS",
+    )
 
     @model_validator(mode="after")
     def derive_legacy_database_url(self) -> Settings:

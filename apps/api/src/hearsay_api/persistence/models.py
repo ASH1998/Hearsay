@@ -349,7 +349,12 @@ class TransmissionModel(Base):
     retold_text: Mapped[str] = mapped_column(Text, nullable=False)
     mutation_note: Mapped[str | None] = mapped_column(Text)
     trust_at_time: Mapped[float | None] = mapped_column(Float)
+    provider_id: Mapped[str] = mapped_column(String(32), nullable=False)
     model_id: Mapped[str] = mapped_column(String(96), nullable=False)
+    fallback_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    fallback_reason: Mapped[str | None] = mapped_column(String(96))
+    inference_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    inference_latency_ms: Mapped[float | None] = mapped_column(Float)
     tick_id: Mapped[UUID | None] = mapped_column(
         SQLUUID(as_uuid=True),
         ForeignKey("gossip_ticks.id", ondelete="SET NULL"),

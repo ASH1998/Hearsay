@@ -1076,9 +1076,46 @@
             ],
             "title": "Trust At Time"
           },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id",
+            "default": "deterministic"
+          },
           "model_id": {
             "type": "string",
             "title": "Model Id"
+          },
+          "fallback_used": {
+            "type": "boolean",
+            "title": "Fallback Used",
+            "default": false
+          },
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Reason"
+          },
+          "inference_attempts": {
+            "type": "integer",
+            "title": "Inference Attempts",
+            "default": 0
+          },
+          "inference_latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inference Latency Ms"
           },
           "created_at": {
             "anyOf": [

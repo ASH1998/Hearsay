@@ -379,6 +379,13 @@ export function GameShell() {
           {lineage.transmissions.map((transmission) => (
             <p className="historian__mutation" key={transmission.id}>
               <strong>Mutation recorded:</strong> {transmission.mutation_note}
+              <small>
+                {" "}
+                · {transmission.provider_id}/{transmission.model_id}
+                {transmission.fallback_used
+                  ? ` · deterministic fallback (${transmission.fallback_reason ?? "provider error"})`
+                  : ""}
+              </small>
             </p>
           ))}
         </section>

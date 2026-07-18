@@ -70,7 +70,7 @@ Completed:
   provenance-constrained transmissions, relationships, and retrieval traces.
 - A 384-dimensional cosine vector index on `active_memories`, prefixed by exact
   run, holder, and status fields. Both cloud databases are at migration
-  `20260719_0004`.
+  `20260719_0005`.
 - Deterministic embedding fixtures/fallbacks with explicit model provenance;
   embedding generation occurs before the serializable write transaction.
 - Marta’s promise writes a durable belief and social debt. Bram’s confrontation
@@ -82,10 +82,20 @@ Completed:
   retrieval trace.
 - Gameplay memory APIs and a Town Historian panel showing Bram → Pip lineage and
   the exact recorded mutation.
+- Typed rumor-retelling, dialogue, and contradiction inference contracts; a
+  strict-schema Modal/OpenAI-compatible provider; a deterministic provider; and
+  bounded retry/fallback handling with sanitized structured logs.
+- Modal calls occur before the Cockroach transaction. Every rumor transmission
+  now records provider, model, attempt count, latency, and whether/why a
+  deterministic fallback was used; the Historian exposes that provenance.
+- `HEARSAY_LLM_PROVIDER=auto` selects the configured Modal endpoint when all
+  credentials exist and uses the deterministic provider when working offline.
 
 Validated:
 
-- Local immutable-version, lineage, recall, and repeated-claim tests pass.
+- Thirty-two local API tests pass, covering immutable versions, lineage, recall,
+  repeated claims, strict output validation, retries, all three fallback
+  operations, and service-level inference provenance.
 - Three real Cockroach Cloud tests pass against `hearsay_test`, including
   384-dimensional vector storage, active-projection freshness, recall, complete
   foreign-key provenance, relationship writes, and retrieval traces.
@@ -96,23 +106,26 @@ Validated:
 - `doctor` verifies the configured `hearsay` database migration head, VECTOR
   function support, vector-index cluster setting, and scoped index presence
   without emitting credentials.
+- A real structured rumor request passes against the configured Modal endpoint
+  with `thinkingmachines/Inkling-NVFP4`; the closed semantic schema prevents
+  unbounded model-generated fields.
+- Ruff, formatting, strict mypy, ESLint, TypeScript, Vitest, the Next.js
+  production build, and the Playwright signature story pass.
 
 Remaining:
 
 - Replace the deterministic embedding fallback in configured development with a
   real local embedding provider and optional Modal acceleration.
-- Add structured LLM output contracts, deterministic provider fixtures, retry
-  logging, and content-safe fallbacks.
 - Add contradiction policy, contested inputs, evidence links, and the signature
   concurrent conflicting-belief race.
 - Implement the independently authenticated read-only Managed MCP Historian.
 
 ## Next implementation slice
 
-1. Add structured model output with deterministic fixtures, safe fallbacks, and
-   real Modal inference when configured.
-2. Implement contradiction resolution and the concurrent conflicting-belief
+1. Implement contradiction resolution and the concurrent conflicting-belief
    race without losing either source history.
-3. Add evidence support/contradiction links and feed recalled beliefs into
+2. Add evidence support/contradiction links and feed recalled beliefs into
    dialogue choices and relationship treatment.
+3. Replace deterministic embeddings in configured development with the local
+   384-dimensional model while retaining the test fallback.
 4. Configure the read-only Managed MCP Historian allowlist and audit surface.

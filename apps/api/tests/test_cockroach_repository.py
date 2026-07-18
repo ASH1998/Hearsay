@@ -150,6 +150,12 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
     assert transmission.speaker_id == "bram"
     assert transmission.listener_id == "pip"
     assert transmission.original_text != transmission.retold_text
+    assert transmission.provider_id == "deterministic"
+    assert transmission.model_id == "hearsay-rules-v1"
+    assert transmission.fallback_used is False
+    assert transmission.fallback_reason is None
+    assert transmission.inference_attempts == 1
+    assert transmission.inference_latency_ms is not None
 
     embedding = DeterministicEmbeddingProvider().embed("What happened to Bram in market row?")
     recall = repository.recall_memories(

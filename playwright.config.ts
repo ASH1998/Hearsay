@@ -25,6 +25,7 @@ export default defineConfig({
       env: {
         ...process.env,
         HEARSAY_ENV: "test",
+        HEARSAY_LLM_PROVIDER: "fallback",
         HEARSAY_PERSISTENCE_BACKEND: "memory",
         HEARSAY_WEB_ORIGIN: "http://localhost:3000",
       },

@@ -440,8 +440,27 @@ export interface components {
             mutation_note: string | null;
             /** Trust At Time */
             trust_at_time: number | null;
+            /**
+             * Provider Id
+             * @default deterministic
+             */
+            provider_id: string;
             /** Model Id */
             model_id: string;
+            /**
+             * Fallback Used
+             * @default false
+             */
+            fallback_used: boolean;
+            /** Fallback Reason */
+            fallback_reason?: string | null;
+            /**
+             * Inference Attempts
+             * @default 0
+             */
+            inference_attempts: number;
+            /** Inference Latency Ms */
+            inference_latency_ms?: number | null;
             /** Created At */
             created_at?: string | null;
         };

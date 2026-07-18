@@ -418,7 +418,12 @@ class CockroachRunRepository:
                         retold_text=planned.narrative_text,
                         mutation_note=planned.mutation_note,
                         trust_at_time=planned.trust_at_time,
-                        model_id="hearsay-deterministic-rules-v1",
+                        provider_id=planned.retelling_provider_id or "deterministic",
+                        model_id=(planned.retelling_model_id or "hearsay-deterministic-rules-v1"),
+                        fallback_used=planned.fallback_used,
+                        fallback_reason=planned.fallback_reason,
+                        inference_attempts=planned.inference_attempts,
+                        inference_latency_ms=planned.inference_latency_ms,
                         tick_id=tick_id,
                     )
                 )
@@ -568,7 +573,12 @@ class CockroachRunRepository:
                 retold_text=transmission.retold_text,
                 mutation_note=transmission.mutation_note,
                 trust_at_time=transmission.trust_at_time,
+                provider_id=transmission.provider_id,
                 model_id=transmission.model_id,
+                fallback_used=transmission.fallback_used,
+                fallback_reason=transmission.fallback_reason,
+                inference_attempts=transmission.inference_attempts,
+                inference_latency_ms=transmission.inference_latency_ms,
                 created_at=transmission.created_at,
             )
             for transmission, key in transmission_rows

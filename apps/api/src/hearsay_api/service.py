@@ -3,6 +3,13 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 from hearsay_api.content import GreyhavenContent, load_content
+from hearsay_api.inference import (
+    DeterministicInferenceProvider,
+    InferenceResult,
+    RumorRetelling,
+    RumorRetellingRequest,
+    SafeInferenceProvider,
+)
 from hearsay_api.memory import (
     DeterministicEmbeddingProvider,
     EmbeddingProvider,
@@ -49,11 +56,18 @@ class GameService:
         repository: RunRepository | None = None,
         content: GreyhavenContent | None = None,
         embeddings: EmbeddingProvider | None = None,
+        inference: SafeInferenceProvider | None = None,
         max_concurrency_retries: int = 4,
     ) -> None:
         self.repository = repository or InMemoryRunRepository()
         self.content = content or load_content()
         self.embeddings = embeddings or DeterministicEmbeddingProvider()
+        deterministic_inference = DeterministicInferenceProvider()
+        self.inference = inference or SafeInferenceProvider(
+            primary=deterministic_inference,
+            fallback=deterministic_inference,
+            max_attempts=1,
+        )
         self.max_concurrency_retries = max_concurrency_retries
 
     def create_run(self, request: CreateRunRequest) -> CreateRunResponse:
@@ -138,12 +152,35 @@ class GameService:
                     self._run_gossip_tick(snapshot)
             snapshot.revision += 1
 
+            retelling: InferenceResult[RumorRetelling] | None = None
+            if request.verb == ActionVerb.CONFRONT and request.target_id == "bram":
+                original_claim = "The newcomer confronted Bram about tripling the shipment price."
+                retelling = self.inference.retell_rumor(
+                    RumorRetellingRequest(
+                        original_claim=original_claim,
+                        speaker_id="bram",
+                        listener_id="pip",
+                        trust=0.6,
+                        context=(
+                            f"Greyhaven market row on day {snapshot.day}, "
+                            f"{snapshot.phase}; town tick {snapshot.world_tick}."
+                        ),
+                    )
+                )
+                pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
+                pip.speech = retelling.value.retold_claim
+
             response = ActionResponse(
                 action_id=uuid4(),
                 consumed_time=consumed_time,
                 snapshot=snapshot,
             )
-            memory_effects = plan_action_memory(request, response, self.embeddings)
+            memory_effects = plan_action_memory(
+                request,
+                response,
+                self.embeddings,
+                retelling,
+            )
             try:
                 return self.repository.update(
                     run_id,
