@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 from time import perf_counter
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Literal, Protocol, cast
 
 import structlog
 
@@ -282,7 +282,44 @@ class MemoryEffects:
     gossip_tick_number: int | None = None
 
 
+@dataclass(frozen=True)
+class PromiseTransition:
+    promisee_id: str
+    status: Literal["kept", "broken"]
+
+
 def plan_action_memory(
+    request: ActionRequest,
+    response: ActionResponse,
+    embeddings: EmbeddingProvider,
+    retelling: InferenceResult[RumorRetelling] | None = None,
+    dialogue_treatment: DialogueTreatment | None = None,
+    promise_transitions: tuple[PromiseTransition, ...] = (),
+) -> MemoryEffects:
+    primary = _plan_primary_action_memory(
+        request,
+        response,
+        embeddings,
+        retelling,
+        dialogue_treatment,
+    )
+    promise = _plan_promise_transitions(
+        promise_transitions,
+        response,
+        embeddings,
+    )
+    return MemoryEffects(
+        beliefs=primary.beliefs + promise.beliefs,
+        relationships=primary.relationships + promise.relationships,
+        gossip_tick_number=(
+            primary.gossip_tick_number
+            if primary.gossip_tick_number is not None
+            else promise.gossip_tick_number
+        ),
+    )
+
+
+def _plan_primary_action_memory(
     request: ActionRequest,
     response: ActionResponse,
     embeddings: EmbeddingProvider,
@@ -452,6 +489,117 @@ def plan_action_memory(
     return MemoryEffects()
 
 
+def _plan_promise_transitions(
+    transitions: tuple[PromiseTransition, ...],
+    response: ActionResponse,
+    embeddings: EmbeddingProvider,
+) -> MemoryEffects:
+    beliefs: list[PlannedBelief] = []
+    relationships: list[PlannedRelationship] = []
+    for transition in transitions:
+        if transition.promisee_id != "marta":
+            continue
+        kept = transition.status == "kept"
+        marta_text = (
+            "The newcomer kept their promise and secured Marta's shipment before evening."
+            if kept
+            else "The newcomer broke their promise; Marta's shipment was still held at evening."
+        )
+        pip_text = (
+            "The newcomer actually paid the price and got Marta's crates released on time."
+            if kept
+            else "The newcomer's grand promise to Marta was empty when evening came."
+        )
+        marta_embedding = embeddings.embed(marta_text)
+        pip_embedding = embeddings.embed(pip_text)
+        position = {
+            "stance": "confirmed",
+            "player_committed": False,
+            "deadline": "day-1-evening",
+            "promise_status": transition.status,
+        }
+        beliefs.extend(
+            (
+                PlannedBelief(
+                    proposition_key="player-promise-marta-shipment",
+                    subject_kind="promise",
+                    subject_id="marta-shipment",
+                    predicate="player_promised_help",
+                    holder_id="marta",
+                    narrative_text=marta_text,
+                    normalized_position=position,
+                    confidence=1.0,
+                    salience=1.0,
+                    source_kind="world_event",
+                    source_id="player",
+                    embedding=marta_embedding.vector,
+                    embedding_model_id=marta_embedding.model_id,
+                ),
+                PlannedBelief(
+                    proposition_key="player-promise-marta-shipment",
+                    subject_kind="promise",
+                    subject_id="marta-shipment",
+                    predicate="player_promised_help",
+                    holder_id="pip",
+                    narrative_text=pip_text,
+                    normalized_position={
+                        **position,
+                        "stance": "accepted",
+                        "public": True,
+                    },
+                    confidence=0.9 if kept else 0.94,
+                    salience=0.95,
+                    source_kind="hearsay",
+                    source_id="marta",
+                    embedding=pip_embedding.vector,
+                    embedding_model_id=pip_embedding.model_id,
+                    parent_holder_id="marta",
+                    mutation_note=(
+                        "Pip turns the cost of keeping the promise into public admiration."
+                        if kept
+                        else "Pip turns a missed deadline into a judgment about the player's word."
+                    ),
+                    trust_at_time=0.85,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-promise-consequence-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            )
+        )
+        relationships.extend(
+            (
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="marta",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.2 if kept else -0.45,
+                    affinity_delta=0.15 if kept else -0.25,
+                    debt_delta=-0.25,
+                    trust_floor=0.7 if kept else None,
+                    trust_ceiling=0.25 if not kept else None,
+                ),
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="pip",
+                    b_kind="npc",
+                    b_id="marta",
+                    trust_delta=0.05,
+                ),
+            )
+        )
+    return MemoryEffects(
+        beliefs=tuple(beliefs),
+        relationships=tuple(relationships),
+        gossip_tick_number=(
+            response.snapshot.world_tick
+            if beliefs and response.snapshot.world_tick > 0
+            else None
+        ),
+    )
+
+
 def derive_dialogue_treatment(
     memories: list[RecalledMemory],
     current_relationship: int,
@@ -495,7 +643,58 @@ def derive_dialogue_treatment(
             trust_ceiling=0.4,
         )
 
-    if "player-promise-marta-shipment" in proposition_keys:
+    promise_memories = [
+        memory
+        for memory in memories
+        if memory.proposition_key == "player-promise-marta-shipment"
+    ]
+    promise_status = next(
+        (
+            memory.normalized_position.get("promise_status")
+            for memory in promise_memories
+            if memory.normalized_position.get("promise_status") is not None
+        ),
+        None,
+    )
+    if promise_status == "broken":
+        return DialogueTreatment(
+            relationship_score=min(current_relationship, -20),
+            cue="Bitter: they remember that evening arrived before your help did.",
+            choices=(
+                DialogueChoiceState(
+                    id="apologize_for_broken_promise",
+                    label="Apologize",
+                    prompt="I broke my word to Marta. I am sorry.",
+                ),
+                DialogueChoiceState(
+                    id="ask_to_rebuild_trust",
+                    label="Ask how to make amends",
+                    prompt="What would it take to earn back the town's trust?",
+                ),
+            ),
+            trust_ceiling=0.25,
+        )
+
+    if promise_status == "kept":
+        return DialogueTreatment(
+            relationship_score=max(current_relationship, 20),
+            cue="Grateful: they remember that you paid a real cost to keep your word.",
+            choices=(
+                DialogueChoiceState(
+                    id="ask_for_endorsement",
+                    label="Ask for endorsement",
+                    prompt="I kept my word. Will you speak for me in the election?",
+                ),
+                DialogueChoiceState(
+                    id="call_in_goodwill",
+                    label="Call in the goodwill",
+                    prompt="Can you help me now that Marta's shipment is free?",
+                ),
+            ),
+            trust_floor=0.7,
+        )
+
+    if promise_memories:
         return DialogueTreatment(
             relationship_score=max(current_relationship, 10),
             cue="Warmer: they remember the promise you made.",

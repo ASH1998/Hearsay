@@ -409,6 +409,7 @@
           "read_notice_board",
           "talk",
           "promise_help",
+          "settle_shipment",
           "confront",
           "sleep"
         ],
@@ -1325,6 +1326,11 @@
             "type": "string",
             "title": "Narrative Text"
           },
+          "normalized_position": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Normalized Position"
+          },
           "semantic_similarity": {
             "type": "number",
             "title": "Semantic Similarity"
@@ -1364,6 +1370,7 @@
           "version",
           "proposition_key",
           "narrative_text",
+          "normalized_position",
           "semantic_similarity",
           "final_score",
           "confidence",

@@ -428,3 +428,64 @@ def test_historian_fallback_audit_is_durable_and_cannot_claim_mcp_proof(
         assert persisted.managed_mcp is False
         assert persisted.sponsor_proof is False
         assert persisted.fallback_reason == "managed_mcp_not_configured"
+
+
+def test_broken_promise_persists_both_visible_events_and_memory_consequence(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=37))
+    actions = (
+        ("promise_help", "marta"),
+        ("talk", "bram"),
+        ("talk", "pip"),
+        ("talk", "rhea"),
+    )
+    for verb, target in actions:
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    assert result.snapshot.promises[0].status == "broken"
+    assert result.snapshot.player.traits == ["Dishonest", "Troublemaker"]
+    assert result.snapshot.recent_events[0].kind == "promise_broken"
+    assert result.snapshot.recent_events[1].kind == "conversation"
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "player-promise-marta-shipment",
+    )
+    assert len(lineage.versions) == 3
+    assert len(lineage.transmissions) == 1
+    assert next(
+        version
+        for version in lineage.versions
+        if version.holder_id == "marta" and version.active
+    ).normalized_position["promise_status"] == "broken"
+
+    with repository.session_factory() as session:
+        event_kinds = list(
+            session.scalars(
+                select(EventModel.kind)
+                .where(EventModel.game_run_id == created.run_id)
+                .order_by(EventModel.created_at)
+            )
+        )
+        marta_trust = session.scalar(
+            select(RelationshipModel.trust).where(
+                RelationshipModel.game_run_id == created.run_id,
+                RelationshipModel.a_id == "marta",
+                RelationshipModel.b_id == "player",
+            )
+        )
+
+    assert event_kinds.count("conversation") == 3
+    assert event_kinds.count("promise_broken") == 1
+    assert len(event_kinds) == 6
+    assert marta_trust is not None
+    assert marta_trust <= 0.25

@@ -124,6 +124,20 @@ Completed:
 - Dialogue state carries a player-visible treatment cue and functional
   memory-conditioned follow-up chips. Thresholds are floors/ceilings rather than
   repeatable deltas, so repeated Talk actions cannot farm or destroy trust.
+- Marta's shipment promise now resolves deterministically at its real deadline.
+  A new Bram settlement action keeps it before evening; any still-active
+  promise becomes broken as the clock enters evening.
+- Kept and broken outcomes each append an immutable Marta belief version and a
+  provenance-linked Marta → Pip public retelling in the same authoritative
+  action transaction. The active projection therefore replaces "promised" with
+  the observed outcome instead of leaving stale intent as memory.
+- Promise outcomes also write idempotent trust floors/ceilings, visible Pip
+  chatter, and deterministic public traits: kept → Reliable/Generous; broken →
+  Dishonest/Troublemaker. Marta's later dialogue recalls the outcome and changes
+  to grateful `+20` or bitter `-20` treatment with functional follow-ups.
+- Cockroach action persistence now inserts every new visible event in one
+  revision. When a deadline expires during another action, both the triggering
+  conversation and the broken-promise event survive as separate immutable rows.
 - A server-side Town Historian client now targets Cockroach Labs' official
   `https://cockroachlabs.cloud/mcp` Streamable HTTP endpoint with a separately
   supplied cluster ID and service-account API key.
@@ -145,17 +159,20 @@ Completed:
 
 Validated:
 
-- Fifty-six local API tests pass, covering immutable versions, lineage, recall,
+- Fifty-nine local API tests pass, covering immutable versions, lineage, recall,
   repeated claims, strict output validation, retries, all three fallback
   operations, service-level inference provenance, and every deterministic
   conflict-policy branch, plus real-provider shape checks and truthful embedding
   fallback provenance.
-- Five real Cockroach Cloud tests pass against `hearsay_test`, including
+- Six real Cockroach Cloud tests pass against `hearsay_test`, including
   384-dimensional vector storage, active-projection freshness, recall, complete
   foreign-key provenance, relationship writes, retrieval traces, evidence
   links, and contested inputs.
-- The fifth Cloud test proves a fallback Historian attempt is durably audited
+- One Cloud test proves a fallback Historian attempt is durably audited
   on the real cluster and cannot set the Managed MCP sponsor-proof bit.
+- The sixth Cloud test advances a live run to the missed deadline and proves
+  the action event, deadline event, immutable outcome memories, Marta → Pip
+  transmission, traits, and trust ceiling commit coherently.
 - A real `EXPLAIN` plan is forced through
   `active_memories_retrieval_vector_idx`.
 - The browser story now proves create → promise → confrontation → visible Pip
@@ -181,6 +198,10 @@ Validated:
   treatment, and unlocks “Ask what they heard” / “Set the record straight.”
   Cloud tests prove repeated contested conversations leave Elias at the same
   `0.45` trust ceiling rather than applying another penalty.
+- The browser proof now continues by paying Bram before evening, visibly marks
+  the promise Kept, writes Reliable/Generous on the notice-board projection,
+  changes Marta to `+20` grateful treatment, unlocks "Ask for endorsement," and
+  restores that outcome after refresh.
 - Ruff, formatting, strict mypy, ESLint, TypeScript, Vitest, the Next.js
   production build, and the Playwright signature story pass.
 
@@ -194,5 +215,6 @@ Remaining:
 
 ## Next implementation slice
 
-1. Continue the playable mystery/evidence loop while the external MCP identity
-   remains a narrowly documented credential handoff.
+1. Continue the playable election loop while the external MCP identity
+   remains a narrowly documented credential handoff. The next game slice is the
+   deterministic candidacy/election spine and explainable vote inputs.

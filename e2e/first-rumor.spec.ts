@@ -53,9 +53,30 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
   ).toBeVisible();
   await page.getByRole("button", { name: "Close Town Historian" }).click();
 
+  await page.getByRole("button", { name: /Find Bram/ }).click();
+  await page
+    .getByRole("button", { name: "Pay to release Marta's shipment" })
+    .click();
+  await expect(
+    page.getByText("Kept · Marta's shipment was released"),
+  ).toBeVisible();
+  await expect(page.getByText("Chalk says: Reliable · Generous")).toBeVisible();
+
+  await page.getByRole("button", { name: "Close conversation" }).click();
+  await page.getByRole("button", { name: /Find Marta/ }).click();
+  await page.getByRole("button", { name: "Talk", exact: true }).click();
+  await expect(page.getByText(/standing \+20/)).toBeVisible();
+  await expect(page.getByText(/Grateful: they remember/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Ask for endorsement" }),
+  ).toBeVisible();
+
   await page.reload();
   await expect(
     page.getByText("Release the inn's shipment from Bram before evening."),
   ).toBeVisible();
-  await expect(page.getByText("Tick 1")).toBeVisible();
+  await expect(
+    page.getByText("Kept · Marta's shipment was released"),
+  ).toBeVisible();
+  await expect(page.getByText("Tick 2")).toBeVisible();
 });

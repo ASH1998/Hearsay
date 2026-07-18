@@ -155,7 +155,7 @@ export interface components {
          * ActionVerb
          * @enum {string}
          */
-        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "confront" | "sleep";
+        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "confront" | "sleep";
         /** BeliefInputState */
         BeliefInputState: {
             /**
@@ -524,6 +524,10 @@ export interface components {
             proposition_key: string;
             /** Narrative Text */
             narrative_text: string;
+            /** Normalized Position */
+            normalized_position: {
+                [key: string]: unknown;
+            };
             /** Semantic Similarity */
             semantic_similarity: number;
             /** Final Score */

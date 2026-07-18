@@ -18,6 +18,7 @@ class ActionVerb(StrEnum):
     READ_NOTICE_BOARD = "read_notice_board"
     TALK = "talk"
     PROMISE_HELP = "promise_help"
+    SETTLE_SHIPMENT = "settle_shipment"
     CONFRONT = "confront"
     SLEEP = "sleep"
 
@@ -263,6 +264,7 @@ class RecalledMemory(BaseModel):
     version: int
     proposition_key: str
     narrative_text: str
+    normalized_position: dict[str, object]
     semantic_similarity: float
     final_score: float
     confidence: float

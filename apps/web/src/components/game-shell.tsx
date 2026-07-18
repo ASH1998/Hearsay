@@ -236,7 +236,11 @@ export function GameShell() {
                 <strong>Promise to Marta</strong>
                 <p>{promise.content}</p>
                 <small>
-                  Due day {promise.deadline_day}, {promise.deadline_phase}
+                  {promise.status === "active"
+                    ? `Due day ${promise.deadline_day}, ${promise.deadline_phase}`
+                    : promise.status === "kept"
+                      ? "Kept · Marta's shipment was released"
+                      : "Broken · evening arrived first"}
                 </small>
               </div>
             </article>
@@ -244,6 +248,11 @@ export function GameShell() {
         ) : (
           <p className="muted">Your word has not cost you anything—yet.</p>
         )}
+        {snapshot.player.traits.length ? (
+          <p className="muted">
+            Chalk says: {snapshot.player.traits.join(" · ")}
+          </p>
+        ) : null}
         <button
           className="secondary"
           type="button"
@@ -371,13 +380,28 @@ export function GameShell() {
                 </button>
               ) : null}
               {selectedNpc.id === "bram" ? (
-                <button
-                  disabled={busy}
-                  type="button"
-                  onClick={() => act("confront", "bram")}
-                >
-                  Confront him about the price
-                </button>
+                <>
+                  <button
+                    disabled={busy}
+                    type="button"
+                    onClick={() => act("confront", "bram")}
+                  >
+                    Confront him about the price
+                  </button>
+                  {snapshot.promises.some(
+                    (promise) =>
+                      promise.promisee_id === "marta" &&
+                      promise.status === "active",
+                  ) ? (
+                    <button
+                      disabled={busy}
+                      type="button"
+                      onClick={() => act("settle_shipment", "bram")}
+                    >
+                      Pay to release Marta&apos;s shipment
+                    </button>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </div>

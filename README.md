@@ -91,6 +91,9 @@ The opening loop is intentionally small but end to end:
    version and the authoritative action clock advances.
 5. Open “Trace Pip’s rumor” in the Town Ledger to inspect Bram’s source belief,
    Pip’s immutable retelling, and the recorded mutation.
+6. Return to Bram before evening and pay to release Marta's shipment—or let the
+   deadline pass. The ledger, notice-board traits, Pip's chatter, Marta's
+   treatment, and immutable promise memory all reflect the outcome.
 
 Movement, eavesdropping, and the notice board are free actions. Walk through
 connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
@@ -108,6 +111,9 @@ chips through idempotent trust floors/ceilings. The Town Historian now returns a
 durably audited lineage response, invokes only the allowlisted Managed MCP
 `select_query` tool when separately authenticated, and makes direct fallback
 state impossible to mistake for sponsor proof.
+Timed promises now resolve into observed outcomes: keeping Marta's word produces
+Reliable/Generous traits and grateful endorsement dialogue, while missing the
+deadline produces Dishonest/Troublemaker traits and a durable public retelling.
 
 ## Authority
 

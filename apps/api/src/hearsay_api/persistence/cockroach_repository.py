@@ -504,7 +504,6 @@ class CockroachRunRepository:
         expected_revision = snapshot.revision - 1
         snapshot_json = snapshot.model_dump(mode="json")
         response_json = result.model_dump(mode="json")
-        event = snapshot.recent_events[0]
 
         def update_run(session: Session) -> ActionResponse:
             cached = session.scalar(
@@ -517,7 +516,11 @@ class CockroachRunRepository:
                 return ActionResponse.model_validate(cached)
 
             current = session.execute(
-                select(GameRunModel.revision, GameRunModel.action_count).where(
+                select(
+                    GameRunModel.revision,
+                    GameRunModel.action_count,
+                    GameRunModel.snapshot,
+                ).where(
                     GameRunModel.id == run_id
                 )
             ).one_or_none()
@@ -570,19 +573,29 @@ class CockroachRunRepository:
                     response=response_json,
                 )
             )
-            session.execute(
-                insert(EventModel).values(
-                    id=event.id,
-                    game_run_id=run_id,
-                    kind=event.kind,
-                    text=event.text,
-                    visibility="public" if event.visible else "private",
-                    day=snapshot.day,
-                    phase=snapshot.phase,
-                    world_tick=snapshot.world_tick,
-                    payload={},
+            previous_event_ids = {
+                str(item["id"])
+                for item in current.snapshot.get("recent_events", [])
+            }
+            new_events = [
+                event
+                for event in reversed(snapshot.recent_events)
+                if str(event.id) not in previous_event_ids
+            ]
+            for event in new_events:
+                session.execute(
+                    insert(EventModel).values(
+                        id=event.id,
+                        game_run_id=run_id,
+                        kind=event.kind,
+                        text=event.text,
+                        visibility="public" if event.visible else "private",
+                        day=snapshot.day,
+                        phase=snapshot.phase,
+                        world_tick=snapshot.world_tick,
+                        payload={},
+                    )
                 )
-            )
             self._apply_memory_effects(session, run_id, memory_effects)
             return ActionResponse.model_validate(response_json)
 
@@ -1028,6 +1041,7 @@ class CockroachRunRepository:
                     ActiveMemoryModel.confidence,
                     ActiveMemoryModel.salience,
                     BeliefVersionModel.source_id,
+                    BeliefVersionModel.normalized_position,
                     BeliefModel.contested,
                     distance.label("distance"),
                 )
@@ -1074,6 +1088,7 @@ class CockroachRunRepository:
                         version=candidate.belief_version,
                         proposition_key=candidate.proposition_key,
                         narrative_text=candidate.narrative_text,
+                        normalized_position=candidate.normalized_position,
                         semantic_similarity=semantic_similarity,
                         final_score=final_score,
                         confidence=candidate.confidence,

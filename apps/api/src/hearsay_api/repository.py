@@ -279,6 +279,7 @@ class InMemoryRunRepository:
                     version=version.version,
                     proposition_key=version.proposition_key,
                     narrative_text=version.narrative_text,
+                    normalized_position=version.normalized_position,
                     semantic_similarity=similarity,
                     final_score=similarity * version.confidence * version.salience * 0.5,
                     confidence=version.confidence,

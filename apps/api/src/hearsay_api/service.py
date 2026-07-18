@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Literal, cast
 from uuid import UUID, uuid4
 
 import structlog
@@ -17,6 +18,7 @@ from hearsay_api.memory import (
     DeterministicEmbeddingProvider,
     DialogueTreatment,
     EmbeddingProvider,
+    PromiseTransition,
     derive_dialogue_treatment,
     plan_action_memory,
 )
@@ -149,6 +151,10 @@ class GameService:
 
         for attempt in range(self.max_concurrency_retries + 1):
             snapshot = self._hydrate_content(self.repository.get(run_id))
+            promise_status_before = {
+                promise.id: promise.status
+                for promise in snapshot.promises
+            }
             if snapshot.status != "active":
                 raise InvalidActionError("This run has already ended.")
 
@@ -157,8 +163,21 @@ class GameService:
             snapshot.recent_events = ([event] + snapshot.recent_events)[:8]
             if consumed_time:
                 self._advance_clock(snapshot, request.verb)
+                promise_events = self._resolve_expired_promises(snapshot)
+                snapshot.recent_events = (
+                    promise_events + snapshot.recent_events
+                )[:8]
                 if snapshot.action_count % 2 == 0:
                     self._run_gossip_tick(snapshot)
+            promise_transitions = tuple(
+                PromiseTransition(
+                    promisee_id=promise.promisee_id,
+                    status=cast(Literal["kept", "broken"], promise.status),
+                )
+                for promise in snapshot.promises
+                if promise_status_before.get(promise.id) != promise.status
+                and promise.status in {"kept", "broken"}
+            )
             snapshot.revision += 1
 
             retelling: InferenceResult[RumorRetelling] | None = None
@@ -197,6 +216,7 @@ class GameService:
                 self.embeddings,
                 retelling,
                 dialogue_treatment,
+                promise_transitions,
             )
             try:
                 return self.repository.update(
@@ -328,6 +348,33 @@ class GameService:
                 text="Before evening, then. Greyhaven remembers a promise.",
             )
             return self._event("promise_made", "You promise Marta you will free her shipment.")
+        if request.verb == ActionVerb.SETTLE_SHIPMENT:
+            if request.target_id != "bram":
+                raise InvalidActionError("Marta's shipment must be settled with Bram.")
+            promise = next(
+                (
+                    item
+                    for item in snapshot.promises
+                    if item.promisee_id == "marta" and item.status == "active"
+                ),
+                None,
+            )
+            if promise is None:
+                raise InvalidActionError("There is no active shipment promise to settle.")
+            promise.status = "kept"
+            self._add_traits(snapshot, "Reliable", "Generous")
+            snapshot.dialogue = DialogueState(
+                speaker_id="bram",
+                speaker_name="Bram Coyle",
+                text=(
+                    "Fine. Marta's crates leave my ledger today. "
+                    "Greyhaven will hear what your word cost you."
+                ),
+            )
+            return self._event(
+                "promise_kept",
+                "Bram releases Marta's shipment. You kept your word before evening.",
+            )
         if request.verb == ActionVerb.CONFRONT:
             if request.target_id != "bram":
                 raise InvalidActionError("The opening confrontation targets Bram.")
@@ -391,10 +438,52 @@ class GameService:
         pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
         if any(event.kind == "bram_confronted" for event in snapshot.recent_events[:2]):
             pip.speech = "The newcomer tried to ruin Bram in the middle of market row."
+        elif any(promise.status == "broken" for promise in snapshot.promises):
+            pip.speech = "Evening came. Marta got no crates, only the newcomer's empty word."
+        elif any(promise.status == "kept" for promise in snapshot.promises):
+            pip.speech = "The newcomer paid Bram's price. Marta's crates are moving at last."
         elif snapshot.promises:
             pip.speech = "Marta found herself a hero—or another empty promise."
         else:
             pip.speech = "The newcomer is asking questions already."
+
+    @classmethod
+    def _resolve_expired_promises(
+        cls,
+        snapshot: RunSnapshot,
+    ) -> list[WorldEvent]:
+        phase_order = {
+            "morning": 0,
+            "afternoon": 1,
+            "evening": 2,
+            "night": 3,
+        }
+        events: list[WorldEvent] = []
+        for promise in snapshot.promises:
+            deadline_reached = (
+                snapshot.day > promise.deadline_day
+                or (
+                    snapshot.day == promise.deadline_day
+                    and phase_order[snapshot.phase] >= phase_order[promise.deadline_phase]
+                )
+            )
+            if promise.status != "active" or not deadline_reached:
+                continue
+            promise.status = "broken"
+            cls._add_traits(snapshot, "Dishonest", "Troublemaker")
+            events.append(
+                cls._event(
+                    "promise_broken",
+                    "Evening arrives without Marta's shipment. Greyhaven marks your word broken.",
+                )
+            )
+        return events
+
+    @staticmethod
+    def _add_traits(snapshot: RunSnapshot, *traits: str) -> None:
+        for trait in traits:
+            if trait not in snapshot.player.traits:
+                snapshot.player.traits.append(trait)
 
     @staticmethod
     def _require_npc(snapshot: RunSnapshot, npc_id: str | None) -> NpcState:
