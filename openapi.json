@@ -496,6 +496,12 @@
             "type": "integer",
             "title": "Seed"
           },
+          "revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Revision",
+            "default": 0
+          },
           "status": {
             "type": "string",
             "enum": [

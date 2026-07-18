@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, stat
 from fastapi.middleware.cors import CORSMiddleware
 
 from hearsay_api.config import Settings, get_settings
+from hearsay_api.persistence import create_repository
 from hearsay_api.repository import RunNotFoundError
 from hearsay_api.schemas import (
     ActionRequest,
@@ -22,7 +23,10 @@ def create_app(
     settings: Settings | None = None,
 ) -> FastAPI:
     resolved_settings = settings or get_settings()
-    game_service = service or GameService()
+    game_service = service or GameService(
+        repository=create_repository(resolved_settings),
+        max_concurrency_retries=resolved_settings.transaction_max_retries,
+    )
     application = FastAPI(
         title="Hearsay Game API",
         version="0.1.0",
@@ -38,10 +42,11 @@ def create_app(
 
     @application.get("/health", tags=["operations"])
     def health() -> dict[str, str]:
+        persistence_ok = game_service.repository.check_health()
         return {
-            "status": "ok",
+            "status": "ok" if persistence_ok else "degraded",
             "environment": resolved_settings.environment,
-            "persistence": "in-memory-development-fallback",
+            "persistence": game_service.repository.backend_name,
         }
 
     @application.post(

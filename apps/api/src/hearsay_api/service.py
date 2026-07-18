@@ -3,7 +3,11 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 from hearsay_api.content import GreyhavenContent, load_content
-from hearsay_api.repository import InMemoryRunRepository
+from hearsay_api.repository import (
+    ConcurrentRunUpdateError,
+    InMemoryRunRepository,
+    RunRepository,
+)
 from hearsay_api.schemas import (
     ActionRequest,
     ActionResponse,
@@ -34,11 +38,13 @@ FREE_ACTIONS = {
 class GameService:
     def __init__(
         self,
-        repository: InMemoryRunRepository | None = None,
+        repository: RunRepository | None = None,
         content: GreyhavenContent | None = None,
+        max_concurrency_retries: int = 4,
     ) -> None:
         self.repository = repository or InMemoryRunRepository()
         self.content = content or load_content()
+        self.max_concurrency_retries = max_concurrency_retries
 
     def create_run(self, request: CreateRunRequest) -> CreateRunResponse:
         run_id = uuid4()
@@ -82,29 +88,37 @@ class GameService:
         if cached is not None:
             return cached
 
-        snapshot = self.repository.get(run_id)
-        if snapshot.status != "active":
-            raise InvalidActionError("This run has already ended.")
+        for attempt in range(self.max_concurrency_retries + 1):
+            snapshot = self.repository.get(run_id)
+            if snapshot.status != "active":
+                raise InvalidActionError("This run has already ended.")
 
-        consumed_time = request.verb not in FREE_ACTIONS
-        event = self._apply_action(snapshot, request)
-        snapshot.recent_events = ([event] + snapshot.recent_events)[:8]
-        if consumed_time:
-            self._advance_clock(snapshot, request.verb)
-            if snapshot.action_count % 2 == 0:
-                self._run_gossip_tick(snapshot)
+            consumed_time = request.verb not in FREE_ACTIONS
+            event = self._apply_action(snapshot, request)
+            snapshot.recent_events = ([event] + snapshot.recent_events)[:8]
+            if consumed_time:
+                self._advance_clock(snapshot, request.verb)
+                if snapshot.action_count % 2 == 0:
+                    self._run_gossip_tick(snapshot)
+            snapshot.revision += 1
 
-        response = ActionResponse(
-            action_id=uuid4(),
-            consumed_time=consumed_time,
-            snapshot=snapshot,
-        )
-        return self.repository.update(
-            run_id,
-            snapshot,
-            request.idempotency_key,
-            response,
-        )
+            response = ActionResponse(
+                action_id=uuid4(),
+                consumed_time=consumed_time,
+                snapshot=snapshot,
+            )
+            try:
+                return self.repository.update(
+                    run_id,
+                    snapshot,
+                    request,
+                    request.idempotency_key,
+                    response,
+                )
+            except ConcurrentRunUpdateError:
+                if attempt == self.max_concurrency_retries:
+                    raise
+        raise AssertionError("Unreachable concurrency retry state.")
 
     def _apply_action(self, snapshot: RunSnapshot, request: ActionRequest) -> WorldEvent:
         if request.verb == ActionVerb.MOVE:

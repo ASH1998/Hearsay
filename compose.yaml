@@ -6,8 +6,6 @@ services:
     command:
       - start-single-node
       - --insecure
-      - --listen-addr=0.0.0.0:26257
-      - --http-addr=0.0.0.0:8080
       - --store=/cockroach/cockroach-data
     ports:
       - "26257:26257"
@@ -35,7 +33,8 @@ services:
     command:
       - >
         cockroach sql --insecure --host=database:26257
-        --execute='CREATE DATABASE IF NOT EXISTS hearsay;'
+        --execute='CREATE DATABASE IF NOT EXISTS hearsay;
+        CREATE DATABASE IF NOT EXISTS hearsay_test;'
     restart: "no"
 
   api:
@@ -45,7 +44,8 @@ services:
     environment:
       HEARSAY_ENV: development
       HEARSAY_WEB_ORIGIN: http://localhost:3000
-      DATABASE_URL: postgresql+psycopg://root@database:26257/hearsay?sslmode=disable
+      HEARSAY_PERSISTENCE_BACKEND: cockroachdb
+      DATABASE_URL: cockroachdb+psycopg://root@database:26257/hearsay?sslmode=disable
     ports:
       - "8000:8000"
     depends_on:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -107,6 +108,38 @@ def test_actions_are_idempotent() -> None:
         assert second.status_code == 200
         assert first.json() == second.json()
         assert second.json()["snapshot"]["action_count"] == 1
+        assert second.json()["snapshot"]["revision"] == 1
+
+
+def test_concurrent_actions_retry_against_one_coherent_revision() -> None:
+    service = GameService(repository=InMemoryRunRepository())
+    run = service.create_run(CreateRunRequest(display_name="Ada", seed=42))
+    requests = [
+        {
+            "idempotency_key": uuid4(),
+            "verb": "talk",
+            "target_id": target,
+        }
+        for target in ("marta", "bram")
+    ]
+
+    def act(payload: dict[str, object]) -> int:
+        from hearsay_api.schemas import ActionRequest
+
+        result = service.take_action(
+            run.run_id,
+            ActionRequest.model_validate(payload),
+        )
+        return result.snapshot.revision
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        revisions = list(executor.map(act, requests))
+
+    snapshot = service.get_snapshot(run.run_id)
+    assert set(revisions) == {1, 2}
+    assert snapshot.revision == 2
+    assert snapshot.action_count == 2
+    assert snapshot.world_tick == 1
 
 
 def test_snapshot_restores_state_after_client_refresh() -> None:

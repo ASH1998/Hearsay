@@ -1,6 +1,6 @@
 # Hearsay implementation status
 
-Last validated: 2026-07-18
+Last validated: 2026-07-19
 
 This is a progress ledger for `IMPLEMENTATION_PLAN.md`; it does not override the
 Game Design Document or Hackathon Blueprint.
@@ -26,12 +26,23 @@ Completed:
 - Docker Compose definitions for CockroachDB 26.1.6, API, and web.
 - Empty-but-valid runtime asset manifest with 25 MB initial and 60 MB session
   budgets.
+- SQLAlchemy/Alembic persistence with players, versioned run snapshots,
+  idempotent actions, and immutable event records.
+- Bounded CockroachDB serializable transaction retries and optimistic run
+  revisions, retaining the deterministic in-memory fallback.
+- Windows `.env` compatibility for Cockroach Cloud's certificate and connection
+  commands, plus isolated `hearsay_test` migration/test automation.
 
 Validated:
 
 - `scripts/doctor.ps1` passes with Node 22.14, pnpm 11.9, uv 0.11.15,
   repository-local Python 3.12.13, Docker, environment names, and source assets.
-- Ruff, formatting, strict mypy, and eight FastAPI tests pass.
+- Ruff, formatting, strict mypy, and seventeen local API tests pass.
+- The configured Cockroach Cloud cluster is healthy; the `hearsay` application
+  database is at migration head.
+- Two real CockroachDB integration tests pass against `hearsay_test`, proving
+  durable repository recreation, idempotent action replay, concurrent commits,
+  monotonic revisions, and complete event history.
 - ESLint, strict TypeScript, and Vitest pass.
 - Next.js production build emits the App Router `/` route and standalone server.
 - Local browser smoke test completes the opening promise and confrontation,
@@ -45,15 +56,17 @@ Remaining before the Milestone 1 gate:
 - Replace proxy geometry with lazy-loaded GLB runtime assets.
 - Add keyboard player movement, waypoint collision, conversation camera easing,
   rain/thunder, and animated residents.
-- Persist runs through the CockroachDB repository rather than the explicit
-  in-memory development fallback.
 - Add Playwright automation and produce the tracked asset validation report.
+- Expand the durable schema from run snapshots into beliefs, immutable belief
+  versions, active vector memories, relationships, promises, transmissions,
+  votes, traces, and benchmark evidence.
 
 ## Next implementation slice
 
 1. Build the reproducible asset inventory/extraction pipeline without committing
    raw archives.
-2. Add Alembic and the first CockroachDB run/action/event tables.
-3. Implement a CockroachDB repository behind the current service contract while
-   retaining the deterministic fallback for credential-free tests.
+2. Add the belief/version/active-memory schema and scoped 384-dimensional vector
+   retrieval.
+3. Persist provenance-preserving rumor transmissions and relationship effects
+   in one serializable tick transaction.
 4. Add a browser test for create → promise → confront → rumor → refresh.

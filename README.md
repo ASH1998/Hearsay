@@ -7,8 +7,8 @@ days to win a mayoral election in a town where promises become rumors, rumors
 mutate as people repeat them, and every decisive memory keeps its provenance.
 
 The project is under active implementation. The current vertical slice provides
-an authoritative FastAPI run/action/snapshot loop and a compact React Three
-Fiber Greyhaven scene.
+an authoritative FastAPI run/action/snapshot loop, durable CockroachDB
+persistence, and a compact React Three Fiber Greyhaven scene.
 
 ## Local setup
 
@@ -24,15 +24,27 @@ Then open `http://localhost:3000`. The API serves health and OpenAPI
 documentation at `http://localhost:8000/health` and
 `http://localhost:8000/docs`.
 
-To run the same slice with a disposable local CockroachDB container:
+To use Cockroach Cloud on Windows, put either `DATABASE_URL` or the exported
+`username`, `password`, `command_to_create_cert`, and `command_to_connect`
+values in the ignored `.env`, then enable the durable backend:
 
-```powershell
-docker compose up --build
+```dotenv
+HEARSAY_PERSISTENCE_BACKEND=cockroachdb
 ```
 
-Cloud credentials are optional for local development. Missing LLM, embedding,
-or CockroachDB integrations use explicit deterministic development fallbacks;
-they never silently alter authoritative state.
+```powershell
+pnpm db:migrate
+pnpm db:test
+```
+
+The migration and test commands translate Cockroach Cloud's certificate command
+to the Windows PostgreSQL certificate location. Database tests create and clear
+only `hearsay_test`; the application uses `hearsay`. A disposable Docker Compose
+stack remains available as an optional credential-free path.
+
+Cloud credentials are optional. With
+`HEARSAY_PERSISTENCE_BACKEND=memory`, the API uses an explicit deterministic
+development fallback; it never silently switches authoritative state.
 
 ## Current playable slice
 
@@ -45,8 +57,8 @@ The opening loop is intentionally small but end to end:
    version and the authoritative action clock advances.
 
 Movement, eavesdropping, and the notice board are free actions. Refreshing the
-browser restores the current run from the API process. Durable CockroachDB
-persistence and full belief provenance are the next implementation slice.
+browser restores the current run from CockroachDB when the durable backend is
+enabled. Full belief provenance and vector retrieval are the next data slice.
 
 ## Authority
 

@@ -218,6 +218,11 @@ export interface components {
             /** Seed */
             seed: number;
             /**
+             * Revision
+             * @default 0
+             */
+            revision: number;
+            /**
              * Status
              * @default active
              * @enum {string}

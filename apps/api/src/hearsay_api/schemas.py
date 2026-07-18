@@ -82,6 +82,7 @@ class PlayerState(BaseModel):
 class RunSnapshot(BaseModel):
     run_id: UUID
     seed: int
+    revision: int = Field(default=0, ge=0)
     status: RunStatus = "active"
     day: int = Field(default=1, ge=1, le=3)
     phase: Phase = "morning"

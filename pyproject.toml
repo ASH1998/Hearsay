@@ -26,6 +26,7 @@ database = [
   "pgvector>=0.4,<1",
   "psycopg[binary]>=3.2,<4",
   "sqlalchemy>=2.0,<3",
+  "sqlalchemy-cockroachdb==2.0.4",
 ]
 providers = [
   "boto3>=1.39,<2",
@@ -46,6 +47,9 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers"
 testpaths = ["apps/api/tests", "tests"]
+markers = [
+  "cockroach: requires a disposable CockroachDB database",
+]
 
 [tool.ruff]
 target-version = "py312"
