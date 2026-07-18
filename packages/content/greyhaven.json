@@ -22,7 +22,8 @@
       "location": "inn",
       "color": "#d86f45",
       "opening": "Bram has my shipment tied up at the docks. Help me before evening, and I won't forget it.",
-      "voter_bias": 0.0
+      "voter_bias": 0.0,
+      "schedule_id": "marta"
     },
     {
       "id": "elias",
@@ -31,7 +32,8 @@
       "location": "constable",
       "color": "#496e8f",
       "opening": "Greyhaven keeps its own order. See that you don't disturb it.",
-      "voter_bias": -0.35
+      "voter_bias": -0.35,
+      "schedule_id": "elias"
     },
     {
       "id": "orin",
@@ -40,7 +42,8 @@
       "location": "chapel",
       "color": "#806f8e",
       "opening": "Words have a longer life than their speakers.",
-      "voter_bias": -0.2
+      "voter_bias": -0.2,
+      "schedule_id": "orin"
     },
     {
       "id": "nessa",
@@ -49,7 +52,8 @@
       "location": "docks",
       "color": "#2b8c86",
       "opening": "The tide answers to nobody, least of all merchants.",
-      "voter_bias": -0.1
+      "voter_bias": -0.1,
+      "schedule_id": "nessa"
     },
     {
       "id": "bram",
@@ -58,7 +62,8 @@
       "location": "market",
       "color": "#b68b37",
       "opening": "Triple is simply what urgency costs.",
-      "voter_bias": -0.55
+      "voter_bias": -0.55,
+      "schedule_id": "bram"
     },
     {
       "id": "talia",
@@ -67,7 +72,8 @@
       "location": "midwife",
       "color": "#6c9b63",
       "opening": "Most troubles improve when someone arrives before being asked.",
-      "voter_bias": 0.05
+      "voter_bias": 0.05,
+      "schedule_id": "talia"
     },
     {
       "id": "pip",
@@ -76,7 +82,8 @@
       "location": "square",
       "color": "#bf5979",
       "opening": "You're the newcomer with the royal purse, aren't you? Or was it a royal warrant?",
-      "voter_bias": -0.15
+      "voter_bias": -0.15,
+      "schedule_id": "pip"
     },
     {
       "id": "rhea",
@@ -85,7 +92,8 @@
       "location": "guildhouse",
       "color": "#8a4a42",
       "opening": "Elections in three days. The town could use a fresh name—or a useful fool.",
-      "voter_bias": -1.0
+      "voter_bias": -1.0,
+      "schedule_id": "rhea"
     }
   ],
   "ambients": [
@@ -96,7 +104,8 @@
       "location": "docks",
       "color": "#4f7f8f",
       "opening": "Cargo tells you who owes whom, if you know how to count.",
-      "voter_bias": 0.05
+      "voter_bias": 0.05,
+      "schedule_id": "dockworker"
     },
     {
       "id": "mae",
@@ -105,7 +114,8 @@
       "location": "docks",
       "color": "#52758c",
       "opening": "A hand that helps before the rain is a hand I remember.",
-      "voter_bias": -0.05
+      "voter_bias": -0.05,
+      "schedule_id": "dockworker"
     },
     {
       "id": "oswin",
@@ -114,7 +124,8 @@
       "location": "square",
       "color": "#a87b4f",
       "opening": "Everyone wants tomorrow's bread on yesterday's credit.",
-      "voter_bias": -0.2
+      "voter_bias": -0.2,
+      "schedule_id": "square_trader"
     },
     {
       "id": "del",
@@ -123,7 +134,8 @@
       "location": "docks",
       "color": "#3b8b81",
       "opening": "The tide brings truth in eventually. Usually smelling worse.",
-      "voter_bias": 0.0
+      "voter_bias": 0.0,
+      "schedule_id": "harbor_household"
     },
     {
       "id": "hettie",
@@ -132,7 +144,8 @@
       "location": "market",
       "color": "#b28645",
       "opening": "Rhea knows how to keep the market predictable.",
-      "voter_bias": -0.35
+      "voter_bias": -0.35,
+      "schedule_id": "market_trader"
     },
     {
       "id": "cal",
@@ -141,7 +154,8 @@
       "location": "market",
       "color": "#9c7141",
       "opening": "I vote for whoever keeps customers walking this row.",
-      "voter_bias": -0.25
+      "voter_bias": -0.25,
+      "schedule_id": "market_trader"
     },
     {
       "id": "edda",
@@ -150,7 +164,8 @@
       "location": "chapel",
       "color": "#7a7088",
       "opening": "New names make old promises very easily.",
-      "voter_bias": -0.3
+      "voter_bias": -0.3,
+      "schedule_id": "elder"
     },
     {
       "id": "will",
@@ -159,7 +174,8 @@
       "location": "inn",
       "color": "#796b5d",
       "opening": "Rhea has faults. At least we already know their price.",
-      "voter_bias": -0.45
+      "voter_bias": -0.45,
+      "schedule_id": "elder"
     },
     {
       "id": "fen",
@@ -168,7 +184,8 @@
       "location": "road",
       "color": "#718b50",
       "opening": "A mayor ought to know which end of a crate is heavy.",
-      "voter_bias": 0.1
+      "voter_bias": 0.1,
+      "schedule_id": "road_worker"
     },
     {
       "id": "lina",
@@ -177,7 +194,8 @@
       "location": "square",
       "color": "#9f6682",
       "opening": "Reputation is only a seam. Pull it and see what holds.",
-      "voter_bias": -0.1
+      "voter_bias": -0.1,
+      "schedule_id": "square_craft"
     },
     {
       "id": "tob",
@@ -186,7 +204,8 @@
       "location": "inn",
       "color": "#8a5e43",
       "opening": "Buy no speeches before you've heard the second telling.",
-      "voter_bias": 0.0
+      "voter_bias": 0.0,
+      "schedule_id": "tavern_regular"
     },
     {
       "id": "kit",
@@ -195,7 +214,8 @@
       "location": "road",
       "color": "#c07455",
       "opening": "I know who answers a knock and who lets a message freeze.",
-      "voter_bias": 0.15
+      "voter_bias": 0.15,
+      "schedule_id": "courier"
     }
   ],
   "endings": [
@@ -228,6 +248,144 @@
       "id": "run_out_of_town",
       "title": "The Road Remembers",
       "summary": "Greyhaven sends you back down the road under a chorus of every threat it kept."
+    }
+  ],
+  "schedule_templates": [
+    {
+      "id": "marta",
+      "days": [
+        ["inn", "inn", "inn", "inn"],
+        ["inn", "square", "inn", "inn"],
+        ["inn", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "elias",
+      "days": [
+        ["constable", "market", "square", "constable"],
+        ["constable", "docks", "inn", "constable"],
+        ["constable", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "orin",
+      "days": [
+        ["chapel", "chapel", "square", "chapel"],
+        ["chapel", "midwife", "inn", "chapel"],
+        ["chapel", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "nessa",
+      "days": [
+        ["docks", "docks", "inn", "docks"],
+        ["docks", "market", "inn", "docks"],
+        ["docks", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "bram",
+      "days": [
+        ["market", "market", "inn", "guildhouse"],
+        ["market", "guildhouse", "inn", "guildhouse"],
+        ["market", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "talia",
+      "days": [
+        ["midwife", "market", "inn", "midwife"],
+        ["midwife", "docks", "inn", "midwife"],
+        ["midwife", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "pip",
+      "days": [
+        ["square", "market", "inn", "alley"],
+        ["square", "docks", "inn", "alley"],
+        ["square", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "rhea",
+      "days": [
+        ["guildhouse", "guildhouse", "inn", "guildhouse"],
+        ["guildhouse", "square", "inn", "guildhouse"],
+        ["guildhouse", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "dockworker",
+      "days": [
+        ["docks", "docks", "inn", "room"],
+        ["docks", "market", "inn", "room"],
+        ["docks", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "square_trader",
+      "days": [
+        ["square", "market", "inn", "room"],
+        ["square", "market", "inn", "room"],
+        ["square", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "harbor_household",
+      "days": [
+        ["docks", "market", "inn", "room"],
+        ["docks", "square", "inn", "room"],
+        ["docks", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "market_trader",
+      "days": [
+        ["market", "market", "inn", "room"],
+        ["market", "square", "inn", "room"],
+        ["market", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "elder",
+      "days": [
+        ["chapel", "square", "inn", "room"],
+        ["chapel", "midwife", "inn", "room"],
+        ["chapel", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "road_worker",
+      "days": [
+        ["road", "market", "inn", "room"],
+        ["road", "docks", "inn", "room"],
+        ["road", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "square_craft",
+      "days": [
+        ["square", "market", "inn", "room"],
+        ["square", "midwife", "inn", "room"],
+        ["square", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "tavern_regular",
+      "days": [
+        ["inn", "square", "inn", "inn"],
+        ["inn", "market", "inn", "inn"],
+        ["inn", "square", "square", "square"]
+      ]
+    },
+    {
+      "id": "courier",
+      "days": [
+        ["road", "market", "inn", "room"],
+        ["road", "docks", "inn", "room"],
+        ["road", "square", "square", "square"]
+      ]
     }
   ],
   "public_traits": [

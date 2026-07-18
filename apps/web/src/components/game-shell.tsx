@@ -333,25 +333,49 @@ export function GameShell() {
           snapshot.npcs.find((npc) => npc.id === "marta") ?? null,
         )}>
           Find Marta
-          <small>The Gull & Anchor</small>
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "marta")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "bram") ?? null,
         )}>
           Find Bram
-          <small>Market row</small>
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "bram")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "pip") ?? null,
         )}>
           Find Pip
-          <small>Town square</small>
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "pip")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "rhea") ?? null,
         )}>
           Find Rhea
-          <small>Guildhouse steps</small>
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "rhea")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
         </button>
         <button
           type="button"
@@ -554,7 +578,16 @@ export function GameShell() {
 
       <section className="event-strip" aria-live="polite">
         <span className="event-strip__icon">◉</span>
-        <p>{snapshot.recent_events[0]?.text}</p>
+        <ol aria-label="Recent town events">
+          {snapshot.recent_events.slice(0, 3).map((event) => (
+            <li
+              data-event-kind={event.kind}
+              key={event.id}
+            >
+              {event.text}
+            </li>
+          ))}
+        </ol>
       </section>
 
       {busy ? <div className="busy">The town is thinking…</div> : null}

@@ -132,7 +132,7 @@ def test_concurrent_actions_commit_complete_monotonic_history(
         event_count = session.scalar(select(func.count()).select_from(EventModel))
     assert revisions == [1, 2]
     assert persisted_revision == 2
-    assert event_count == 3
+    assert event_count == 4
 
 
 def test_signature_rumor_is_transactional_recallable_and_provenanced(
@@ -489,9 +489,65 @@ def test_broken_promise_persists_both_visible_events_and_memory_consequence(
 
     assert event_kinds.count("conversation") == 3
     assert event_kinds.count("promise_broken") == 1
-    assert len(event_kinds) == 6
+    assert event_kinds.count("schedule_shift") == 2
+    assert len(event_kinds) == 8
     assert marta_trust is not None
     assert marta_trust <= 0.25
+
+
+def test_schedule_shift_persists_event_and_resident_locations(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=71))
+
+    for target in ("marta", "pip"):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb="talk",
+                target_id=target,
+            ),
+        )
+
+    assert result.snapshot.phase == "afternoon"
+    assert result.snapshot.recent_events[1].kind == "schedule_shift"
+    assert next(
+        npc.location_id
+        for npc in result.snapshot.npcs
+        if npc.id == "pip"
+    ) == "market"
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+
+    assert {
+        npc.id: npc.location_id
+        for npc in restored.npcs
+    } == {
+        npc.id: npc.location_id
+        for npc in result.snapshot.npcs
+    }
+
+    with repository.session_factory() as session:
+        schedule_events = list(
+            session.scalars(
+                select(EventModel)
+                .where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind == "schedule_shift",
+                )
+            )
+        )
+
+    assert len(schedule_events) == 1
+    assert schedule_events[0].day == 1
+    assert schedule_events[0].phase == "afternoon"
+    assert schedule_events[0].visibility == "public"
 
 
 def test_election_persists_twenty_votes_and_exact_decision_inputs(

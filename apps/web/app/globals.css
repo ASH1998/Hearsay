@@ -435,8 +435,26 @@ button:disabled {
   font-family: var(--font-display);
 }
 
-.event-strip p {
+.event-strip ol {
+  display: grid;
+  max-width: min(72rem, calc(100vw - 4rem));
   margin: 0;
+  gap: 0.16rem;
+  padding: 0;
+  list-style: none;
+}
+
+.event-strip li {
+  margin: 0;
+  color: rgb(232 223 198 / 62%);
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+}
+
+.event-strip li:first-child {
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 0.86rem;
 }
 
 .event-strip__icon {

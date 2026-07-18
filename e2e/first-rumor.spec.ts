@@ -22,6 +22,12 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
   await page
     .getByRole("button", { name: "Confront him about the price" })
     .click();
+  await expect(
+    page.locator('[data-event-kind="schedule_shift"]'),
+  ).toContainText("Afternoon routines move");
+  await expect(
+    page.getByRole("button", { name: /Find Pip/ }),
+  ).toContainText("Market row");
 
   await page.getByRole("button", { name: "Close conversation" }).click();
   await page.getByRole("button", { name: /Find Pip/ }).click();

@@ -280,7 +280,7 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 
 ### Milestone 3 — Full Compressed Game
 
-- Implement all twelve locations, three daily schedules, eight principal NPC arcs, twelve ambient NPC behaviors, and free movement/eavesdropping.
+- Implement all twelve locations, three daily schedules, eight principal NPC arcs, twelve ambient NPC behaviors, and free movement/eavesdropping. The schedule checkpoint now defines all 20 residents across three days and four daily phases, applies movements in the authoritative action transition, persists public movement events and the resulting snapshot in the configured Cockroach Cloud database, and renders restored positions directly from that state.
 - Add the 18 consequential actions, promises, favors, rumor propagation, relationship changes, trait effects, storm, public argument, and election calculation.
 - Write content as data rather than embedded code; include validation that every referenced NPC, location, action, memory, and ending exists.
 - Implement the six endings and replay-safe save/resume behavior.

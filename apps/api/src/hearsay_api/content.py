@@ -27,6 +27,7 @@ class ResidentContent(BaseModel):
     color: str
     opening: str
     voter_bias: float = Field(ge=-1, le=1)
+    schedule_id: str
 
 
 class PrincipalContent(ResidentContent):
@@ -45,6 +46,22 @@ class EndingContent(BaseModel):
     summary: str
 
 
+class ScheduleTemplateContent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    days: tuple[tuple[str, ...], ...]
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> ScheduleTemplateContent:
+        if len(self.days) != 3 or any(len(day) != 4 for day in self.days):
+            raise ValueError(
+                "Schedule templates require three days of "
+                "morning/afternoon/evening/night locations."
+            )
+        return self
+
+
 class GreyhavenContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -53,6 +70,7 @@ class GreyhavenContent(BaseModel):
     principals: tuple[PrincipalContent, ...]
     ambients: tuple[AmbientContent, ...]
     endings: tuple[EndingContent, ...]
+    schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
     @model_validator(mode="after")
@@ -85,6 +103,25 @@ class GreyhavenContent(BaseModel):
                 raise ValueError(
                     f"Resident {resident.id} has unknown location {resident.location}."
                 )
+        schedule_ids = [schedule.id for schedule in self.schedule_templates]
+        if len(schedule_ids) != len(set(schedule_ids)):
+            raise ValueError("Schedule template IDs must be unique.")
+        schedules_by_id = {
+            schedule.id: schedule
+            for schedule in self.schedule_templates
+        }
+        for resident in self.residents:
+            if resident.schedule_id not in schedules_by_id:
+                raise ValueError(
+                    f"Resident {resident.id} has unknown schedule {resident.schedule_id}."
+                )
+        for schedule in self.schedule_templates:
+            for day in schedule.days:
+                missing = set(day) - known_locations
+                if missing:
+                    raise ValueError(
+                        f"Schedule {schedule.id} has unknown locations: {sorted(missing)}."
+                    )
         if len(self.public_traits) != len(set(self.public_traits)):
             raise ValueError("Public traits must be unique.")
         required_endings = {
@@ -121,6 +158,29 @@ class GreyhavenContent(BaseModel):
     @property
     def endings_by_id(self) -> dict[str, EndingContent]:
         return {ending.id: ending for ending in self.endings}
+
+    @property
+    def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:
+        return {
+            schedule.id: schedule
+            for schedule in self.schedule_templates
+        }
+
+    def scheduled_location(
+        self,
+        resident_id: str,
+        day: int,
+        phase: str,
+    ) -> str:
+        resident = self.residents_by_id[resident_id]
+        schedule = self.schedules_by_id[resident.schedule_id]
+        phase_index = {
+            "morning": 0,
+            "afternoon": 1,
+            "evening": 2,
+            "night": 3,
+        }[phase]
+        return schedule.days[day - 1][phase_index]
 
 
 @lru_cache

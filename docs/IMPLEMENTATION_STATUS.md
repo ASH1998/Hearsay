@@ -244,32 +244,47 @@ Completed:
   memory-bearing decisive voters and shows contribution plus belief ID/version.
 - Sleep/end-day is now a visible player action. A seeded promise-kept path
   compresses the full three-day arc into a reproducible `11–9` Narrow win.
+- Validated content now assigns every resident to an authored three-day,
+  morning/afternoon/evening/night schedule. Shared ambient templates keep the
+  roster maintainable while principal residents retain individual routines.
+- The authoritative action clock applies each phase transition to all 20 NPC
+  locations. Every actual movement wave emits one public `schedule_shift`
+  event, and the saved snapshot is the single source used by both the 3D scene
+  and restored browser sessions.
+- The action bar reports each principal's current location instead of a fixed
+  opening location. The event strip exposes the three newest immutable events,
+  so movement remains visible without hiding a promise or election consequence.
 
 Validated:
 
-- Seventy local API tests pass. Pure election tests cover all six ending
+- Seventy-two local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
-  exact promise-version inputs, the 11–9 win, and save/restore.
-- Seven real Cockroach Cloud tests pass against `hearsay_test`. The election
+  exact promise-version inputs, the 11–9 win, save/restore, content schedule
+  shape/reference validation, all-resident phase movement, and refresh safety.
+- Eight real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
+  The schedule test independently recreates the repository, restores every
+  resident's afternoon location, and queries the public `schedule_shift` row.
 - The expanded browser test plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
-  `11–9` result and Pip's exact v1 promise memory as a decisive explanation.
+  live afternoon movement cue and Pip's new Market row location before the
+  `11–9` result and exact v1 promise memory explanation.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
 
 Remaining:
 
-- Three daily schedules and ambient movement/echo behavior.
 - Additional favors and information/ambition verbs needed for multiple viable
   paths to all six endings.
+- Ambient rumor echo behavior beyond the current Pip signature transmission.
 - Storm and public-argument events with render, behavior, and dialogue layers.
 - Broader rumor propagation, election tuning, and seeded automated loss/exposed
   playthroughs beyond the unit-level ending classifier.
 
 ## Next implementation slice
 
-1. Add content-driven three-phase resident schedules and make movement visible,
-   authoritative, refresh-safe, and available to the election/tick engine.
+1. Add a second favor chain and information/ambition choices so a player can
+   deliberately shape more than Marta's bloc and reach a seeded loss path
+   through normal play.

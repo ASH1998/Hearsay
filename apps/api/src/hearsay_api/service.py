@@ -98,7 +98,11 @@ class GameService:
                 id=item.id,
                 name=item.name,
                 role=item.role,
-                location_id=item.location,
+                location_id=self.content.scheduled_location(
+                    item.id,
+                    day=1,
+                    phase="morning",
+                ),
                 color=item.color,
                 speech=item.opening if item.id == "marta" else None,
             )
@@ -164,10 +168,19 @@ class GameService:
             snapshot.recent_events = ([event] + snapshot.recent_events)[:8]
             if consumed_time:
                 self._advance_clock(snapshot, request.verb)
+                schedule_event = self._apply_schedules(snapshot)
                 promise_events = self._resolve_expired_promises(snapshot)
-                snapshot.recent_events = (
-                    promise_events + snapshot.recent_events
-                )[:8]
+                if schedule_event is None:
+                    snapshot.recent_events = (
+                        promise_events + snapshot.recent_events
+                    )[:8]
+                else:
+                    snapshot.recent_events = (
+                        promise_events
+                        + snapshot.recent_events[:1]
+                        + [schedule_event]
+                        + snapshot.recent_events[1:]
+                    )[:8]
                 if snapshot.action_count % 2 == 0:
                     self._run_gossip_tick(snapshot)
             if snapshot.action_count >= 18 and snapshot.election is None:
@@ -471,6 +484,41 @@ class GameService:
             snapshot.phase = "night"
         snapshot.weather = (
             "rain" if snapshot.day == 1 and snapshot.phase in {"evening", "night"} else "clear"
+        )
+
+    def _apply_schedules(self, snapshot: RunSnapshot) -> WorldEvent | None:
+        destinations: dict[str, int] = {}
+        moved = 0
+        for npc in snapshot.npcs:
+            desired_location = self.content.scheduled_location(
+                npc.id,
+                snapshot.day,
+                snapshot.phase,
+            )
+            if npc.location_id == desired_location:
+                continue
+            npc.location_id = desired_location
+            destinations[desired_location] = destinations.get(desired_location, 0) + 1
+            moved += 1
+
+        if moved == 0:
+            return None
+
+        destination_summary = ", ".join(
+            (
+                f"{self.content.locations_by_id[location_id].name} ({count})"
+                for location_id, count in sorted(
+                    destinations.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )
+            )
+        )
+        return self._event(
+            "schedule_shift",
+            (
+                f"{snapshot.phase.title()} routines move {moved} residents: "
+                f"{destination_summary}."
+            ),
         )
 
     @staticmethod

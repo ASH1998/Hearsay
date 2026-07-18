@@ -121,6 +121,11 @@ All 20 Greyhaven residents now participate in a deterministic midnight election.
 The seeded kept-promise path wins `11–9`; a `10–10` tie remains with Rhea. Every
 vote and decisive input is durable in CockroachDB, and the ending panel cites
 the exact belief version where memory changed a vote.
+Those residents also follow validated three-day,
+morning/afternoon/evening/night routines. Consequential actions advance the
+authoritative clock, move NPCs in the 3D town, append a public schedule-shift
+event, and persist the same locations that reappear after refresh from the
+configured Cockroach Cloud `hearsay` database.
 
 ## Authority
 
