@@ -135,6 +135,12 @@ fog, lightning, thunder, and warm window lights provide the render layer; every
 resident evacuates to the inn for the behavior layer; Marta, Nessa, and Pip
 react in dialogue. Refresh restores the same storm and crowd, while Day 2 writes
 the clear event and resumes ordinary routes.
+Day 2 afternoon now stages Bram and Nessa's public argument: the whole town
+forms a ring in the square, both faction relationships deteriorate, and three
+Town Ledger actions let the player back Bram, defend Nessa, or calm the crowd.
+The chosen intervention changes visible standing and traits, becomes immutable
+memory for Bram/Nessa/Pip, survives refresh, and appears as exact election
+evidence.
 
 ## Authority
 

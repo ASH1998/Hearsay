@@ -76,6 +76,22 @@ class TownEventContent(BaseModel):
     resolved_awareness: dict[str, str]
 
 
+class ArgumentChoiceContent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    action_verb: str
+    label: str
+    dialogue_speaker_id: str
+    dialogue: str
+    event_kind: str
+    event_text: str
+    memory_text: str
+    bram_relationship_delta: int = Field(ge=-100, le=100)
+    nessa_relationship_delta: int = Field(ge=-100, le=100)
+    traits: tuple[str, ...] = ()
+    holder_election_contributions: dict[str, float]
+
+
 class ScheduleTemplateContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -102,6 +118,7 @@ class GreyhavenContent(BaseModel):
     endings: tuple[EndingContent, ...]
     bram_approaches: tuple[BramApproachContent, ...]
     town_events: tuple[TownEventContent, ...]
+    argument_choices: tuple[ArgumentChoiceContent, ...]
     schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
@@ -215,6 +232,33 @@ class GreyhavenContent(BaseModel):
                     f"Town event {event.id} has unknown aware residents: "
                     f"{sorted(unknown_residents)}."
                 )
+        required_argument_choices = {
+            "side_with_bram",
+            "side_with_nessa",
+            "calm_argument",
+        }
+        argument_verbs = {
+            choice.action_verb
+            for choice in self.argument_choices
+        }
+        if argument_verbs != required_argument_choices:
+            raise ValueError(
+                "The public argument requires Bram, Nessa, and calm choices."
+            )
+        for choice in self.argument_choices:
+            if choice.dialogue_speaker_id not in resident_ids:
+                raise ValueError(
+                    f"Argument choice {choice.action_verb} has an unknown speaker."
+                )
+            unknown_traits = set(choice.traits) - set(self.public_traits)
+            unknown_holders = (
+                set(choice.holder_election_contributions)
+                - set(resident_ids)
+            )
+            if unknown_traits or unknown_holders:
+                raise ValueError(
+                    f"Argument choice {choice.action_verb} has invalid references."
+                )
         return self
 
     @property
@@ -247,6 +291,13 @@ class GreyhavenContent(BaseModel):
     @property
     def town_events_by_id(self) -> dict[str, TownEventContent]:
         return {event.id: event for event in self.town_events}
+
+    @property
+    def argument_choices_by_verb(self) -> dict[str, ArgumentChoiceContent]:
+        return {
+            choice.action_verb: choice
+            for choice in self.argument_choices
+        }
 
     @property
     def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:

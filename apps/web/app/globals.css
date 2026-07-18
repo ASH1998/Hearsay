@@ -524,6 +524,40 @@ button:disabled {
   background: rgb(232 223 198 / 8%);
 }
 
+.town-event__choices {
+  display: grid;
+  margin-top: 0.55rem;
+  gap: 0.3rem;
+}
+
+.town-event__choices button {
+  border: 1px solid rgb(78 50 36 / 28%);
+  padding: 0.4rem 0.5rem;
+  background: rgb(255 255 255 / 22%);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.argument-banner {
+  display: grid;
+  width: 12rem;
+  border: 1px solid rgb(232 223 198 / 52%);
+  padding: 0.55rem 0.7rem;
+  background: rgb(77 31 24 / 92%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 38%);
+  color: var(--paper);
+  font-family: var(--font-display);
+  text-align: center;
+}
+
+.argument-banner span {
+  color: rgb(232 223 198 / 72%);
+  font-size: 0.66rem;
+}
+
 .speech-bubble {
   width: 13rem;
   border: 0;

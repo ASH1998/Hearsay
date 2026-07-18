@@ -34,6 +34,9 @@ class ActionVerb(StrEnum):
     FLATTER_BRAM = "flatter_bram"
     NEGOTIATE_BRAM = "negotiate_bram"
     LIE_TO_BRAM = "lie_to_bram"
+    SIDE_WITH_BRAM = "side_with_bram"
+    SIDE_WITH_NESSA = "side_with_nessa"
+    CALM_ARGUMENT = "calm_argument"
     SLEEP = "sleep"
 
 
@@ -126,6 +129,7 @@ class PlayerState(BaseModel):
     location_id: str
     traits: list[str] = Field(default_factory=list)
     candidate: bool = False
+    argument_choice: str | None = None
 
 
 class VoteInputState(BaseModel):

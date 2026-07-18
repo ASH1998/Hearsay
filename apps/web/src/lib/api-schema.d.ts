@@ -172,7 +172,7 @@ export interface components {
          * ActionVerb
          * @enum {string}
          */
-        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "sleep";
+        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "side_with_bram" | "side_with_nessa" | "calm_argument" | "sleep";
         /** BeliefInputState */
         BeliefInputState: {
             /**
@@ -545,6 +545,8 @@ export interface components {
              * @default false
              */
             candidate: boolean;
+            /** Argument Choice */
+            argument_choice?: string | null;
         };
         /** PromiseState */
         PromiseState: {

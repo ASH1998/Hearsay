@@ -297,6 +297,7 @@ def plan_action_memory(
     retelling: InferenceResult[RumorRetelling] | None = None,
     dialogue_treatment: DialogueTreatment | None = None,
     promise_transitions: tuple[PromiseTransition, ...] = (),
+    town_event_transitions: tuple[str, ...] = (),
 ) -> MemoryEffects:
     primary = _plan_primary_action_memory(
         request,
@@ -311,9 +312,14 @@ def plan_action_memory(
         response,
         embeddings,
     )
+    town_events = _plan_town_event_transitions(town_event_transitions)
     return MemoryEffects(
-        beliefs=primary.beliefs + promise.beliefs,
-        relationships=primary.relationships + promise.relationships,
+        beliefs=primary.beliefs + promise.beliefs + town_events.beliefs,
+        relationships=(
+            primary.relationships
+            + promise.relationships
+            + town_events.relationships
+        ),
         gossip_tick_number=(
             primary.gossip_tick_number
             if primary.gossip_tick_number is not None
@@ -507,7 +513,91 @@ def _plan_primary_action_memory(
             gossip_tick_number=tick_number,
         )
 
+    argument_choice_verbs = {
+        ActionVerb.SIDE_WITH_BRAM,
+        ActionVerb.SIDE_WITH_NESSA,
+        ActionVerb.CALM_ARGUMENT,
+    }
+    if request.verb in argument_choice_verbs:
+        choice = content.argument_choices_by_verb[request.verb.value]
+        beliefs: list[PlannedBelief] = []
+        for holder_id, contribution in (
+            choice.holder_election_contributions.items()
+        ):
+            narrative = choice.memory_text
+            text_embedding = embeddings.embed(narrative)
+            beliefs.append(
+                PlannedBelief(
+                    proposition_key="public-argument-player-intervention",
+                    subject_kind="event",
+                    subject_id="bram-nessa-argument",
+                    predicate="player_intervened_in_argument",
+                    holder_id=holder_id,
+                    narrative_text=narrative,
+                    normalized_position={
+                        "stance": "witnessed",
+                        "choice": request.verb.value,
+                        "public": True,
+                        "election_contribution": contribution,
+                    },
+                    confidence=1.0,
+                    salience=0.95,
+                    source_kind="player_action",
+                    source_id="player",
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
+                )
+            )
+        return MemoryEffects(
+            beliefs=tuple(beliefs),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="bram",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=choice.bram_relationship_delta / 100,
+                    affinity_delta=choice.bram_relationship_delta / 200,
+                ),
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="nessa",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=choice.nessa_relationship_delta / 100,
+                    affinity_delta=choice.nessa_relationship_delta / 200,
+                ),
+            ),
+        )
+
     return MemoryEffects()
+
+
+def _plan_town_event_transitions(
+    transitions: tuple[str, ...],
+) -> MemoryEffects:
+    if "public_argument_begins" not in transitions:
+        return MemoryEffects()
+    return MemoryEffects(
+        relationships=(
+            PlannedRelationship(
+                a_kind="npc",
+                a_id="bram",
+                b_kind="npc",
+                b_id="nessa",
+                trust_delta=-0.35,
+                affinity_delta=-0.2,
+            ),
+            PlannedRelationship(
+                a_kind="npc",
+                a_id="nessa",
+                b_kind="npc",
+                b_id="bram",
+                trust_delta=-0.35,
+                affinity_delta=-0.2,
+            ),
+        )
+    )
 
 
 def _plan_promise_transitions(

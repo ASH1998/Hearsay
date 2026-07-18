@@ -124,6 +124,21 @@ def resolve_election(
                     "They retain the market-row account of the player's "
                     f"{value.replace('_bram', '').replace('_', ' ')} approach."
                 )
+            elif proposition_key == "public-argument-player-intervention":
+                choice = memory.normalized_position.get("choice")
+                value = choice if isinstance(choice, str) else None
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else 0.0
+                )
+                explanation = (
+                    "They remember how the player answered Bram and Nessa's "
+                    f"argument: {(value or 'unknown').replace('_', ' ')}."
+                )
             if not contribution:
                 continue
             pending.append(

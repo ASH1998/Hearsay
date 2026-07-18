@@ -275,16 +275,28 @@ Completed:
   and public lifecycle events are server-authoritative. Refresh renders the
   restored Cockroach snapshot, and storm clearing reapplies the authored Day 2
   schedules instead of leaving stale crowd positions.
+- Day 2 afternoon now starts the Bram–Nessa public argument. Its schedule
+  override stages all 20 residents in a square ring, a visible scene banner
+  identifies the confrontation, and Bram/Nessa/Pip receive active and resolved
+  lines. Day 2 evening closes it and restores normal schedules.
+- Starting the argument writes directional Bram→Nessa and Nessa→Bram trust and
+  affinity damage. The Town Ledger exposes three authored interventions: back
+  Bram, defend Nessa's crews, or calm the crowd; a run accepts exactly one.
+- Each intervention changes both visible principal standings, derives any
+  matching public trait, writes three holder-specific immutable memories, and
+  carries the exact choice/contribution/belief version into Bram, Nessa, and
+  Pip's election inputs. Calm produces Influential and a seeded `11–9` win.
 
 Validated:
 
-- Eighty-two local API tests pass. Pure election tests cover all six ending
+- Eighty-seven local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
   four Bram effects, playable threat/lie endings, the storm lifecycle,
-  all-resident evacuation, awareness, clearing, and skipped-interval history.
-- Ten real Cockroach Cloud tests pass against `hearsay_test`. The election
+  all-resident evacuation, awareness, clearing, skipped-interval history, event
+  faction damage, all three interventions, and their exact vote memories.
+- Eleven real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -293,13 +305,18 @@ Validated:
   then recreates the repository and restores the Run out of town result.
   The storm test queries its public event row, recreates the repository, and
   proves weather, active-event state, and all 20 overridden positions survive.
-- Two browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
+  The argument test additionally proves both directional trust rows reach
+  `0.15`, all lifecycle/action events exist, three belief-backed vote inputs
+  persist, and repository recreation restores the same election.
+- Three browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, Pip's new Market row location, storm start, and
   storm refresh before the `11–9` result and exact v1 promise memory
   explanation. The second threatens
   Bram, shows the two public traits, reaches `0–20` Run out of town, and renders
   the belief-backed threat input in the election explanation.
+  The third stages the Day 2 square crowd, calms it, refreshes the active event,
+  clears it on Day 3, and renders the exact intervention memory at election.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -309,12 +326,11 @@ Remaining:
 - Additional favors and information/ambition verbs needed for multiple viable
   paths to all six endings.
 - Ambient rumor echo behavior beyond the current Pip signature transmission.
-- Public-argument event with render, behavior, and dialogue layers.
 - Broader rumor propagation, election tuning, and seeded Narrow loss,
   Humiliation, and Landslide browser playthroughs.
 
 ## Next implementation slice
 
-1. Add the Bram–Nessa public argument as a second three-layer event: square
-   staging, faction behavior/relationship consequences, authored awareness,
-   and a player choice to take a side or calm the crowd.
+1. Turn the twelve ambient residents into the town's rumor echo: proximity-
+   aware deterministic hops, shallow last-three memory, visible pair chatter,
+   and election inputs that preserve the originating belief lineage.

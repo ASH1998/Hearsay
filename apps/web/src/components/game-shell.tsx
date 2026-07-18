@@ -240,11 +240,46 @@ export function GameShell() {
             className="promise town-event"
             data-town-event-key={activeTownEvent.key}
           >
-            <span className="promise__mark">☂</span>
+            <span className="promise__mark">
+              {activeTownEvent.key === "storm" ? "☂" : "!"}
+            </span>
             <div>
               <strong>{activeTownEvent.title}</strong>
-              <p>The docks are empty. Greyhaven has crowded into the inn.</p>
+              <p>
+                {activeTownEvent.key === "storm"
+                  ? "The docks are empty. Greyhaven has crowded into the inn."
+                  : "Bram and Nessa are shouting. Greyhaven has formed a ring in the square."}
+              </p>
               <small>Active · behavior and routes changed</small>
+              {activeTownEvent.key === "public_argument" &&
+              !snapshot.player.argument_choice ? (
+                <div
+                  className="town-event__choices"
+                  aria-label="Answer the public argument"
+                >
+                  <button
+                    disabled={busy}
+                    onClick={() => act("side_with_bram")}
+                    type="button"
+                  >
+                    Back Bram&apos;s claim
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("side_with_nessa")}
+                    type="button"
+                  >
+                    Defend Nessa&apos;s crews
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("calm_argument")}
+                    type="button"
+                  >
+                    Calm the crowd
+                  </button>
+                </div>
+              ) : null}
             </div>
           </article>
         ) : null}

@@ -404,6 +404,10 @@ function Scene({
   const playerLocation = locations.get(snapshot.player.location_id);
   const evening = snapshot.phase === "evening" || snapshot.phase === "night";
   const raining = snapshot.weather === "rain";
+  const publicArgument = snapshot.town_events.some(
+    (event) =>
+      event.key === "public_argument" && event.status === "active",
+  );
   const selectedNpc = snapshot.npcs.find((npc) => npc.id === selectedNpcId);
   const focusLocation = selectedNpc
     ? locations.get(selectedNpc.location_id)
@@ -525,6 +529,17 @@ function Scene({
 
       <Suspense fallback={<ProxyTown />}>
         <WorldAssets />
+        {publicArgument ? (
+          <Html center position={[0, 3.1, 0]}>
+            <div
+              className="argument-banner"
+              data-scene-event="public_argument"
+            >
+              <strong>Bram ↔ Nessa</strong>
+              <span>The square is choosing sides.</span>
+            </div>
+          </Html>
+        ) : null}
         {snapshot.npcs.map((npc) => {
           const location = locations.get(npc.location_id);
           if (!location) return null;

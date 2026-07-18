@@ -459,6 +459,9 @@
           "flatter_bram",
           "negotiate_bram",
           "lie_to_bram",
+          "side_with_bram",
+          "side_with_nessa",
+          "calm_argument",
           "sleep"
         ],
         "title": "ActionVerb"
@@ -1398,6 +1401,17 @@
             "type": "boolean",
             "title": "Candidate",
             "default": false
+          },
+          "argument_choice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Argument Choice"
           }
         },
         "type": "object",

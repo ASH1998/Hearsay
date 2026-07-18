@@ -594,6 +594,93 @@ def test_storm_state_event_and_evacuated_routes_survive_repository_recreation(
     assert restored.npcs == result.snapshot.npcs
 
 
+def test_public_argument_persists_faction_damage_choice_and_vote_inputs(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=103))
+    actions = (
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("talk", "pip"),
+        ("calm_argument", None),
+        ("sleep", None),
+        ("sleep", None),
+    )
+    for verb, target in actions:
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    assert result.snapshot.election is not None
+    assert result.snapshot.player.argument_choice == "calm_argument"
+    assert "Influential" in result.snapshot.player.traits
+
+    with repository.session_factory() as session:
+        faction_trust = {
+            (a_id, b_id): trust
+            for a_id, b_id, trust in session.execute(
+                select(
+                    RelationshipModel.a_id,
+                    RelationshipModel.b_id,
+                    RelationshipModel.trust,
+                ).where(
+                    RelationshipModel.game_run_id == created.run_id,
+                    RelationshipModel.a_id.in_(("bram", "nessa")),
+                    RelationshipModel.b_id.in_(("bram", "nessa")),
+                )
+            ).tuples()
+        }
+        argument_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key
+                    == "public-argument-player-intervention",
+                )
+            )
+        )
+        event_kinds = set(
+            session.scalars(
+                select(EventModel.kind).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind.in_(
+                        (
+                            "public_argument_begins",
+                            "argument_calmed",
+                            "public_argument_clears",
+                        )
+                    ),
+                )
+            )
+        )
+
+    assert faction_trust == {
+        ("bram", "nessa"): pytest.approx(0.15),
+        ("nessa", "bram"): pytest.approx(0.15),
+    }
+    assert len(argument_inputs) == 3
+    assert {item.input_value for item in argument_inputs} == {"calm_argument"}
+    assert all(item.belief_id is not None for item in argument_inputs)
+    assert event_kinds == {
+        "public_argument_begins",
+        "argument_calmed",
+        "public_argument_clears",
+    }
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.election == result.snapshot.election
+
+
 def test_election_persists_twenty_votes_and_exact_decision_inputs(
     repository: CockroachRunRepository,
 ) -> None:

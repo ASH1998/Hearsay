@@ -70,6 +70,12 @@ BRAM_APPROACH_VERBS = {
     ActionVerb.LIE_TO_BRAM,
 }
 
+ARGUMENT_CHOICE_VERBS = {
+    ActionVerb.SIDE_WITH_BRAM,
+    ActionVerb.SIDE_WITH_NESSA,
+    ActionVerb.CALM_ARGUMENT,
+}
+
 
 class GameService:
     def __init__(
@@ -165,6 +171,7 @@ class GameService:
 
         for attempt in range(self.max_concurrency_retries + 1):
             snapshot = self._hydrate_content(self.repository.get(run_id))
+            town_event_transitions: tuple[str, ...] = ()
             promise_status_before = {
                 promise.id: promise.status
                 for promise in snapshot.promises
@@ -178,6 +185,10 @@ class GameService:
             if consumed_time:
                 self._advance_clock(snapshot, request.verb)
                 town_event_events = self._update_town_events(snapshot)
+                town_event_transitions = tuple(
+                    event.kind
+                    for event in town_event_events
+                )
                 schedule_event = self._apply_schedules(snapshot)
                 promise_events = self._resolve_expired_promises(snapshot)
                 transition_events = list(town_event_events)
@@ -262,6 +273,7 @@ class GameService:
                 retelling,
                 dialogue_treatment,
                 promise_transitions,
+                town_event_transitions,
             )
             try:
                 return self.repository.update(
@@ -456,6 +468,55 @@ class GameService:
                 text=approach.dialogue,
             )
             return self._event(approach.event_kind, approach.event_text)
+        if request.verb in ARGUMENT_CHOICE_VERBS:
+            argument = next(
+                (
+                    event
+                    for event in snapshot.town_events
+                    if event.key == "public_argument"
+                    and event.status == "active"
+                ),
+                None,
+            )
+            if argument is None:
+                raise InvalidActionError(
+                    "Bram and Nessa are not currently arguing in the square."
+                )
+            if snapshot.player.argument_choice is not None:
+                raise InvalidActionError(
+                    "You already chose how to answer the public argument."
+                )
+            choice = self.content.argument_choices_by_verb[request.verb.value]
+            snapshot.player.argument_choice = request.verb.value
+            bram = self._require_npc(snapshot, "bram")
+            nessa = self._require_npc(snapshot, "nessa")
+            bram.relationship = max(
+                -100,
+                min(
+                    100,
+                    bram.relationship + choice.bram_relationship_delta,
+                ),
+            )
+            nessa.relationship = max(
+                -100,
+                min(
+                    100,
+                    nessa.relationship + choice.nessa_relationship_delta,
+                ),
+            )
+            self._add_traits(snapshot, *choice.traits)
+            speaker = self._require_npc(
+                snapshot,
+                choice.dialogue_speaker_id,
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id=speaker.id,
+                speaker_name=speaker.name,
+                text=choice.dialogue,
+            )
+            pip = self._require_npc(snapshot, "pip")
+            pip.speech = choice.memory_text
+            return self._event(choice.event_kind, choice.event_text)
         if request.verb == ActionVerb.SLEEP:
             snapshot.dialogue = None
             return self._event("sleep", "Greyhaven keeps talking after your lamp goes dark.")
@@ -655,6 +716,11 @@ class GameService:
             event.key == "storm" and event.status == "active"
             for event in snapshot.town_events
         )
+        argument_active = any(
+            event.key == "public_argument"
+            and event.status == "active"
+            for event in snapshot.town_events
+        )
         if storm_active and any(
             promise.status == "broken"
             for promise in snapshot.promises
@@ -674,6 +740,11 @@ class GameService:
         elif storm_active:
             pip.speech = (
                 "Nessa's boats stayed in. Bram says that makes every late crate her fault."
+            )
+        elif argument_active:
+            pip.speech = (
+                "Bram blames Nessa for the storm. "
+                "Nessa says Bram counts drowned sailors as breakage."
             )
         elif any(event.kind == "bram_confronted" for event in snapshot.recent_events[:2]):
             pip.speech = "The newcomer tried to ruin Bram in the middle of market row."

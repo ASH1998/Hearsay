@@ -15,7 +15,11 @@ def test_greyhaven_content_references_are_complete() -> None:
     assert len(content.residents) == 20
     assert len(content.endings) == 6
     assert len(content.bram_approaches) == 4
-    assert {event.id for event in content.town_events} == {"storm"}
+    assert {event.id for event in content.town_events} == {
+        "storm",
+        "public_argument",
+    }
+    assert len(content.argument_choices) == 3
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6
     assert all(location.neighbors for location in content.locations)
@@ -54,7 +58,19 @@ def test_content_requires_every_authored_bram_approach() -> None:
 
 def test_content_requires_never_cut_storm() -> None:
     payload = load_content().model_dump(mode="json")
-    payload["town_events"] = []
+    payload["town_events"] = [
+        event
+        for event in payload["town_events"]
+        if event["id"] != "storm"
+    ]
 
     with pytest.raises(ValidationError, match="never-cut storm"):
+        GreyhavenContent.model_validate(payload)
+
+
+def test_content_requires_all_public_argument_choices() -> None:
+    payload = load_content().model_dump(mode="json")
+    payload["argument_choices"].pop()
+
+    with pytest.raises(ValidationError, match="Bram, Nessa, and calm"):
         GreyhavenContent.model_validate(payload)

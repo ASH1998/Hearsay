@@ -317,6 +317,80 @@
         "marta": "The rain cleared. The stories it drove indoors did not.",
         "pip": "The storm passed, but Bram's version of it is still making the rounds."
       }
+    },
+    {
+      "id": "public_argument",
+      "title": "Bram and Nessa in the square",
+      "start_day": 2,
+      "start_phase": "afternoon",
+      "end_day": 2,
+      "end_phase": "evening",
+      "schedule_location_override": "square",
+      "start_text": "Bram and Nessa erupt over storm losses. Greyhaven forms a ring around them in the square.",
+      "end_text": "The square breaks into factions as Bram and Nessa carry their grievance away.",
+      "active_awareness": {
+        "bram": "Her boats stayed tied while honest cargo spoiled. Sentiment does not balance a ledger.",
+        "nessa": "Bram would spend a crew to save a crate, then invoice the widows for rope.",
+        "pip": "Bram blames Nessa for the storm. Nessa says Bram counts drowned sailors as breakage."
+      },
+      "resolved_awareness": {
+        "bram": "The square heard enough to know which side understands consequence.",
+        "nessa": "A crowd can leave. A merchant's price still finds you tomorrow.",
+        "pip": "The shouting stopped. The choosing sides did not."
+      }
+    }
+  ],
+  "argument_choices": [
+    {
+      "action_verb": "side_with_bram",
+      "label": "Back Bram's claim",
+      "dialogue_speaker_id": "bram",
+      "dialogue": "At least one person in this square understands that choices have a cost.",
+      "event_kind": "argument_side_bram",
+      "event_text": "You back Bram. The merchants applaud while the harbor folk turn away.",
+      "memory_text": "The newcomer publicly blamed Nessa for keeping the fleet in during the storm.",
+      "bram_relationship_delta": 25,
+      "nessa_relationship_delta": -30,
+      "traits": [],
+      "holder_election_contributions": {
+        "bram": 0.4,
+        "nessa": -0.5,
+        "pip": -0.1
+      }
+    },
+    {
+      "action_verb": "side_with_nessa",
+      "label": "Defend Nessa's crews",
+      "dialogue_speaker_id": "nessa",
+      "dialogue": "Good. A living crew can sail tomorrow. Bram's spoiled numbers cannot.",
+      "event_kind": "argument_side_nessa",
+      "event_text": "You defend Nessa. The dock workers answer while Bram closes his ledger.",
+      "memory_text": "The newcomer publicly defended Nessa for keeping her crews alive in the storm.",
+      "bram_relationship_delta": -30,
+      "nessa_relationship_delta": 25,
+      "traits": ["Generous"],
+      "holder_election_contributions": {
+        "bram": -0.5,
+        "nessa": 0.45,
+        "pip": 0.15
+      }
+    },
+    {
+      "action_verb": "calm_argument",
+      "label": "Calm the crowd",
+      "dialogue_speaker_id": "pip",
+      "dialogue": "You made peace sound almost interesting. That takes talent.",
+      "event_kind": "argument_calmed",
+      "event_text": "You separate blame from loss. The square quiets long enough to listen.",
+      "memory_text": "The newcomer calmed Bram and Nessa's public argument without choosing a faction.",
+      "bram_relationship_delta": 10,
+      "nessa_relationship_delta": 10,
+      "traits": ["Influential"],
+      "holder_election_contributions": {
+        "bram": 0.2,
+        "nessa": 0.2,
+        "pip": 0.3
+      }
     }
   ],
   "schedule_templates": [
