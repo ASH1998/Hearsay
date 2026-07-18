@@ -617,3 +617,60 @@ def test_election_persists_twenty_votes_and_exact_decision_inputs(
 
     restored = repository.get(created.run_id)
     assert restored.election == election
+
+
+def test_threat_path_persists_run_out_ending_and_rumor_decision_input(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=83))
+    actions = (
+        ("threaten_bram", "bram"),
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    )
+    for verb, target in actions:
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    assert result.snapshot.election is not None
+    assert result.snapshot.election.ending.key == "run_out_of_town"
+    assert result.snapshot.player.traits == ["Dangerous", "Troublemaker"]
+
+    with repository.session_factory() as session:
+        stored_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "bram-price-confrontation",
+                )
+            )
+        )
+        rumor_events = list(
+            session.scalars(
+                select(EventModel).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind == "bram_threatened",
+                )
+            )
+        )
+
+    assert len(stored_inputs) == 2
+    assert {item.input_value for item in stored_inputs} == {"threaten_bram"}
+    assert all(item.belief_id is not None for item in stored_inputs)
+    assert len(rumor_events) == 1
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.election == result.snapshot.election

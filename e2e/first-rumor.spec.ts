@@ -20,7 +20,7 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
   await page.getByRole("button", { name: "Close conversation" }).click();
   await page.getByRole("button", { name: /Find Bram/ }).click();
   await page
-    .getByRole("button", { name: "Confront him about the price" })
+    .getByRole("button", { name: "Negotiate a deal" })
     .click();
   await expect(
     page.locator('[data-event-kind="schedule_shift"]'),

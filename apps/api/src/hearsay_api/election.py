@@ -110,9 +110,20 @@ def resolve_election(
                     contribution = -0.5
                     explanation = "They remember that evening exposed a broken promise."
             elif proposition_key == "bram-price-confrontation":
-                value = "hostile_market_rumor"
-                contribution = -0.25
-                explanation = "They retain the hostile market-row account."
+                approach = memory.normalized_position.get("approach")
+                value = approach if isinstance(approach, str) else "market_dispute"
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else -0.25
+                )
+                explanation = (
+                    "They retain the market-row account of the player's "
+                    f"{value.replace('_bram', '').replace('_', ' ')} approach."
+                )
             if not contribution:
                 continue
             pending.append(

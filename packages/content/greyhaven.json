@@ -250,6 +250,52 @@
       "summary": "Greyhaven sends you back down the road under a chorus of every threat it kept."
     }
   ],
+  "bram_approaches": [
+    {
+      "action_verb": "threaten_bram",
+      "label": "Threaten him quietly",
+      "dialogue": "Careful. A threat is a debt Greyhaven collects with witnesses.",
+      "event_kind": "bram_threatened",
+      "event_text": "You threaten Bram over the shipment. The market goes still enough to hear it.",
+      "original_claim": "The newcomer threatened Bram over Marta's held shipment.",
+      "relationship_delta": -25,
+      "traits": ["Dangerous", "Troublemaker"],
+      "election_contribution": -0.55
+    },
+    {
+      "action_verb": "flatter_bram",
+      "label": "Flatter his business sense",
+      "dialogue": "At last, someone understands that profit and civic virtue can share a ledger.",
+      "event_kind": "bram_flattered",
+      "event_text": "You praise Bram's business sense until his price begins to sound negotiable.",
+      "original_claim": "The newcomer publicly praised Bram's business sense to soften his price.",
+      "relationship_delta": 15,
+      "traits": [],
+      "election_contribution": 0.15
+    },
+    {
+      "action_verb": "negotiate_bram",
+      "label": "Negotiate a deal",
+      "dialogue": "You bargain like someone who thinks witnesses are friends.",
+      "event_kind": "bram_confronted",
+      "event_text": "Your argument with Bram carries farther than either of you intended.",
+      "original_claim": "The newcomer confronted Bram about tripling the shipment price.",
+      "relationship_delta": -5,
+      "traits": [],
+      "election_contribution": -0.25
+    },
+    {
+      "action_verb": "lie_to_bram",
+      "label": "Lie about a constable's order",
+      "dialogue": "Elias never signed such an order. I wonder how long it takes that fact to cross the square.",
+      "event_kind": "bram_lied_to",
+      "event_text": "You invent a constable's order. Bram recognizes the lie and lets the market hear it.",
+      "original_claim": "The newcomer lied that Constable Elias had ordered Marta's shipment released.",
+      "relationship_delta": -15,
+      "traits": ["Dishonest"],
+      "election_contribution": -0.5
+    }
+  ],
   "schedule_templates": [
     {
       "id": "marta",

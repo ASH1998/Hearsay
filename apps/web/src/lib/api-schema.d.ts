@@ -172,7 +172,7 @@ export interface components {
          * ActionVerb
          * @enum {string}
          */
-        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "sleep";
+        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "sleep";
         /** BeliefInputState */
         BeliefInputState: {
             /**

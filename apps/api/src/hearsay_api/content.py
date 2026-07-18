@@ -46,6 +46,20 @@ class EndingContent(BaseModel):
     summary: str
 
 
+class BramApproachContent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    action_verb: str
+    label: str
+    dialogue: str
+    event_kind: str
+    event_text: str
+    original_claim: str
+    relationship_delta: int = Field(ge=-100, le=100)
+    traits: tuple[str, ...] = ()
+    election_contribution: float = Field(ge=-1, le=1)
+
+
 class ScheduleTemplateContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -70,6 +84,7 @@ class GreyhavenContent(BaseModel):
     principals: tuple[PrincipalContent, ...]
     ambients: tuple[AmbientContent, ...]
     endings: tuple[EndingContent, ...]
+    bram_approaches: tuple[BramApproachContent, ...]
     schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
@@ -137,6 +152,27 @@ class GreyhavenContent(BaseModel):
             raise ValueError(
                 "Greyhaven must define exactly the six authoritative endings."
             )
+        required_bram_approaches = {
+            "threaten_bram",
+            "flatter_bram",
+            "negotiate_bram",
+            "lie_to_bram",
+        }
+        approach_verbs = {
+            approach.action_verb
+            for approach in self.bram_approaches
+        }
+        if approach_verbs != required_bram_approaches:
+            raise ValueError(
+                "Bram must define threaten, flatter, negotiate, and lie approaches."
+            )
+        for approach in self.bram_approaches:
+            unknown_traits = set(approach.traits) - set(self.public_traits)
+            if unknown_traits:
+                raise ValueError(
+                    f"Bram approach {approach.action_verb} has unknown traits: "
+                    f"{sorted(unknown_traits)}."
+                )
         return self
 
     @property
@@ -158,6 +194,13 @@ class GreyhavenContent(BaseModel):
     @property
     def endings_by_id(self) -> dict[str, EndingContent]:
         return {ending.id: ending for ending in self.endings}
+
+    @property
+    def bram_approaches_by_verb(self) -> dict[str, BramApproachContent]:
+        return {
+            approach.action_verb: approach
+            for approach in self.bram_approaches
+        }
 
     @property
     def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:

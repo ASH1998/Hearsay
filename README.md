@@ -86,7 +86,7 @@ The opening loop is intentionally small but end to end:
 
 1. Start or restore a run.
 2. Promise Marta that you will release the inn shipment.
-3. Confront Bram about his price.
+3. Choose how to handle Bram: threaten, flatter, negotiate, or lie.
 4. After the second consequential action, Pip visibly repeats a distorted
    version and the authoritative action clock advances.
 5. Open “Trace Pip’s rumor” in the Town Ledger to inspect Bram’s source belief,
@@ -121,6 +121,10 @@ All 20 Greyhaven residents now participate in a deterministic midnight election.
 The seeded kept-promise path wins `11–9`; a `10–10` tie remains with Rhea. Every
 vote and decisive input is durable in CockroachDB, and the ending panel cites
 the exact belief version where memory changed a vote.
+Each Bram approach now produces its own public event, relationship change,
+semantic rumor, and election weight. Threatening him can end with the town
+running the player out; lying about Elias's authority can unravel into the
+Exposed ending, both through ordinary three-day play rather than debug state.
 Those residents also follow validated three-day,
 morning/afternoon/evening/night routines. Consequential actions advance the
 authoritative clock, move NPCs in the 3D town, append a public schedule-shift

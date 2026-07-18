@@ -30,6 +30,10 @@ class ActionVerb(StrEnum):
     SETTLE_SHIPMENT = "settle_shipment"
     DECLARE_CANDIDACY = "declare_candidacy"
     CONFRONT = "confront"
+    THREATEN_BRAM = "threaten_bram"
+    FLATTER_BRAM = "flatter_bram"
+    NEGOTIATE_BRAM = "negotiate_bram"
+    LIE_TO_BRAM = "lie_to_bram"
     SLEEP = "sleep"
 
 

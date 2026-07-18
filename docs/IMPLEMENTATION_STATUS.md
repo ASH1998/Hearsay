@@ -254,22 +254,37 @@ Completed:
 - The action bar reports each principal's current location instead of a fixed
   opening location. The event strip exposes the three newest immutable events,
   so movement remains visible without hiding a promise or election consequence.
+- The judge-critical Bram scene now offers all four GDD approaches: threaten,
+  flatter, negotiate, or lie. Their labels, dialogue, visible events, claims,
+  relationship deltas, traits, and election weights are validated content data.
+- Each approach creates a distinct Bram firsthand belief and a distinct Pip
+  retelling with immutable provenance. The active approach and its exact
+  election contribution travel with the belief version into both voters'
+  normalized decision inputs.
+- Threatening derives Dangerous/Troublemaker and reaches the staged Run out of
+  town ending; lying about Elias derives Dishonest and reaches Exposed. Both
+  are seeded, normal-action playthroughs rather than classifier-only fixtures.
 
 Validated:
 
-- Seventy-two local API tests pass. Pure election tests cover all six ending
+- Seventy-nine local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
-  shape/reference validation, all-resident phase movement, and refresh safety.
-- Eight real Cockroach Cloud tests pass against `hearsay_test`. The election
+  shape/reference validation, all-resident phase movement, refresh safety, all
+  four Bram effects, and playable threat/lie endings.
+- Nine real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
   resident's afternoon location, and queries the public `schedule_shift` row.
-- The expanded browser test plays arrival → promise → rumor → audited Historian
+  The threat test queries both belief-backed vote inputs and the public event,
+  then recreates the repository and restores the Run out of town result.
+- Two browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue and Pip's new Market row location before the
-  `11–9` result and exact v1 promise memory explanation.
+  `11–9` result and exact v1 promise memory explanation. The second threatens
+  Bram, shows the two public traits, reaches `0–20` Run out of town, and renders
+  the belief-backed threat input in the election explanation.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -280,11 +295,11 @@ Remaining:
   paths to all six endings.
 - Ambient rumor echo behavior beyond the current Pip signature transmission.
 - Storm and public-argument events with render, behavior, and dialogue layers.
-- Broader rumor propagation, election tuning, and seeded automated loss/exposed
-  playthroughs beyond the unit-level ending classifier.
+- Broader rumor propagation, election tuning, and seeded Narrow loss,
+  Humiliation, and Landslide browser playthroughs.
 
 ## Next implementation slice
 
-1. Add a second favor chain and information/ambition choices so a player can
-   deliberately shape more than Marta's bloc and reach a seeded loss path
-   through normal play.
+1. Complete the GDD's never-cut storm as a three-layer event: persisted draw,
+   rain/thunder/warm-window render, dock evacuation/schedule override, and
+   dialogue awareness that survives refresh.

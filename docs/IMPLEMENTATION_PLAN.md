@@ -281,7 +281,7 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 ### Milestone 3 — Full Compressed Game
 
 - Implement all twelve locations, three daily schedules, eight principal NPC arcs, twelve ambient NPC behaviors, and free movement/eavesdropping. The schedule checkpoint now defines all 20 residents across three days and four daily phases, applies movements in the authoritative action transition, persists public movement events and the resulting snapshot in the configured Cockroach Cloud database, and renders restored positions directly from that state.
-- Add the 18 consequential actions, promises, favors, rumor propagation, relationship changes, trait effects, storm, public argument, and election calculation.
+- Add the 18 consequential actions, promises, favors, rumor propagation, relationship changes, trait effects, storm, public argument, and election calculation. The opening Bram choice now implements threaten/flatter/negotiate/lie as distinct content-driven actions, memories, Pip mutations, relationship/trait consequences, and belief-backed vote inputs; seeded normal-play paths reach both Exposed and Run out of town.
 - Write content as data rather than embedded code; include validation that every referenced NPC, location, action, memory, and ending exists.
 - Implement the six endings and replay-safe save/resume behavior.
 - Gate: seeded full win and loss playthroughs complete without manual database repair or developer-console intervention.

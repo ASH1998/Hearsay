@@ -473,9 +473,30 @@ export function GameShell() {
                   <button
                     disabled={busy}
                     type="button"
-                    onClick={() => act("confront", "bram")}
+                    onClick={() => act("threaten_bram", "bram")}
                   >
-                    Confront him about the price
+                    Threaten him quietly
+                  </button>
+                  <button
+                    disabled={busy}
+                    type="button"
+                    onClick={() => act("flatter_bram", "bram")}
+                  >
+                    Flatter his business sense
+                  </button>
+                  <button
+                    disabled={busy}
+                    type="button"
+                    onClick={() => act("negotiate_bram", "bram")}
+                  >
+                    Negotiate a deal
+                  </button>
+                  <button
+                    disabled={busy}
+                    type="button"
+                    onClick={() => act("lie_to_bram", "bram")}
+                  >
+                    Lie about a constable&apos;s order
                   </button>
                   {snapshot.promises.some(
                     (promise) =>

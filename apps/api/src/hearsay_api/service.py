@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 import structlog
 
-from hearsay_api.content import GreyhavenContent, load_content
+from hearsay_api.content import BramApproachContent, GreyhavenContent, load_content
 from hearsay_api.election import resolve_election
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
@@ -59,6 +59,14 @@ FREE_ACTIONS = {
     ActionVerb.MOVE,
     ActionVerb.OBSERVE,
     ActionVerb.READ_NOTICE_BOARD,
+}
+
+BRAM_APPROACH_VERBS = {
+    ActionVerb.CONFRONT,
+    ActionVerb.THREATEN_BRAM,
+    ActionVerb.FLATTER_BRAM,
+    ActionVerb.NEGOTIATE_BRAM,
+    ActionVerb.LIE_TO_BRAM,
 }
 
 
@@ -216,8 +224,9 @@ class GameService:
 
             retelling: InferenceResult[RumorRetelling] | None = None
             dialogue_treatment: DialogueTreatment | None = None
-            if request.verb == ActionVerb.CONFRONT and request.target_id == "bram":
-                original_claim = "The newcomer confronted Bram about tripling the shipment price."
+            if request.verb in BRAM_APPROACH_VERBS and request.target_id == "bram":
+                approach = self._bram_approach(request.verb)
+                original_claim = approach.original_claim
                 retelling = self.inference.retell_rumor(
                     RumorRetellingRequest(
                         original_claim=original_claim,
@@ -225,7 +234,8 @@ class GameService:
                         listener_id="pip",
                         trust=0.6,
                         context=(
-                            f"Greyhaven market row on day {snapshot.day}, "
+                            f"Greyhaven market row after the player chose "
+                            f"{approach.action_verb} on day {snapshot.day}, "
                             f"{snapshot.phase}; town tick {snapshot.world_tick}."
                         ),
                     )
@@ -248,6 +258,7 @@ class GameService:
                 request,
                 response,
                 self.embeddings,
+                self.content,
                 retelling,
                 dialogue_treatment,
                 promise_transitions,
@@ -429,20 +440,22 @@ class GameService:
                 "candidacy_declared",
                 "You declare for mayor. Rhea's smile does not reach her eyes.",
             )
-        if request.verb == ActionVerb.CONFRONT:
+        if request.verb in BRAM_APPROACH_VERBS:
             if request.target_id != "bram":
-                raise InvalidActionError("The opening confrontation targets Bram.")
+                raise InvalidActionError("The opening shipment dispute targets Bram.")
+            approach = self._bram_approach(request.verb)
             bram = self._require_npc(snapshot, "bram")
-            bram.relationship = max(-100, bram.relationship - 5)
+            bram.relationship = max(
+                -100,
+                min(100, bram.relationship + approach.relationship_delta),
+            )
+            self._add_traits(snapshot, *approach.traits)
             snapshot.dialogue = DialogueState(
                 speaker_id="bram",
                 speaker_name="Bram Coyle",
-                text="You bargain like someone who thinks witnesses are friends.",
+                text=approach.dialogue,
             )
-            return self._event(
-                "bram_confronted",
-                "Your argument with Bram carries farther than either of you intended.",
-            )
+            return self._event(approach.event_kind, approach.event_text)
         if request.verb == ActionVerb.SLEEP:
             snapshot.dialogue = None
             return self._event("sleep", "Greyhaven keeps talking after your lamp goes dark.")
@@ -457,6 +470,14 @@ class GameService:
         snapshot.player.location_id = target_id
         location = self.content.locations_by_id[target_id]
         return self._event("movement", f"You walk to {location.name}.")
+
+    def _bram_approach(self, verb: ActionVerb) -> BramApproachContent:
+        content_verb = (
+            ActionVerb.NEGOTIATE_BRAM.value
+            if verb == ActionVerb.CONFRONT
+            else verb.value
+        )
+        return self.content.bram_approaches_by_verb[content_verb]
 
     @staticmethod
     def _advance_clock(snapshot: RunSnapshot, verb: ActionVerb) -> None:

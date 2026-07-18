@@ -455,6 +455,10 @@
           "settle_shipment",
           "declare_candidacy",
           "confront",
+          "threaten_bram",
+          "flatter_bram",
+          "negotiate_bram",
+          "lie_to_bram",
           "sleep"
         ],
         "title": "ActionVerb"

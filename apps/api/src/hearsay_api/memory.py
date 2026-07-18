@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Literal, Protocol, cast
 
 import structlog
 
+from hearsay_api.content import GreyhavenContent
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
     InferenceResult,
@@ -292,6 +293,7 @@ def plan_action_memory(
     request: ActionRequest,
     response: ActionResponse,
     embeddings: EmbeddingProvider,
+    content: GreyhavenContent,
     retelling: InferenceResult[RumorRetelling] | None = None,
     dialogue_treatment: DialogueTreatment | None = None,
     promise_transitions: tuple[PromiseTransition, ...] = (),
@@ -300,6 +302,7 @@ def plan_action_memory(
         request,
         response,
         embeddings,
+        content,
         retelling,
         dialogue_treatment,
     )
@@ -323,6 +326,7 @@ def _plan_primary_action_memory(
     request: ActionRequest,
     response: ActionResponse,
     embeddings: EmbeddingProvider,
+    content: GreyhavenContent,
     retelling: InferenceResult[RumorRetelling] | None = None,
     dialogue_treatment: DialogueTreatment | None = None,
 ) -> MemoryEffects:
@@ -386,8 +390,21 @@ def _plan_primary_action_memory(
             ),
         )
 
-    if request.verb == ActionVerb.CONFRONT and request.target_id == "bram":
-        original = "The newcomer confronted Bram about tripling the shipment price."
+    bram_approach_verbs = {
+        ActionVerb.CONFRONT,
+        ActionVerb.THREATEN_BRAM,
+        ActionVerb.FLATTER_BRAM,
+        ActionVerb.NEGOTIATE_BRAM,
+        ActionVerb.LIE_TO_BRAM,
+    }
+    if request.verb in bram_approach_verbs and request.target_id == "bram":
+        approach_verb = (
+            ActionVerb.NEGOTIATE_BRAM.value
+            if request.verb == ActionVerb.CONFRONT
+            else request.verb.value
+        )
+        approach = content.bram_approaches_by_verb[approach_verb]
+        original = approach.original_claim
         if retelling is None:
             fallback_provider = DeterministicInferenceProvider()
             fallback_value = fallback_provider.retell_rumor(
@@ -425,6 +442,8 @@ def _plan_primary_action_memory(
                         "stance": "witnessed",
                         "price_challenged": True,
                         "public": True,
+                        "approach": approach_verb,
+                        "election_contribution": approach.election_contribution,
                     },
                     confidence=1.0,
                     salience=0.95,
@@ -445,6 +464,8 @@ def _plan_primary_action_memory(
                         "stance": "accepted",
                         "price_challenged": True,
                         "public": True,
+                        "approach": approach_verb,
+                        "election_contribution": approach.election_contribution,
                     },
                     confidence=min(
                         max(0.88 + retelling.value.confidence_delta, 0.0),
@@ -472,8 +493,8 @@ def _plan_primary_action_memory(
                     a_id="bram",
                     b_kind="player",
                     b_id="player",
-                    trust_delta=-0.15,
-                    affinity_delta=-0.1,
+                    trust_delta=approach.relationship_delta / 100,
+                    affinity_delta=approach.relationship_delta / 200,
                 ),
                 PlannedRelationship(
                     a_kind="npc",

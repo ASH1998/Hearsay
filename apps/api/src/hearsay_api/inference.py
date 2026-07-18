@@ -124,6 +124,55 @@ class DeterministicInferenceProvider:
 
     def retell_rumor(self, request: RumorRetellingRequest) -> RumorRetelling:
         if request.speaker_id == "bram" and request.listener_id == "pip":
+            lowered_claim = request.original_claim.lower()
+            if "threatened bram" in lowered_claim:
+                return RumorRetelling(
+                    retold_claim=(
+                        "The newcomer threatened to ruin Bram if the crates stayed put."
+                    ),
+                    semantic_position=SemanticPosition(
+                        event="shipment_threat",
+                        target="bram",
+                        intent="intimidate_bram",
+                        location="market_row",
+                    ),
+                    drift_note=(
+                        "Pip turns a shipment threat into a broader threat against Bram."
+                    ),
+                    confidence_delta=-0.12,
+                )
+            if "praised bram" in lowered_claim:
+                return RumorRetelling(
+                    retold_claim=(
+                        "The newcomer says Bram is the only honest merchant in Greyhaven."
+                    ),
+                    semantic_position=SemanticPosition(
+                        event="public_flattery",
+                        target="bram",
+                        intent="praise_bram",
+                        location="market_row",
+                    ),
+                    drift_note=(
+                        "Pip inflates tactical praise into a sweeping endorsement."
+                    ),
+                    confidence_delta=-0.18,
+                )
+            if "lied that constable elias" in lowered_claim:
+                return RumorRetelling(
+                    retold_claim=(
+                        "The newcomer forged Elias's authority to bully Bram out of his cargo."
+                    ),
+                    semantic_position=SemanticPosition(
+                        event="false_constable_order",
+                        target="bram",
+                        intent="deceive_bram",
+                        location="market_row",
+                    ),
+                    drift_note=(
+                        "Pip turns a spoken lie about an order into a claim of forgery."
+                    ),
+                    confidence_delta=-0.08,
+                )
             return RumorRetelling(
                 retold_claim=("The newcomer tried to ruin Bram in the middle of market row."),
                 semantic_position=SemanticPosition(

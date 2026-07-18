@@ -14,6 +14,7 @@ def test_greyhaven_content_references_are_complete() -> None:
     assert len(content.ambients) == 12
     assert len(content.residents) == 20
     assert len(content.endings) == 6
+    assert len(content.bram_approaches) == 4
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6
     assert all(location.neighbors for location in content.locations)
@@ -39,4 +40,12 @@ def test_content_rejects_malformed_resident_schedule() -> None:
     payload["schedule_templates"][0]["days"][0].pop()
 
     with pytest.raises(ValidationError, match="three days"):
+        GreyhavenContent.model_validate(payload)
+
+
+def test_content_requires_every_authored_bram_approach() -> None:
+    payload = load_content().model_dump(mode="json")
+    payload["bram_approaches"].pop()
+
+    with pytest.raises(ValidationError, match="threaten, flatter, negotiate, and lie"):
         GreyhavenContent.model_validate(payload)
