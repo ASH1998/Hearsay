@@ -110,6 +110,17 @@ class WorldEvent(BaseModel):
     visible: bool = True
 
 
+class TownEventState(BaseModel):
+    id: UUID
+    key: str
+    title: str
+    status: Literal["active", "resolved"]
+    started_day: int = Field(ge=1, le=3)
+    started_phase: Phase
+    resolved_day: int | None = Field(default=None, ge=1, le=3)
+    resolved_phase: Phase | None = None
+
+
 class PlayerState(BaseModel):
     display_name: str
     location_id: str
@@ -171,6 +182,7 @@ class RunSnapshot(BaseModel):
     npcs: list[NpcState]
     promises: list[PromiseState] = Field(default_factory=list)
     dialogue: DialogueState | None = None
+    town_events: list[TownEventState] = Field(default_factory=list)
     election: ElectionState | None = None
     recent_events: list[WorldEvent] = Field(default_factory=list)
 

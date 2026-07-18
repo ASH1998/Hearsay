@@ -44,6 +44,7 @@ from hearsay_api.schemas import (
     PlayerState,
     PromiseState,
     RunSnapshot,
+    TownEventState,
     WorldEvent,
 )
 
@@ -176,19 +177,18 @@ class GameService:
             snapshot.recent_events = ([event] + snapshot.recent_events)[:8]
             if consumed_time:
                 self._advance_clock(snapshot, request.verb)
+                town_event_events = self._update_town_events(snapshot)
                 schedule_event = self._apply_schedules(snapshot)
                 promise_events = self._resolve_expired_promises(snapshot)
-                if schedule_event is None:
-                    snapshot.recent_events = (
-                        promise_events + snapshot.recent_events
-                    )[:8]
-                else:
-                    snapshot.recent_events = (
-                        promise_events
-                        + snapshot.recent_events[:1]
-                        + [schedule_event]
-                        + snapshot.recent_events[1:]
-                    )[:8]
+                transition_events = list(town_event_events)
+                if schedule_event is not None:
+                    transition_events.append(schedule_event)
+                snapshot.recent_events = (
+                    promise_events
+                    + snapshot.recent_events[:1]
+                    + transition_events
+                    + snapshot.recent_events[1:]
+                )[:8]
                 if snapshot.action_count % 2 == 0:
                     self._run_gossip_tick(snapshot)
             if snapshot.action_count >= 18 and snapshot.election is None:
@@ -370,7 +370,7 @@ class GameService:
             snapshot.dialogue = DialogueState(
                 speaker_id=npc.id,
                 speaker_name=npc.name,
-                text=principal.opening,
+                text=npc.speech or principal.opening,
             )
             return self._event("conversation", f"You speak with {npc.name}.")
         if request.verb == ActionVerb.PROMISE_HELP:
@@ -503,18 +503,13 @@ class GameService:
             snapshot.phase = "evening"
         else:
             snapshot.phase = "night"
-        snapshot.weather = (
-            "rain" if snapshot.day == 1 and snapshot.phase in {"evening", "night"} else "clear"
-        )
-
     def _apply_schedules(self, snapshot: RunSnapshot) -> WorldEvent | None:
         destinations: dict[str, int] = {}
         moved = 0
         for npc in snapshot.npcs:
-            desired_location = self.content.scheduled_location(
+            desired_location = self._scheduled_location(
+                snapshot,
                 npc.id,
-                snapshot.day,
-                snapshot.phase,
             )
             if npc.location_id == desired_location:
                 continue
@@ -542,11 +537,145 @@ class GameService:
             ),
         )
 
+    def _scheduled_location(
+        self,
+        snapshot: RunSnapshot,
+        resident_id: str,
+    ) -> str:
+        for event_state in snapshot.town_events:
+            if event_state.status != "active":
+                continue
+            event = self.content.town_events_by_id[event_state.key]
+            if event.schedule_location_override is not None:
+                return event.schedule_location_override
+        return self.content.scheduled_location(
+            resident_id,
+            snapshot.day,
+            snapshot.phase,
+        )
+
+    def _update_town_events(
+        self,
+        snapshot: RunSnapshot,
+    ) -> list[WorldEvent]:
+        phase_order = {
+            "morning": 0,
+            "afternoon": 1,
+            "evening": 2,
+            "night": 3,
+        }
+        current_time = snapshot.day * 4 + phase_order[snapshot.phase]
+        events: list[WorldEvent] = []
+        for event_content in self.content.town_events:
+            start_time = (
+                event_content.start_day * 4
+                + phase_order[event_content.start_phase]
+            )
+            end_time = (
+                event_content.end_day * 4
+                + phase_order[event_content.end_phase]
+            )
+            state = next(
+                (
+                    item
+                    for item in snapshot.town_events
+                    if item.key == event_content.id
+                ),
+                None,
+            )
+            if state is None and current_time >= start_time:
+                state = TownEventState(
+                    id=uuid4(),
+                    key=event_content.id,
+                    title=event_content.title,
+                    status="active",
+                    started_day=event_content.start_day,
+                    started_phase=cast(
+                        Literal["morning", "afternoon", "evening", "night"],
+                        event_content.start_phase,
+                    ),
+                )
+                snapshot.town_events.append(state)
+                self._apply_event_awareness(
+                    snapshot,
+                    event_content.active_awareness,
+                )
+                events.append(
+                    self._event(
+                        f"{event_content.id}_begins",
+                        event_content.start_text,
+                    )
+                )
+            if (
+                state is not None
+                and state.status == "active"
+                and current_time >= end_time
+            ):
+                state.status = "resolved"
+                state.resolved_day = event_content.end_day
+                state.resolved_phase = cast(
+                    Literal["morning", "afternoon", "evening", "night"],
+                    event_content.end_phase,
+                )
+                self._apply_event_awareness(
+                    snapshot,
+                    event_content.resolved_awareness,
+                )
+                events.append(
+                    self._event(
+                        f"{event_content.id}_clears",
+                        event_content.end_text,
+                    )
+                )
+
+        snapshot.weather = (
+            "rain"
+            if any(
+                event.status == "active" and event.key == "storm"
+                for event in snapshot.town_events
+            )
+            else "clear"
+        )
+        return events
+
+    @staticmethod
+    def _apply_event_awareness(
+        snapshot: RunSnapshot,
+        awareness: dict[str, str],
+    ) -> None:
+        for resident_id, speech in awareness.items():
+            npc = next(item for item in snapshot.npcs if item.id == resident_id)
+            npc.speech = speech
+
     @staticmethod
     def _run_gossip_tick(snapshot: RunSnapshot) -> None:
         snapshot.world_tick += 1
         pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
-        if any(event.kind == "bram_confronted" for event in snapshot.recent_events[:2]):
+        storm_active = any(
+            event.key == "storm" and event.status == "active"
+            for event in snapshot.town_events
+        )
+        if storm_active and any(
+            promise.status == "broken"
+            for promise in snapshot.promises
+        ):
+            pip.speech = (
+                "The storm drove everyone inside to hear how evening exposed "
+                "the newcomer's empty word."
+            )
+        elif storm_active and any(
+            promise.status == "kept"
+            for promise in snapshot.promises
+        ):
+            pip.speech = (
+                "Even through the storm, Marta's crates are moving. "
+                "The newcomer paid Bram's price."
+            )
+        elif storm_active:
+            pip.speech = (
+                "Nessa's boats stayed in. Bram says that makes every late crate her fault."
+            )
+        elif any(event.kind == "bram_confronted" for event in snapshot.recent_events[:2]):
             pip.speech = "The newcomer tried to ruin Bram in the middle of market row."
         elif any(promise.status == "broken" for promise in snapshot.promises):
             pip.speech = "Evening came. Marta got no crates, only the newcomer's empty word."

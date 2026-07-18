@@ -659,9 +659,39 @@ export interface components {
             /** Promises */
             promises?: components["schemas"]["PromiseState"][];
             dialogue?: components["schemas"]["DialogueState"] | null;
+            /** Town Events */
+            town_events?: components["schemas"]["TownEventState"][];
             election?: components["schemas"]["ElectionState"] | null;
             /** Recent Events */
             recent_events?: components["schemas"]["WorldEvent"][];
+        };
+        /** TownEventState */
+        TownEventState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "resolved";
+            /** Started Day */
+            started_day: number;
+            /**
+             * Started Phase
+             * @enum {string}
+             */
+            started_phase: "morning" | "afternoon" | "evening" | "night";
+            /** Resolved Day */
+            resolved_day?: number | null;
+            /** Resolved Phase */
+            resolved_phase?: ("morning" | "afternoon" | "evening" | "night") | null;
         };
         /** TransmissionState */
         TransmissionState: {

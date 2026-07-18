@@ -264,25 +264,40 @@ Completed:
 - Threatening derives Dangerous/Troublemaker and reaches the staged Run out of
   town ending; lying about Elias derives Dishonest and reaches Exposed. Both
   are seeded, normal-action playthroughs rather than classifier-only fixtures.
+- The GDD's never-cut storm now has a durable lifecycle: it begins at Day 1
+  evening, remains active through the night, resolves on Day 2 morning, and
+  records both transitions even when Sleep skips across the whole interval.
+- The storm satisfies the no-render-no-event rule. The renderer supplies rain,
+  wet fog, lightning, synthesized thunder, darker ground, and warm window
+  lights; the behavior layer evacuates all 20 residents into the inn; Marta,
+  Nessa, and Pip receive authored active/resolved awareness lines.
+- Active town-event state, weather, overridden resident positions, awareness,
+  and public lifecycle events are server-authoritative. Refresh renders the
+  restored Cockroach snapshot, and storm clearing reapplies the authored Day 2
+  schedules instead of leaving stale crowd positions.
 
 Validated:
 
-- Seventy-nine local API tests pass. Pure election tests cover all six ending
+- Eighty-two local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
-  four Bram effects, and playable threat/lie endings.
-- Nine real Cockroach Cloud tests pass against `hearsay_test`. The election
+  four Bram effects, playable threat/lie endings, the storm lifecycle,
+  all-resident evacuation, awareness, clearing, and skipped-interval history.
+- Ten real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
   resident's afternoon location, and queries the public `schedule_shift` row.
   The threat test queries both belief-backed vote inputs and the public event,
   then recreates the repository and restores the Run out of town result.
+  The storm test queries its public event row, recreates the repository, and
+  proves weather, active-event state, and all 20 overridden positions survive.
 - Two browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
-  live afternoon movement cue and Pip's new Market row location before the
-  `11–9` result and exact v1 promise memory explanation. The second threatens
+  live afternoon movement cue, Pip's new Market row location, storm start, and
+  storm refresh before the `11–9` result and exact v1 promise memory
+  explanation. The second threatens
   Bram, shows the two public traits, reaches `0–20` Run out of town, and renders
   the belief-backed threat input in the election explanation.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
@@ -294,12 +309,12 @@ Remaining:
 - Additional favors and information/ambition verbs needed for multiple viable
   paths to all six endings.
 - Ambient rumor echo behavior beyond the current Pip signature transmission.
-- Storm and public-argument events with render, behavior, and dialogue layers.
+- Public-argument event with render, behavior, and dialogue layers.
 - Broader rumor propagation, election tuning, and seeded Narrow loss,
   Humiliation, and Landslide browser playthroughs.
 
 ## Next implementation slice
 
-1. Complete the GDD's never-cut storm as a three-layer event: persisted draw,
-   rain/thunder/warm-window render, dock evacuation/schedule override, and
-   dialogue awareness that survives refresh.
+1. Add the Bram–Nessa public argument as a second three-layer event: square
+   staging, faction behavior/relationship consequences, authored awareness,
+   and a player choice to take a side or calm the crowd.

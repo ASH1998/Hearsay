@@ -60,6 +60,22 @@ class BramApproachContent(BaseModel):
     election_contribution: float = Field(ge=-1, le=1)
 
 
+class TownEventContent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    title: str
+    start_day: int = Field(ge=1, le=3)
+    start_phase: str
+    end_day: int = Field(ge=1, le=3)
+    end_phase: str
+    schedule_location_override: str | None = None
+    start_text: str
+    end_text: str
+    active_awareness: dict[str, str]
+    resolved_awareness: dict[str, str]
+
+
 class ScheduleTemplateContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -85,6 +101,7 @@ class GreyhavenContent(BaseModel):
     ambients: tuple[AmbientContent, ...]
     endings: tuple[EndingContent, ...]
     bram_approaches: tuple[BramApproachContent, ...]
+    town_events: tuple[TownEventContent, ...]
     schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
@@ -173,6 +190,31 @@ class GreyhavenContent(BaseModel):
                     f"Bram approach {approach.action_verb} has unknown traits: "
                     f"{sorted(unknown_traits)}."
                 )
+        event_ids = [event.id for event in self.town_events]
+        if len(event_ids) != len(set(event_ids)):
+            raise ValueError("Town event IDs must be unique.")
+        if "storm" not in event_ids:
+            raise ValueError("Greyhaven's never-cut storm event is required.")
+        known_phases = {"morning", "afternoon", "evening", "night"}
+        for event in self.town_events:
+            if {event.start_phase, event.end_phase} - known_phases:
+                raise ValueError(f"Town event {event.id} uses an unknown phase.")
+            if (
+                event.schedule_location_override is not None
+                and event.schedule_location_override not in known_locations
+            ):
+                raise ValueError(
+                    f"Town event {event.id} has an unknown schedule override."
+                )
+            unknown_residents = (
+                set(event.active_awareness)
+                | set(event.resolved_awareness)
+            ) - set(resident_ids)
+            if unknown_residents:
+                raise ValueError(
+                    f"Town event {event.id} has unknown aware residents: "
+                    f"{sorted(unknown_residents)}."
+                )
         return self
 
     @property
@@ -201,6 +243,10 @@ class GreyhavenContent(BaseModel):
             approach.action_verb: approach
             for approach in self.bram_approaches
         }
+
+    @property
+    def town_events_by_id(self) -> dict[str, TownEventContent]:
+        return {event.id: event for event in self.town_events}
 
     @property
     def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:

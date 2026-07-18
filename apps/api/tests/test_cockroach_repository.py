@@ -490,7 +490,8 @@ def test_broken_promise_persists_both_visible_events_and_memory_consequence(
     assert event_kinds.count("conversation") == 3
     assert event_kinds.count("promise_broken") == 1
     assert event_kinds.count("schedule_shift") == 2
-    assert len(event_kinds) == 8
+    assert event_kinds.count("storm_begins") == 1
+    assert len(event_kinds) == 9
     assert marta_trust is not None
     assert marta_trust <= 0.25
 
@@ -548,6 +549,49 @@ def test_schedule_shift_persists_event_and_resident_locations(
     assert schedule_events[0].day == 1
     assert schedule_events[0].phase == "afternoon"
     assert schedule_events[0].visibility == "public"
+
+
+def test_storm_state_event_and_evacuated_routes_survive_repository_recreation(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=93))
+    for target in ("marta", "bram", "pip", "rhea"):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb="talk",
+                target_id=target,
+            ),
+        )
+
+    assert result.snapshot.weather == "rain"
+    assert result.snapshot.town_events[0].status == "active"
+    assert {npc.location_id for npc in result.snapshot.npcs} == {"inn"}
+
+    with repository.session_factory() as session:
+        storm_events = list(
+            session.scalars(
+                select(EventModel).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind == "storm_begins",
+                )
+            )
+        )
+    assert len(storm_events) == 1
+    assert storm_events[0].day == 1
+    assert storm_events[0].phase == "evening"
+    assert storm_events[0].visibility == "public"
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.weather == "rain"
+    assert restored.town_events == result.snapshot.town_events
+    assert restored.npcs == result.snapshot.npcs
 
 
 def test_election_persists_twenty_votes_and_exact_decision_inputs(

@@ -1629,6 +1629,13 @@
               }
             ]
           },
+          "town_events": {
+            "items": {
+              "$ref": "#/components/schemas/TownEventState"
+            },
+            "type": "array",
+            "title": "Town Events"
+          },
           "election": {
             "anyOf": [
               {
@@ -1656,6 +1663,87 @@
           "npcs"
         ],
         "title": "RunSnapshot"
+      },
+      "TownEventState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "resolved"
+            ],
+            "title": "Status"
+          },
+          "started_day": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Started Day"
+          },
+          "started_phase": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "afternoon",
+              "evening",
+              "night"
+            ],
+            "title": "Started Phase"
+          },
+          "resolved_day": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Day"
+          },
+          "resolved_phase": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "morning",
+                  "afternoon",
+                  "evening",
+                  "night"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Phase"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "key",
+          "title",
+          "status",
+          "started_day",
+          "started_phase"
+        ],
+        "title": "TownEventState"
       },
       "TransmissionState": {
         "properties": {

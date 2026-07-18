@@ -166,6 +166,9 @@ export function GameShell() {
       )
       .filter((location) => location !== undefined) ?? [];
   const gameOver = snapshot.status === "completed";
+  const activeTownEvent = snapshot.town_events.find(
+    (event) => event.status === "active",
+  );
 
   const move = (locationId: string) => {
     void act("move", locationId);
@@ -175,6 +178,7 @@ export function GameShell() {
     <main
       className="game"
       data-weather={snapshot.weather}
+      data-town-event={activeTownEvent?.key ?? "none"}
       data-conversation={selectedNpc ? "open" : "closed"}
       data-historian={historianOpen ? "open" : "closed"}
     >
@@ -196,7 +200,9 @@ export function GameShell() {
         <div className="clock" aria-label="Game clock">
           <span>{clockLabel(snapshot)}</span>
           {snapshot.weather === "rain" ? (
-            <strong className="storm-status">Storm over Greyhaven</strong>
+            <strong className="storm-status">
+              {activeTownEvent?.title ?? "Storm over Greyhaven"}
+            </strong>
           ) : null}
           <small>{18 - snapshot.action_count} consequential actions remain</small>
         </div>
@@ -229,6 +235,19 @@ export function GameShell() {
           <p className="eyebrow">Town ledger</p>
           <span>Tick {snapshot.world_tick}</span>
         </div>
+        {activeTownEvent ? (
+          <article
+            className="promise town-event"
+            data-town-event-key={activeTownEvent.key}
+          >
+            <span className="promise__mark">☂</span>
+            <div>
+              <strong>{activeTownEvent.title}</strong>
+              <p>The docks are empty. Greyhaven has crowded into the inn.</p>
+              <small>Active · behavior and routes changed</small>
+            </div>
+          </article>
+        ) : null}
         {snapshot.promises.length ? (
           snapshot.promises.map((promise) => (
             <article className="promise" key={promise.id}>

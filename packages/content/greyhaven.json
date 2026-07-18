@@ -296,6 +296,29 @@
       "election_contribution": -0.5
     }
   ],
+  "town_events": [
+    {
+      "id": "storm",
+      "title": "Storm over Greyhaven",
+      "start_day": 1,
+      "start_phase": "evening",
+      "end_day": 2,
+      "end_phase": "morning",
+      "schedule_location_override": "inn",
+      "start_text": "A harbor storm breaks over Greyhaven. The docks empty and the town crowds into the inn.",
+      "end_text": "The storm spends itself before dawn. Greyhaven steps back into its ordinary routes.",
+      "active_awareness": {
+        "nessa": "My boats stayed in because I value living crews over drowned cargo. Let the merchants complain.",
+        "marta": "Every wet soul in Greyhaven is under my roof. Mind whose story you repeat tonight.",
+        "pip": "Nessa's boats stayed in. Bram says that makes every late crate her fault."
+      },
+      "resolved_awareness": {
+        "nessa": "The harbor is open again. The sea took no crew from me, and that is enough.",
+        "marta": "The rain cleared. The stories it drove indoors did not.",
+        "pip": "The storm passed, but Bram's version of it is still making the rounds."
+      }
+    }
+  ],
   "schedule_templates": [
     {
       "id": "marta",

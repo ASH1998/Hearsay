@@ -54,7 +54,10 @@ def test_three_day_schedules_move_all_residents_and_survive_refresh() -> None:
     assert evening["pip"] == "inn"
     assert evening["rhea"] == "inn"
     assert evening["nessa"] == "inn"
-    assert evening_snapshot.recent_events[1].kind == "schedule_shift"
+    assert any(
+        event.kind == "schedule_shift"
+        for event in evening_snapshot.recent_events[:4]
+    )
 
     act(service, created.run_id, "sleep", "marta")
     day_two_snapshot = service.get_snapshot(created.run_id)
@@ -65,7 +68,10 @@ def test_three_day_schedules_move_all_residents_and_survive_refresh() -> None:
         for npc in day_two_snapshot.npcs
         if npc.id == "pip"
     ) == "square"
-    assert day_two_snapshot.recent_events[1].kind == "schedule_shift"
+    assert any(
+        event.kind == "schedule_shift"
+        for event in day_two_snapshot.recent_events[:4]
+    )
     assert locations_by_resident(service, created.run_id) == {
         npc.id: npc.location_id
         for npc in day_two_snapshot.npcs

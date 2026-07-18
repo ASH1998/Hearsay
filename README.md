@@ -130,6 +130,11 @@ morning/afternoon/evening/night routines. Consequential actions advance the
 authoritative clock, move NPCs in the 3D town, append a public schedule-shift
 event, and persist the same locations that reappear after refresh from the
 configured Cockroach Cloud `hearsay` database.
+Day 1 evening now draws the GDD's never-cut storm as durable game state. Rain,
+fog, lightning, thunder, and warm window lights provide the render layer; every
+resident evacuates to the inn for the behavior layer; Marta, Nessa, and Pip
+react in dialogue. Refresh restores the same storm and crowd, while Day 2 writes
+the clear event and resumes ordinary routes.
 
 ## Authority
 

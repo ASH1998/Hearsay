@@ -67,6 +67,12 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
     page.getByText("Kept · Marta's shipment was released"),
   ).toBeVisible();
   await expect(page.getByText("Chalk says: Reliable · Generous")).toBeVisible();
+  await expect(
+    page.getByLabel("Game clock").getByText("Storm over Greyhaven"),
+  ).toBeVisible();
+  await expect(
+    page.locator('[data-event-kind="storm_begins"]'),
+  ).toContainText("docks empty");
 
   await page.getByRole("button", { name: "Close conversation" }).click();
   await page.getByRole("button", { name: /Find Marta/ }).click();
@@ -85,6 +91,9 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
     page.getByText("Kept · Marta's shipment was released"),
   ).toBeVisible();
   await expect(page.getByText("Tick 2")).toBeVisible();
+  await expect(
+    page.getByLabel("Game clock").getByText("Storm over Greyhaven"),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Sleep until morning" }).click();
   await expect(page.getByText("Day 2 · morning")).toBeVisible();

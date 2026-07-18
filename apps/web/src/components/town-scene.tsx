@@ -474,6 +474,22 @@ function Scene({
         position={[8, 13, 5]}
         shadow-mapSize={[1024, 1024]}
       />
+      {raining
+        ? ([
+            [-7, 2.1, 1],
+            [-5, 2.1, -5],
+            [8, 2.3, -7],
+            [10, 2.1, 5],
+          ] as [number, number, number][]).map((position, index) => (
+            <pointLight
+              color="#ffb35c"
+              distance={6}
+              intensity={2.2}
+              key={index}
+              position={position}
+            />
+          ))
+        : null}
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <circleGeometry args={[24, 64]} />
