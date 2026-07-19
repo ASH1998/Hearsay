@@ -307,16 +307,28 @@ export function GameShell() {
         )}
         {snapshot.favors.map((favor) => (
           <article className="promise" key={favor.id}>
-            <span className="promise__mark">⚓</span>
+            <span className="promise__mark">
+              {favor.key === "orin_election_confession" ? "✧" : "⚓"}
+            </span>
             <div>
-              <strong>Nessa&apos;s harbor log</strong>
+              <strong>
+                {favor.key === "orin_election_confession"
+                  ? "Orin's sealed confession"
+                  : "Nessa's harbor log"}
+              </strong>
               <p>{favor.content}</p>
               <small>
-                {favor.corrected_publicly
-                  ? "Corrected publicly · endorsement available"
-                  : favor.status === "completed"
-                    ? "Delivered to Elias · correct Pip's story"
-                    : "Active · carry the log to Elias"}
+                {favor.key === "orin_election_confession"
+                  ? favor.resolution === "revealed"
+                    ? "Revealed publicly · Orin's confidence broken"
+                    : favor.resolution === "concealed"
+                      ? "Kept sealed · Orin's blessing earned"
+                      : "Unresolved · reveal it or keep it sealed"
+                  : favor.corrected_publicly
+                    ? "Corrected publicly · endorsement available"
+                    : favor.status === "completed"
+                      ? "Delivered to Elias · correct Pip's story"
+                      : "Active · carry the log to Elias"}
               </small>
             </div>
           </article>
@@ -470,6 +482,18 @@ export function GameShell() {
               (location) =>
                 location.id ===
                 snapshot.npcs.find((npc) => npc.id === "elias")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
+        </button>
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+          snapshot.npcs.find((npc) => npc.id === "orin") ?? null,
+        )}>
+          Find Orin
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "orin")?.location_id,
             )?.name ?? "Greyhaven"}
           </small>
         </button>
@@ -687,6 +711,41 @@ export function GameShell() {
                 >
                   Ask for the harbor&apos;s endorsement
                 </button>
+              ) : null}
+              {selectedNpc.id === "orin" &&
+              !snapshot.favors.some(
+                (favor) => favor.key === "orin_election_confession",
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("accept_orin_confession", "orin")}
+                  type="button"
+                >
+                  Accept the sealed confession
+                </button>
+              ) : null}
+              {selectedNpc.id === "orin" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "orin_election_confession" &&
+                  favor.status === "active",
+              ) ? (
+                <>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("reveal_orin_confession", "orin")}
+                    type="button"
+                  >
+                    Reveal the confession
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("conceal_orin_confession", "orin")}
+                    type="button"
+                  >
+                    Keep the confession sealed
+                  </button>
+                </>
               ) : null}
             </div>
           </div>

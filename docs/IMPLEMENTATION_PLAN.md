@@ -70,6 +70,12 @@ CockroachDB
 
 ### Project CockroachDB Instance
 
+- **Canonical database:** this project uses the user's existing Cockroach Cloud
+  instance—the one whose connection details are already present in the
+  repository's ignored `.env`. It is the database for Hearsay development,
+  runtime persistence, migrations, and sponsor-specific integration proof; no
+  Docker-hosted or second local CockroachDB instance is part of the supported
+  workflow.
 - Hearsay uses the user-managed Cockroach Cloud instance configured in the
   repository's ignored `.env` through `command_to_create_cert`,
   `command_to_connect`, `username`, and `password` (or an explicit
@@ -78,10 +84,12 @@ CockroachDB
   integration tests are restricted to the separate `hearsay_test` database.
 - `pnpm db:migrate` creates/migrates `hearsay`; `pnpm db:test` creates/migrates
   and validates only `hearsay_test`. Both commands support the supplied
-  Cockroach Cloud certificate flow on Windows.
-- Do not add or use a local CockroachDB Docker container as the normal
-  development or test database. Keep credentials in `.env` only and never copy
-  them into source, generated artifacts, logs, or documentation.
+  `command_to_create_cert` and `command_to_connect` Cockroach Cloud flow from
+  Windows PowerShell.
+- Do not add Dockerfiles, Compose manifests, or a local CockroachDB Docker
+  container for the application or database workflow. Keep credentials in
+  `.env` only and never copy them into source, generated artifacts, logs, or
+  documentation.
 
 ### Memory Model
 
@@ -281,7 +289,7 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 ### Milestone 3 — Full Compressed Game
 
 - Implement all twelve locations, three daily schedules, eight principal NPC arcs, twelve ambient NPC behaviors, and free movement/eavesdropping. The schedule checkpoint now defines all 20 residents across three days and four daily phases, applies movements in the authoritative action transition, persists public movement events and the resulting snapshot in the configured Cockroach Cloud database, and renders restored positions directly from that state. Ambient behavior now adds authored carrier styles, deterministic 2–4 listener proximity hops, shallow last-three echo/recall/vote projections, visible Pip→resident chatter, and immutable parent-version/transmission lineage on the real cluster.
-- Add the 18 consequential actions, promises, favors, rumor propagation, relationship changes, trait effects, storm, public argument, and election calculation. The opening Bram choice now implements threaten/flatter/negotiate/lie as distinct content-driven actions, memories, Pip mutations, relationship/trait consequences, and belief-backed vote inputs; seeded normal-play paths reach both Exposed and Run out of town. The never-cut storm now ships with durable begin/clear state, rain/lightning/thunder/warm-window rendering, a full-inn schedule override, event-aware dialogue, refresh restoration, and real Cockroach event-row proof. The Day 2 public argument now adds square crowd staging, mutual faction damage, three one-shot interventions, holder-specific immutable memories, and audited downstream vote effects. Nessa's first favor now carries documentary evidence through Elias and Pip into a harbor endorsement, five audited voters, and a seeded normal-play Landslide.
+- Add the 18 consequential actions, promises, favors, rumor propagation, relationship changes, trait effects, storm, public argument, and election calculation. The opening Bram choice now implements threaten/flatter/negotiate/lie as distinct content-driven actions, memories, Pip mutations, relationship/trait consequences, and belief-backed vote inputs; seeded normal-play paths reach both Exposed and Run out of town. The never-cut storm now ships with durable begin/clear state, rain/lightning/thunder/warm-window rendering, a full-inn schedule override, event-aware dialogue, refresh restoration, and real Cockroach event-row proof. The Day 2 public argument now adds square crowd staging, mutual faction damage, three one-shot interventions, holder-specific immutable memories, and audited downstream vote effects. Nessa's first favor now carries documentary evidence through Elias and Pip into a harbor endorsement, five audited voters, and a seeded normal-play Landslide. Orin's first favor now gives the player a dying clerk's account of Rhea altering the prior tally: reveal and conceal are mutually exclusive information actions with different Orin/Elias/elder standing, public traits, immutable Orin→player→town lineage, and exact belief-backed election effects.
 - Write content as data rather than embedded code; include validation that every referenced NPC, location, action, memory, and ending exists.
 - Implement the six endings and replay-safe save/resume behavior. Seeded
   browser paths now cover Landslide, Narrow win, Narrow loss (`10–10`, Rhea

@@ -316,10 +316,22 @@ Completed:
 - Declaring without support reaches Humiliation (`No Seconding Voice`); a
   speech-only campaign reaches an audited `10–10` Narrow loss
   (`The Tied Bell`) under Rhea's explicit tie rule.
+- Orin's first principal favor entrusts the player with a dying guild clerk's
+  account that Rhea altered two marks in the previous election tally. The
+  player must resolve it once by revealing the account or keeping it sealed.
+- Reveal makes the accusation and its witnesses visible, derives Reliable,
+  gains Elias/Edda standing, loses Orin/Will standing, and lets Pip carry the
+  account to nearby ambient listeners. Conceal derives Influential, stores
+  Orin's endorsement, and turns his public moral blessing into distinct Orin,
+  Edda, and Will vote memories.
+- Both paths preserve the original Orin→player transmission. Reveal continues
+  player→Orin/Elias/Edda/Will/Pip; conceal continues player→Orin and
+  Orin→Edda/Will. Favor resolution, traits, endorsement, standing, speech,
+  events, and election inputs survive refresh and repository recreation.
 
 Validated:
 
-- Ninety-two local API tests pass. Pure election tests cover all six ending
+- Ninety-six local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -328,8 +340,10 @@ Validated:
   faction damage, all three interventions, their exact vote memories, 2–4
   proximity selection, visible echo restoration, shallow recall, and the
   complete evidence/correction/endorsement chain to Landslide, speech
-  once-per-day enforcement, Humiliation, and exact `10–10` Narrow loss.
-- Thirteen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  once-per-day enforcement, Humiliation, exact `10–10` Narrow loss, both
+  confession resolutions, their mutually exclusive state, elder standing,
+  transmission topology, and exact `13–7` belief-audited Narrow wins.
+- Fourteen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -349,7 +363,10 @@ Validated:
   repository recreation of favor, endorsement, and election state.
   The speech test proves its public event, belief-backed vote inputs, exact
   tie, Rhea winner, Narrow loss ending, and restored election.
-- Seven browser playthroughs pass and collectively reach all six endings. The
+  The Orin test proves the concealed resolution, endorsement, public events,
+  four-edge confession lineage, three belief-backed elder votes, final
+  `0.90`/`0.65`/`0.70` trust, and restored `13–7` result.
+- Nine browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -367,6 +384,10 @@ Validated:
   full-story timeout so WebGL overlays remain deterministic.
   The seventh lies about Elias's authority, visibly derives Dishonest, reaches
   Exposed (`The Story Unravels`), and renders the exact lie belief in the audit.
+  Two Orin paths then reveal or conceal the confession, refresh the durable
+  resolution, render the matching Reliable/Influential trait and public event,
+  reach `13–7` By One Voice, and show the exact disclosure/blessing memory in
+  the election audit.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -378,5 +399,5 @@ Remaining:
 
 ## Next implementation slice
 
-1. Add Orin's confession favor with reveal/conceal information choices and
-   distinct elder-faction trust, memory, and election consequences.
+1. Add Talia's first quiet sick-house favor with help/gossip information
+   choices, family-faction trust, durable memory lineage, and election effects.

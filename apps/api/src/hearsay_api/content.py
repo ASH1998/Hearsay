@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -103,6 +103,45 @@ class FavorContent(BaseModel):
     correction_text: str
 
 
+class ConfessionChoiceContent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    action_verb: str
+    label: str
+    resolution: Literal["revealed", "concealed"]
+    dialogue: str
+    event_kind: str
+    event_text: str
+    memory_text: str
+    pip_speech: str | None = None
+    relationship_deltas: dict[str, int]
+    holder_election_contributions: dict[str, float]
+    traits: tuple[str, ...] = ()
+    grants_endorsement: bool = False
+
+    @model_validator(mode="after")
+    def validate_choice(self) -> ConfessionChoiceContent:
+        expected_resolution = {
+            "reveal_orin_confession": "revealed",
+            "conceal_orin_confession": "concealed",
+        }.get(self.action_verb)
+        if expected_resolution is not None and self.resolution != expected_resolution:
+            raise ValueError("Confession action and resolution must agree.")
+        if any(
+            delta < -100 or delta > 100
+            for delta in self.relationship_deltas.values()
+        ):
+            raise ValueError("Confession relationship deltas must be within -100..100.")
+        if any(
+            contribution < -1 or contribution > 1
+            for contribution in self.holder_election_contributions.values()
+        ):
+            raise ValueError("Confession election contributions must be within -1..1.")
+        if self.grants_endorsement and self.resolution != "concealed":
+            raise ValueError("Only Orin's concealed confession grants his blessing.")
+        return self
+
+
 class ScheduleTemplateContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -131,6 +170,7 @@ class GreyhavenContent(BaseModel):
     town_events: tuple[TownEventContent, ...]
     argument_choices: tuple[ArgumentChoiceContent, ...]
     favors: tuple[FavorContent, ...]
+    confession_choices: tuple[ConfessionChoiceContent, ...]
     schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
@@ -274,10 +314,36 @@ class GreyhavenContent(BaseModel):
         favor_ids = [favor.id for favor in self.favors]
         if len(favor_ids) != len(set(favor_ids)):
             raise ValueError("Favor IDs must be unique.")
-        if "nessa_harbor_log" not in favor_ids:
-            raise ValueError("Nessa's harbor-log favor is required.")
+        required_favors = {"nessa_harbor_log", "orin_election_confession"}
+        if not required_favors.issubset(favor_ids):
+            raise ValueError("Nessa's harbor log and Orin's confession are required.")
         if any(favor.giver_id not in resident_ids for favor in self.favors):
             raise ValueError("Every favor giver must be a known resident.")
+        required_confession_choices = {
+            "reveal_orin_confession",
+            "conceal_orin_confession",
+        }
+        confession_verbs = {
+            choice.action_verb
+            for choice in self.confession_choices
+        }
+        if confession_verbs != required_confession_choices:
+            raise ValueError("Orin's confession requires reveal and conceal choices.")
+        for confession_choice in self.confession_choices:
+            unknown_traits = set(confession_choice.traits) - set(self.public_traits)
+            unknown_relationships = (
+                set(confession_choice.relationship_deltas)
+                - set(resident_ids)
+            )
+            unknown_holders = (
+                set(confession_choice.holder_election_contributions)
+                - set(resident_ids)
+            )
+            if unknown_traits or unknown_relationships or unknown_holders:
+                raise ValueError(
+                    "Confession choice "
+                    f"{confession_choice.action_verb} has invalid references."
+                )
         return self
 
     @property
@@ -325,6 +391,13 @@ class GreyhavenContent(BaseModel):
     @property
     def favors_by_id(self) -> dict[str, FavorContent]:
         return {favor.id: favor for favor in self.favors}
+
+    @property
+    def confession_choices_by_verb(self) -> dict[str, ConfessionChoiceContent]:
+        return {
+            choice.action_verb: choice
+            for choice in self.confession_choices
+        }
 
     @property
     def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:

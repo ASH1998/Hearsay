@@ -466,6 +466,9 @@
           "deliver_harbor_log",
           "correct_storm_rumor",
           "ask_nessa_endorsement",
+          "accept_orin_confession",
+          "reveal_orin_confession",
+          "conceal_orin_confession",
           "give_square_speech",
           "sleep"
         ],
@@ -944,6 +947,21 @@
             "type": "boolean",
             "title": "Corrected Publicly",
             "default": false
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "revealed",
+                  "concealed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution"
           }
         },
         "type": "object",

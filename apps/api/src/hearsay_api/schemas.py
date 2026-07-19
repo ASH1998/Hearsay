@@ -41,6 +41,9 @@ class ActionVerb(StrEnum):
     DELIVER_HARBOR_LOG = "deliver_harbor_log"
     CORRECT_STORM_RUMOR = "correct_storm_rumor"
     ASK_NESSA_ENDORSEMENT = "ask_nessa_endorsement"
+    ACCEPT_ORIN_CONFESSION = "accept_orin_confession"
+    REVEAL_ORIN_CONFESSION = "reveal_orin_confession"
+    CONCEAL_ORIN_CONFESSION = "conceal_orin_confession"
     GIVE_SQUARE_SPEECH = "give_square_speech"
     SLEEP = "sleep"
 
@@ -99,6 +102,7 @@ class FavorState(BaseModel):
     content: str
     status: Literal["active", "completed"] = "active"
     corrected_publicly: bool = False
+    resolution: Literal["revealed", "concealed"] | None = None
 
 
 class DialogueMemoryRef(BaseModel):

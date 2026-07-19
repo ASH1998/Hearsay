@@ -172,7 +172,7 @@ export interface components {
          * ActionVerb
          * @enum {string}
          */
-        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "side_with_bram" | "side_with_nessa" | "calm_argument" | "accept_nessa_favor" | "deliver_harbor_log" | "correct_storm_rumor" | "ask_nessa_endorsement" | "give_square_speech" | "sleep";
+        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "side_with_bram" | "side_with_nessa" | "calm_argument" | "accept_nessa_favor" | "deliver_harbor_log" | "correct_storm_rumor" | "ask_nessa_endorsement" | "accept_orin_confession" | "reveal_orin_confession" | "conceal_orin_confession" | "give_square_speech" | "sleep";
         /** BeliefInputState */
         BeliefInputState: {
             /**
@@ -363,6 +363,8 @@ export interface components {
              * @default false
              */
             corrected_publicly: boolean;
+            /** Resolution */
+            resolution?: ("revealed" | "concealed") | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {

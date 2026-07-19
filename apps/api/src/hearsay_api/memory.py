@@ -788,6 +788,171 @@ def _plan_primary_action_memory(
             ),
         )
 
+    if request.verb == ActionVerb.ACCEPT_ORIN_CONFESSION:
+        secret = content.favors_by_id["orin_election_confession"].correction_text
+        orin_text = (
+            "Orin entrusted the player with a dying guild clerk's account: "
+            "Rhea changed two marks in the previous election tally."
+        )
+        orin_embedding = embeddings.embed(orin_text)
+        player_embedding = embeddings.embed(secret)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="orin-rhea-election-confession",
+                    subject_kind="favor",
+                    subject_id="orin_election_confession",
+                    predicate="rhea_altered_previous_election_tally",
+                    holder_id="orin",
+                    narrative_text=orin_text,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "rhea_altered_tally": True,
+                    },
+                    confidence=0.98,
+                    salience=1.0,
+                    source_kind="confession",
+                    source_id="guild_clerk",
+                    embedding=orin_embedding.vector,
+                    embedding_model_id=orin_embedding.model_id,
+                ),
+                PlannedBelief(
+                    proposition_key="orin-rhea-election-confession",
+                    subject_kind="favor",
+                    subject_id="orin_election_confession",
+                    predicate="rhea_altered_previous_election_tally",
+                    holder_id="player",
+                    narrative_text=secret,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "rhea_altered_tally": True,
+                    },
+                    confidence=0.98,
+                    salience=1.0,
+                    source_kind="confession",
+                    source_id="orin",
+                    embedding=player_embedding.vector,
+                    embedding_model_id=player_embedding.model_id,
+                    parent_holder_id="orin",
+                    mutation_note="Orin gives the player the clerk's account intact.",
+                    trust_at_time=0.8,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-confession-transfer-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            ),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="orin",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.1,
+                ),
+            ),
+        )
+
+    if request.verb in {
+        ActionVerb.REVEAL_ORIN_CONFESSION,
+        ActionVerb.CONCEAL_ORIN_CONFESSION,
+    }:
+        confession_choice = content.confession_choices_by_verb[
+            request.verb.value
+        ]
+        resolution = confession_choice.resolution
+        player_text = (
+            f"The player chose to {resolution.removesuffix('ed')} Orin's "
+            "account that Rhea altered two marks in the previous tally."
+        )
+        player_embedding = embeddings.embed(player_text)
+        confession_beliefs: list[PlannedBelief] = [
+            PlannedBelief(
+                proposition_key="orin-rhea-election-confession",
+                subject_kind="favor",
+                subject_id="orin_election_confession",
+                predicate="rhea_altered_previous_election_tally",
+                holder_id="player",
+                narrative_text=player_text,
+                normalized_position={
+                    "resolution": resolution,
+                    "rhea_altered_tally": True,
+                },
+                confidence=1.0,
+                salience=1.0,
+                source_kind="player_decision",
+                source_id="player",
+                embedding=player_embedding.vector,
+                embedding_model_id=player_embedding.model_id,
+            )
+        ]
+        for holder_id, contribution in (
+            confession_choice.holder_election_contributions.items()
+        ):
+            text_embedding = embeddings.embed(confession_choice.memory_text)
+            parent_holder_id = (
+                "player"
+                if resolution == "revealed" or holder_id == "orin"
+                else "orin"
+            )
+            confession_beliefs.append(
+                PlannedBelief(
+                    proposition_key="orin-rhea-election-confession",
+                    subject_kind="favor",
+                    subject_id="orin_election_confession",
+                    predicate="rhea_altered_previous_election_tally",
+                    holder_id=holder_id,
+                    narrative_text=confession_choice.memory_text,
+                    normalized_position={
+                        "resolution": resolution,
+                        "rhea_altered_tally": True,
+                        "election_contribution": contribution,
+                    },
+                    confidence=1.0 if holder_id in {"orin", "elias"} else 0.94,
+                    salience=1.0,
+                    source_kind=(
+                        "direct_disclosure"
+                        if resolution == "revealed"
+                        else "moral_endorsement"
+                    ),
+                    source_id=parent_holder_id,
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
+                    parent_holder_id=parent_holder_id,
+                    mutation_note=(
+                        "The player discloses Orin's account without changing it."
+                        if resolution == "revealed"
+                        else "Orin turns the sealed confidence into a public blessing."
+                    ),
+                    trust_at_time=0.85,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id=f"hearsay-confession-{resolution}-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                )
+            )
+        return MemoryEffects(
+            beliefs=tuple(confession_beliefs),
+            relationships=tuple(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id=resident_id,
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=delta / 100,
+                    affinity_delta=delta / 200,
+                )
+                for resident_id, delta in (
+                    confession_choice.relationship_deltas.items()
+                )
+            ),
+            gossip_tick_number=(
+                response.snapshot.world_tick
+                if "pip" in confession_choice.holder_election_contributions
+                else None
+            ),
+        )
+
     if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
         text = (
             "The newcomer addressed Greyhaven as a candidate, but Pip thought "

@@ -413,6 +413,62 @@
       "accept_dialogue": "The harbor log shows every boat tied before the worst wind. Put it in Elias's hands before Bram makes caution sound like guilt.",
       "complete_dialogue": "That log has dates, crew marks, and weather. Bram's version will not survive reading.",
       "correction_text": "The harbor log proves Nessa kept the fleet in before the storm and protected every crew."
+    },
+    {
+      "id": "orin_election_confession",
+      "giver_id": "orin",
+      "content": "Decide whether to reveal or conceal a dying guild clerk's confession about Rhea's last election.",
+      "accept_dialogue": "A dying guild clerk named Rhea and swore she changed two marks in the last tally. He gave me leave to act, but not the courage. Carry the truth carefully.",
+      "complete_dialogue": "What you do with a confidence becomes part of the truth people tell about you.",
+      "correction_text": "A dying guild clerk confessed that Rhea changed two marks in Greyhaven's previous election tally."
+    }
+  ],
+  "confession_choices": [
+    {
+      "action_verb": "reveal_orin_confession",
+      "label": "Reveal the confession",
+      "resolution": "revealed",
+      "dialogue": "Then let truth have witnesses. Elias will take the statement, but do not mistake a necessary wound for a clean one.",
+      "event_kind": "orin_confession_revealed",
+      "event_text": "You reveal the clerk's account before Orin, Elias, Edda, and Will: Rhea changed two marks in the last tally.",
+      "memory_text": "The player revealed Orin's account that a dying guild clerk saw Rhea alter two marks in the previous election tally.",
+      "pip_speech": "A dead clerk named Rhea, and the newcomer made Orin say it where Greyhaven could hear.",
+      "relationship_deltas": {
+        "orin": -30,
+        "elias": 15,
+        "edda": 20,
+        "will": -10
+      },
+      "holder_election_contributions": {
+        "orin": -0.35,
+        "elias": 0.5,
+        "edda": 0.5,
+        "will": -0.15,
+        "pip": 0.2
+      },
+      "traits": ["Reliable"],
+      "grants_endorsement": false
+    },
+    {
+      "action_verb": "conceal_orin_confession",
+      "label": "Keep the confession sealed",
+      "resolution": "concealed",
+      "dialogue": "You kept a burden from becoming a weapon. I will tell Greyhaven's elders that your judgment deserves their trust.",
+      "event_kind": "orin_confession_concealed",
+      "event_text": "You keep the clerk's confession sealed. Orin publicly blesses your judgment before Edda and Will.",
+      "memory_text": "The player kept a dying clerk's confession sealed, and Orin publicly blessed that restraint before Greyhaven's elders.",
+      "relationship_deltas": {
+        "orin": 30,
+        "edda": 15,
+        "will": 20
+      },
+      "holder_election_contributions": {
+        "orin": 0.45,
+        "edda": 0.35,
+        "will": 0.5
+      },
+      "traits": ["Influential"],
+      "grants_endorsement": true
     }
   ],
   "schedule_templates": [

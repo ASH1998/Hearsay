@@ -79,6 +79,11 @@ ARGUMENT_CHOICE_VERBS = {
     ActionVerb.CALM_ARGUMENT,
 }
 
+ORIN_CONFESSION_CHOICE_VERBS = {
+    ActionVerb.REVEAL_ORIN_CONFESSION,
+    ActionVerb.CONCEAL_ORIN_CONFESSION,
+}
+
 
 class GameService:
     def __init__(
@@ -639,6 +644,77 @@ class GameService:
             return self._event(
                 "nessa_endorsement",
                 "Nessa gives the newcomer the harbor faction's public backing.",
+            )
+        if request.verb == ActionVerb.ACCEPT_ORIN_CONFESSION:
+            if request.target_id != "orin":
+                raise InvalidActionError("Orin's confession can only be accepted from Orin.")
+            if any(
+                favor.key == "orin_election_confession"
+                for favor in snapshot.favors
+            ):
+                raise InvalidActionError("You already accepted Orin's confidence.")
+            content = self.content.favors_by_id["orin_election_confession"]
+            snapshot.favors.append(
+                FavorState(
+                    id=uuid4(),
+                    key=content.id,
+                    giver_id=content.giver_id,
+                    content=content.content,
+                )
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="orin",
+                speaker_name="Father Orin",
+                text=content.accept_dialogue,
+            )
+            return self._event(
+                "orin_confession_entrusted",
+                "Orin entrusts you with a dying clerk's account of Rhea's last tally.",
+            )
+        if request.verb in ORIN_CONFESSION_CHOICE_VERBS:
+            if request.target_id != "orin":
+                raise InvalidActionError("Resolve Orin's confidence with Orin present.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "orin_election_confession"
+                ),
+                None,
+            )
+            if favor is None or favor.status != "active":
+                raise InvalidActionError("There is no unresolved confession in your care.")
+            confession_choice = self.content.confession_choices_by_verb[
+                request.verb.value
+            ]
+            favor.status = "completed"
+            favor.resolution = confession_choice.resolution
+            for resident_id, delta in (
+                confession_choice.relationship_deltas.items()
+            ):
+                resident = self._require_npc(snapshot, resident_id)
+                resident.relationship = max(
+                    -100,
+                    min(100, resident.relationship + delta),
+                )
+            self._add_traits(snapshot, *confession_choice.traits)
+            if (
+                confession_choice.grants_endorsement
+                and "orin" not in snapshot.player.endorsements
+            ):
+                snapshot.player.endorsements.append("orin")
+            if confession_choice.pip_speech is not None:
+                self._require_npc(snapshot, "pip").speech = (
+                    confession_choice.pip_speech
+                )
+            snapshot.dialogue = DialogueState(
+                speaker_id="orin",
+                speaker_name="Father Orin",
+                text=confession_choice.dialogue,
+            )
+            return self._event(
+                confession_choice.event_kind,
+                confession_choice.event_text,
             )
         if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
             if not snapshot.player.candidate:

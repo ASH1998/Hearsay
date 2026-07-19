@@ -171,6 +171,27 @@ def resolve_election(
                     "They heard the candidate's square speech but still weighed "
                     "performance against proof."
                 )
+            elif proposition_key == "orin-rhea-election-confession":
+                resolution = memory.normalized_position.get("resolution")
+                value = resolution if isinstance(resolution, str) else None
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else 0.0
+                )
+                if value == "revealed":
+                    explanation = (
+                        "They remember the player revealed Orin's account that "
+                        "Rhea altered the previous election tally."
+                    )
+                else:
+                    explanation = (
+                        "They remember Orin blessed the player's decision to "
+                        "keep a dying clerk's confession sealed."
+                    )
             if (
                 contribution
                 and memory.normalized_position.get("echo_hop") == 2
