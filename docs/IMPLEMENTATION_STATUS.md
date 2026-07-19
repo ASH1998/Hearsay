@@ -349,7 +349,8 @@ Validated:
   repository recreation of favor, endorsement, and election state.
   The speech test proves its public event, belief-backed vote inputs, exact
   tie, Rhea winner, Narrow loss ending, and restored election.
-- Six browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
+- Seven browser playthroughs pass and collectively reach all six endings. The
+  first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
   Market row location, storm start, and storm refresh before the `11–9` result and exact v1 promise memory
@@ -364,6 +365,8 @@ Validated:
   Two more paths prove unsupported Humiliation and the speech-driven `10–10`
   Narrow loss. Playwright uses three local/two CI workers and a 60-second
   full-story timeout so WebGL overlays remain deterministic.
+  The seventh lies about Elias's authority, visibly derives Dishonest, reaches
+  Exposed (`The Story Unravels`), and renders the exact lie belief in the audit.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -371,9 +374,9 @@ Validated:
 Remaining:
 
 - Additional principal favors and information/ambition verbs remain.
-- Broader multi-hop rumor propagation and a seeded Exposed browser playthrough.
+- Broader multi-hop rumor propagation beyond Pip's immediate ambient listeners.
 
 ## Next implementation slice
 
-1. Add Orin's confession favor and a reveal/conceal information choice, then
-   route the revealed lie into a seeded Exposed browser ending.
+1. Add Orin's confession favor with reveal/conceal information choices and
+   distinct elder-faction trust, memory, and election consequences.

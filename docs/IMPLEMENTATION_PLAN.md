@@ -285,9 +285,8 @@ Keep raw ZIPs and portable tools locally inside the repository but untracked. Co
 - Write content as data rather than embedded code; include validation that every referenced NPC, location, action, memory, and ending exists.
 - Implement the six endings and replay-safe save/resume behavior. Seeded
   browser paths now cover Landslide, Narrow win, Narrow loss (`10–10`, Rhea
-  tie), Humiliation, and Run out of town; Exposed remains the final browser
-  path, while all six classifiers and normal-action Exposed logic have unit
-  coverage.
+  tie), Humiliation, Exposed, and Run out of town. All six classifiers and all
+  six normal-action browser endings now have automated coverage.
 - Gate: seeded full win and loss playthroughs complete without manual database repair or developer-console intervention.
 
 ### Milestone 4 — Hackathon Evidence

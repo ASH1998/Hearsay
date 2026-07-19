@@ -40,3 +40,38 @@ test("threatening Bram becomes a remembered run-out-of-town ending", async ({
       .first(),
   ).toBeVisible();
 });
+
+test("lying about Elias becomes a remembered Exposed ending", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
+  await page.getByRole("button", { name: /Find Bram/ }).click();
+  await page
+    .getByRole("button", { name: "Lie about a constable's order" })
+    .click();
+  await expect(page.getByText("Chalk says: Dishonest")).toBeVisible();
+  await expect(page.locator(".conversation blockquote")).toContainText(
+    "Elias never signed",
+  );
+  await page.getByRole("button", { name: "Close conversation" }).click();
+
+  await page.getByRole("button", { name: "Sleep until morning" }).click();
+  await page.getByRole("button", { name: /Find Rhea/ }).click();
+  await page
+    .getByRole("button", { name: "Declare candidacy for mayor" })
+    .click();
+  await page.getByRole("button", { name: "Close conversation" }).click();
+  await page.getByRole("button", { name: "Sleep until morning" }).click();
+  await page.getByRole("button", { name: "Sleep until morning" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "The Story Unravels" }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".historian small")
+      .filter({ hasText: "lie to approach" })
+      .first(),
+  ).toBeVisible();
+});
