@@ -469,6 +469,9 @@
           "accept_orin_confession",
           "reveal_orin_confession",
           "conceal_orin_confession",
+          "accept_talia_favor",
+          "help_oswin_quietly",
+          "gossip_oswin_illness",
           "give_square_speech",
           "sleep"
         ],
@@ -954,7 +957,9 @@
                 "type": "string",
                 "enum": [
                   "revealed",
-                  "concealed"
+                  "concealed",
+                  "helped_quietly",
+                  "gossiped_publicly"
                 ]
               },
               {

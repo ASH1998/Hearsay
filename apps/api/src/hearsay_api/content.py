@@ -103,42 +103,48 @@ class FavorContent(BaseModel):
     correction_text: str
 
 
-class ConfessionChoiceContent(BaseModel):
+class FavorChoiceContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
+    favor_id: str
     action_verb: str
     label: str
-    resolution: Literal["revealed", "concealed"]
+    resolution: Literal[
+        "revealed",
+        "concealed",
+        "helped_quietly",
+        "gossiped_publicly",
+    ]
     dialogue: str
     event_kind: str
     event_text: str
     memory_text: str
-    pip_speech: str | None = None
+    resident_speeches: dict[str, str] = Field(default_factory=dict)
     relationship_deltas: dict[str, int]
     holder_election_contributions: dict[str, float]
     traits: tuple[str, ...] = ()
     grants_endorsement: bool = False
 
     @model_validator(mode="after")
-    def validate_choice(self) -> ConfessionChoiceContent:
+    def validate_choice(self) -> FavorChoiceContent:
         expected_resolution = {
             "reveal_orin_confession": "revealed",
             "conceal_orin_confession": "concealed",
+            "help_oswin_quietly": "helped_quietly",
+            "gossip_oswin_illness": "gossiped_publicly",
         }.get(self.action_verb)
         if expected_resolution is not None and self.resolution != expected_resolution:
-            raise ValueError("Confession action and resolution must agree.")
+            raise ValueError("Favor action and resolution must agree.")
         if any(
             delta < -100 or delta > 100
             for delta in self.relationship_deltas.values()
         ):
-            raise ValueError("Confession relationship deltas must be within -100..100.")
+            raise ValueError("Favor relationship deltas must be within -100..100.")
         if any(
             contribution < -1 or contribution > 1
             for contribution in self.holder_election_contributions.values()
         ):
-            raise ValueError("Confession election contributions must be within -1..1.")
-        if self.grants_endorsement and self.resolution != "concealed":
-            raise ValueError("Only Orin's concealed confession grants his blessing.")
+            raise ValueError("Favor election contributions must be within -1..1.")
         return self
 
 
@@ -170,7 +176,7 @@ class GreyhavenContent(BaseModel):
     town_events: tuple[TownEventContent, ...]
     argument_choices: tuple[ArgumentChoiceContent, ...]
     favors: tuple[FavorContent, ...]
-    confession_choices: tuple[ConfessionChoiceContent, ...]
+    favor_choices: tuple[FavorChoiceContent, ...]
     schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
@@ -314,35 +320,53 @@ class GreyhavenContent(BaseModel):
         favor_ids = [favor.id for favor in self.favors]
         if len(favor_ids) != len(set(favor_ids)):
             raise ValueError("Favor IDs must be unique.")
-        required_favors = {"nessa_harbor_log", "orin_election_confession"}
+        required_favors = {
+            "nessa_harbor_log",
+            "orin_election_confession",
+            "talia_sick_house",
+        }
         if not required_favors.issubset(favor_ids):
-            raise ValueError("Nessa's harbor log and Orin's confession are required.")
+            raise ValueError(
+                "Nessa's harbor log, Orin's confession, and Talia's "
+                "sick-house favor are required."
+            )
         if any(favor.giver_id not in resident_ids for favor in self.favors):
             raise ValueError("Every favor giver must be a known resident.")
-        required_confession_choices = {
+        required_favor_choices = {
             "reveal_orin_confession",
             "conceal_orin_confession",
+            "help_oswin_quietly",
+            "gossip_oswin_illness",
         }
-        confession_verbs = {
+        favor_choice_verbs = {
             choice.action_verb
-            for choice in self.confession_choices
+            for choice in self.favor_choices
         }
-        if confession_verbs != required_confession_choices:
-            raise ValueError("Orin's confession requires reveal and conceal choices.")
-        for confession_choice in self.confession_choices:
-            unknown_traits = set(confession_choice.traits) - set(self.public_traits)
+        if favor_choice_verbs != required_favor_choices:
+            raise ValueError(
+                "Authored favors require Orin's reveal/conceal and "
+                "Talia's help/gossip choices."
+            )
+        for favor_choice in self.favor_choices:
+            unknown_traits = set(favor_choice.traits) - set(self.public_traits)
             unknown_relationships = (
-                set(confession_choice.relationship_deltas)
+                set(favor_choice.relationship_deltas)
                 - set(resident_ids)
             )
             unknown_holders = (
-                set(confession_choice.holder_election_contributions)
+                set(favor_choice.holder_election_contributions)
                 - set(resident_ids)
             )
-            if unknown_traits or unknown_relationships or unknown_holders:
+            unknown_speakers = set(favor_choice.resident_speeches) - set(resident_ids)
+            if (
+                favor_choice.favor_id not in favor_ids
+                or unknown_traits
+                or unknown_relationships
+                or unknown_holders
+                or unknown_speakers
+            ):
                 raise ValueError(
-                    "Confession choice "
-                    f"{confession_choice.action_verb} has invalid references."
+                    f"Favor choice {favor_choice.action_verb} has invalid references."
                 )
         return self
 
@@ -393,10 +417,10 @@ class GreyhavenContent(BaseModel):
         return {favor.id: favor for favor in self.favors}
 
     @property
-    def confession_choices_by_verb(self) -> dict[str, ConfessionChoiceContent]:
+    def favor_choices_by_verb(self) -> dict[str, FavorChoiceContent]:
         return {
             choice.action_verb: choice
-            for choice in self.confession_choices
+            for choice in self.favor_choices
         }
 
     @property

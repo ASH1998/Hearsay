@@ -192,6 +192,27 @@ def resolve_election(
                         "They remember Orin blessed the player's decision to "
                         "keep a dying clerk's confession sealed."
                     )
+            elif proposition_key == "talia-oswin-sick-house":
+                resolution = memory.normalized_position.get("resolution")
+                value = resolution if isinstance(resolution, str) else None
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else 0.0
+                )
+                if value == "helped_quietly":
+                    explanation = (
+                        "They remember the player quietly brought Oswin care "
+                        "and protected his family's privacy."
+                    )
+                else:
+                    explanation = (
+                        "They remember the player turned Talia's private warning "
+                        "about Oswin's fever into public gossip."
+                    )
             if (
                 contribution
                 and memory.normalized_position.get("echo_hop") == 2

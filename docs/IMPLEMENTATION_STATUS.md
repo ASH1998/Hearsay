@@ -328,10 +328,26 @@ Completed:
   player→Orin/Elias/Edda/Will/Pip; conceal continues player→Orin and
   Orin→Edda/Will. Favor resolution, traits, endorsement, standing, speech,
   events, and election inputs survive refresh and repository recreation.
+- The authored favor-choice schema is now reusable across principal arcs,
+  validating each favor/action/resolution mapping, resident references,
+  relationship bounds, election weights, traits, endorsement, and visible
+  resident speech instead of adding another bespoke confession-only format.
+- Talia's first favor entrusts the player with Oswin's ordinary fever, a willow
+  draught, and the fact that the day's bread is safe. The visible Ledger forces
+  one resolution: help quietly or warn Greyhaven publicly through Pip.
+- Quiet help derives Generous and Reliable, stores Talia's endorsement, raises
+  Talia/Oswin/Lina/Marta standing, and carries player→Talia→family memories
+  into four exact vote inputs and a `12–8` Narrow win. Public warning derives
+  Influential, damages Talia/Oswin/Lina confidence, benefits Pip, visibly
+  propagates to three nearby listeners, and reaches an audited `9–11` Narrow
+  loss.
+- Both sick-house outcomes update Oswin/Lina/Pip speech as appropriate and
+  preserve favor resolution, public traits, endorsement, relationships,
+  transmission lineage, events, election inputs, and outcome through refresh.
 
 Validated:
 
-- Ninety-six local API tests pass. Pure election tests cover all six ending
+- Ninety-nine local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -342,8 +358,10 @@ Validated:
   complete evidence/correction/endorsement chain to Landslide, speech
   once-per-day enforcement, Humiliation, exact `10–10` Narrow loss, both
   confession resolutions, their mutually exclusive state, elder standing,
-  transmission topology, and exact `13–7` belief-audited Narrow wins.
-- Fourteen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  transmission topology, exact `13–7` belief-audited Narrow wins, both
+  sick-house resolutions, private/public transmission routes, mutually
+  exclusive state, family standing, and exact `12–8`/`9–11` outcomes.
+- Fifteen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -366,7 +384,10 @@ Validated:
   The Orin test proves the concealed resolution, endorsement, public events,
   four-edge confession lineage, three belief-backed elder votes, final
   `0.90`/`0.65`/`0.70` trust, and restored `13–7` result.
-- Nine browser playthroughs pass and collectively reach all six endings. The
+  The Talia test proves the quiet-help resolution, endorsement, both public
+  events, five-edge family lineage, four belief-backed votes, final
+  `0.90`/`0.75`/`0.70`/`0.60` trust, and restored `12–8` result.
+- Eleven browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -388,6 +409,10 @@ Validated:
   resolution, render the matching Reliable/Influential trait and public event,
   reach `13–7` By One Voice, and show the exact disclosure/blessing memory in
   the election audit.
+  Two Talia paths quietly deliver care or warn through Pip, refresh the durable
+  resolution, render the matching family-confidence state and public traits,
+  reach `12–8` By One Voice or `9–11` The Tied Bell, and show the exact
+  sick-house memory in the election audit.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -399,5 +424,6 @@ Remaining:
 
 ## Next implementation slice
 
-1. Add Talia's first quiet sick-house favor with help/gossip information
-   choices, family-faction trust, durable memory lineage, and election effects.
+1. Add Elias's wrongful-arrest secret and first constable favor with
+   investigate/cover-up information choices, legitimacy-faction trust,
+   durable memory lineage, and election effects.

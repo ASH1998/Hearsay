@@ -857,7 +857,7 @@ def _plan_primary_action_memory(
         ActionVerb.REVEAL_ORIN_CONFESSION,
         ActionVerb.CONCEAL_ORIN_CONFESSION,
     }:
-        confession_choice = content.confession_choices_by_verb[
+        confession_choice = content.favor_choices_by_verb[
             request.verb.value
         ]
         resolution = confession_choice.resolution
@@ -949,6 +949,176 @@ def _plan_primary_action_memory(
             gossip_tick_number=(
                 response.snapshot.world_tick
                 if "pip" in confession_choice.holder_election_contributions
+                else None
+            ),
+        )
+
+    if request.verb == ActionVerb.ACCEPT_TALIA_FAVOR:
+        fact = content.favors_by_id["talia_sick_house"].correction_text
+        talia_text = (
+            "Talia entrusted the player with Oswin's ordinary fever, a willow "
+            "draught, and a request to protect his sick room from panic."
+        )
+        talia_embedding = embeddings.embed(talia_text)
+        player_embedding = embeddings.embed(fact)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="talia-oswin-sick-house",
+                    subject_kind="favor",
+                    subject_id="talia_sick_house",
+                    predicate="oswin_has_ordinary_fever",
+                    holder_id="talia",
+                    narrative_text=talia_text,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "oswin_fever_ordinary": True,
+                        "bread_safe": True,
+                    },
+                    confidence=1.0,
+                    salience=0.95,
+                    source_kind="medical_firsthand",
+                    source_id="talia",
+                    embedding=talia_embedding.vector,
+                    embedding_model_id=talia_embedding.model_id,
+                ),
+                PlannedBelief(
+                    proposition_key="talia-oswin-sick-house",
+                    subject_kind="favor",
+                    subject_id="talia_sick_house",
+                    predicate="oswin_has_ordinary_fever",
+                    holder_id="player",
+                    narrative_text=fact,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "oswin_fever_ordinary": True,
+                        "bread_safe": True,
+                    },
+                    confidence=1.0,
+                    salience=0.95,
+                    source_kind="private_warning",
+                    source_id="talia",
+                    embedding=player_embedding.vector,
+                    embedding_model_id=player_embedding.model_id,
+                    parent_holder_id="talia",
+                    mutation_note="Talia gives the medical facts to the player intact.",
+                    trust_at_time=0.9,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-private-warning-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            ),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="talia",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.1,
+                ),
+            ),
+        )
+
+    if request.verb in {
+        ActionVerb.HELP_OSWIN_QUIETLY,
+        ActionVerb.GOSSIP_OSWIN_ILLNESS,
+    }:
+        favor_choice = content.favor_choices_by_verb[request.verb.value]
+        resolution = favor_choice.resolution
+        player_text = (
+            "The player quietly delivered Talia's draught and kept Oswin's "
+            "ordinary fever private."
+            if resolution == "helped_quietly"
+            else (
+                "The player told Pip that Oswin had an ordinary fever, "
+                "making Talia's private warning public."
+            )
+        )
+        player_embedding = embeddings.embed(player_text)
+        sick_house_beliefs: list[PlannedBelief] = [
+            PlannedBelief(
+                proposition_key="talia-oswin-sick-house",
+                subject_kind="favor",
+                subject_id="talia_sick_house",
+                predicate="oswin_has_ordinary_fever",
+                holder_id="player",
+                narrative_text=player_text,
+                normalized_position={
+                    "resolution": resolution,
+                    "oswin_fever_ordinary": True,
+                    "bread_safe": True,
+                },
+                confidence=1.0,
+                salience=1.0,
+                source_kind="player_decision",
+                source_id="player",
+                embedding=player_embedding.vector,
+                embedding_model_id=player_embedding.model_id,
+            )
+        ]
+        for holder_id, contribution in (
+            favor_choice.holder_election_contributions.items()
+        ):
+            text_embedding = embeddings.embed(favor_choice.memory_text)
+            parent_holder_id = (
+                "player"
+                if resolution == "gossiped_publicly" or holder_id == "talia"
+                else "talia"
+            )
+            sick_house_beliefs.append(
+                PlannedBelief(
+                    proposition_key="talia-oswin-sick-house",
+                    subject_kind="favor",
+                    subject_id="talia_sick_house",
+                    predicate="oswin_has_ordinary_fever",
+                    holder_id=holder_id,
+                    narrative_text=favor_choice.memory_text,
+                    normalized_position={
+                        "resolution": resolution,
+                        "oswin_fever_ordinary": True,
+                        "bread_safe": True,
+                        "election_contribution": contribution,
+                    },
+                    confidence=1.0 if holder_id in {"talia", "oswin"} else 0.94,
+                    salience=0.95,
+                    source_kind=(
+                        "quiet_family_endorsement"
+                        if resolution == "helped_quietly"
+                        else "public_health_gossip"
+                    ),
+                    source_id=parent_holder_id,
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
+                    parent_holder_id=parent_holder_id,
+                    mutation_note=(
+                        "Talia shares the player's quiet help across family lines."
+                        if resolution == "helped_quietly"
+                        else "The player gives Pip a private health fact for public warning."
+                    ),
+                    trust_at_time=0.85,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id=f"hearsay-sick-house-{resolution}-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                )
+            )
+        return MemoryEffects(
+            beliefs=tuple(sick_house_beliefs),
+            relationships=tuple(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id=resident_id,
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=delta / 100,
+                    affinity_delta=delta / 200,
+                )
+                for resident_id, delta in favor_choice.relationship_deltas.items()
+            ),
+            gossip_tick_number=(
+                response.snapshot.world_tick
+                if "pip" in favor_choice.holder_election_contributions
                 else None
             ),
         )

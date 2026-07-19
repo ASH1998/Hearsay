@@ -421,10 +421,19 @@
       "accept_dialogue": "A dying guild clerk named Rhea and swore she changed two marks in the last tally. He gave me leave to act, but not the courage. Carry the truth carefully.",
       "complete_dialogue": "What you do with a confidence becomes part of the truth people tell about you.",
       "correction_text": "A dying guild clerk confessed that Rhea changed two marks in Greyhaven's previous election tally."
+    },
+    {
+      "id": "talia_sick_house",
+      "giver_id": "talia",
+      "content": "Decide whether to help Oswin quietly or warn Greyhaven publicly that the baker is ill.",
+      "accept_dialogue": "Oswin's fever is ordinary, but fear rarely is. Take this willow draught to him and keep his name out of Pip's mouth—or warn the town, if you believe privacy costs too much.",
+      "complete_dialogue": "A sick room reveals whether you value the person inside it or the story outside it.",
+      "correction_text": "Oswin Bell has a fever; Talia says it is ordinary and today's bread is safe."
     }
   ],
-  "confession_choices": [
+  "favor_choices": [
     {
+      "favor_id": "orin_election_confession",
       "action_verb": "reveal_orin_confession",
       "label": "Reveal the confession",
       "resolution": "revealed",
@@ -432,7 +441,9 @@
       "event_kind": "orin_confession_revealed",
       "event_text": "You reveal the clerk's account before Orin, Elias, Edda, and Will: Rhea changed two marks in the last tally.",
       "memory_text": "The player revealed Orin's account that a dying guild clerk saw Rhea alter two marks in the previous election tally.",
-      "pip_speech": "A dead clerk named Rhea, and the newcomer made Orin say it where Greyhaven could hear.",
+      "resident_speeches": {
+        "pip": "A dead clerk named Rhea, and the newcomer made Orin say it where Greyhaven could hear."
+      },
       "relationship_deltas": {
         "orin": -30,
         "elias": 15,
@@ -450,6 +461,7 @@
       "grants_endorsement": false
     },
     {
+      "favor_id": "orin_election_confession",
       "action_verb": "conceal_orin_confession",
       "label": "Keep the confession sealed",
       "resolution": "concealed",
@@ -469,6 +481,63 @@
       },
       "traits": ["Influential"],
       "grants_endorsement": true
+    },
+    {
+      "favor_id": "talia_sick_house",
+      "action_verb": "help_oswin_quietly",
+      "label": "Help Oswin quietly",
+      "resolution": "helped_quietly",
+      "dialogue": "You carried care without carrying the story. Families notice that kind of restraint long after a fever breaks.",
+      "event_kind": "talia_sick_house_helped",
+      "event_text": "You deliver Talia's willow draught to Oswin and keep his illness private.",
+      "memory_text": "The player brought Oswin Talia's willow draught, preserved his privacy, and checked that his family had food.",
+      "resident_speeches": {
+        "oswin": "The draught is bitter. The quiet was kinder.",
+        "lina": "Talia says you helped Oswin without making his sick room square gossip."
+      },
+      "relationship_deltas": {
+        "talia": 30,
+        "oswin": 25,
+        "lina": 20,
+        "marta": 10
+      },
+      "holder_election_contributions": {
+        "talia": 0.45,
+        "oswin": 0.45,
+        "lina": 0.4,
+        "marta": 0.25
+      },
+      "traits": ["Generous", "Reliable"],
+      "grants_endorsement": true
+    },
+    {
+      "favor_id": "talia_sick_house",
+      "action_verb": "gossip_oswin_illness",
+      "label": "Warn Greyhaven through Pip",
+      "resolution": "gossiped_publicly",
+      "dialogue": "You may have prevented panic later by causing it now. Oswin will remember which cost you chose for him.",
+      "event_kind": "talia_sick_house_gossiped",
+      "event_text": "You publicly warn Greyhaven about Oswin's fever through Pip, breaking the sick room's privacy.",
+      "memory_text": "The player told Pip that Oswin was ill, turning Talia's private health warning into public town gossip.",
+      "resident_speeches": {
+        "pip": "Oswin has a fever—ordinary, Talia says—but nobody ever gossips about ordinary things.",
+        "oswin": "My fever became your announcement before the draught reached my door.",
+        "lina": "You warned the town with Oswin's name before Talia could calm anyone."
+      },
+      "relationship_deltas": {
+        "talia": -30,
+        "oswin": -25,
+        "lina": -15,
+        "pip": 10
+      },
+      "holder_election_contributions": {
+        "talia": -0.4,
+        "oswin": -0.45,
+        "lina": -0.35,
+        "pip": 0.2
+      },
+      "traits": ["Influential"],
+      "grants_endorsement": false
     }
   ],
   "schedule_templates": [

@@ -898,6 +898,114 @@ def test_orin_concealment_persists_blessing_lineage_and_elder_votes(
     assert restored.election == election
 
 
+def test_talia_quiet_help_persists_family_lineage_and_votes(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=143))
+    for verb, target in (
+        ("accept_talia_favor", "talia"),
+        ("help_oswin_quietly", "talia"),
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    ):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == 12
+    assert election.ending.key == "narrow_win"
+    assert result.snapshot.favors[0].resolution == "helped_quietly"
+    assert result.snapshot.player.endorsements == ["talia"]
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "talia-oswin-sick-house",
+    )
+    assert {version.holder_id for version in lineage.versions} == {
+        "talia",
+        "player",
+        "oswin",
+        "lina",
+        "marta",
+    }
+    assert {
+        (edge.speaker_id, edge.listener_id)
+        for edge in lineage.transmissions
+    } == {
+        ("talia", "player"),
+        ("player", "talia"),
+        ("talia", "oswin"),
+        ("talia", "lina"),
+        ("talia", "marta"),
+    }
+
+    with repository.session_factory() as session:
+        sick_house_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "talia-oswin-sick-house",
+                )
+            )
+        )
+        trust_by_resident = {
+            resident_id: session.scalar(
+                select(RelationshipModel.trust).where(
+                    RelationshipModel.game_run_id == created.run_id,
+                    RelationshipModel.a_id == resident_id,
+                    RelationshipModel.b_id == "player",
+                )
+            )
+            for resident_id in ("talia", "oswin", "lina", "marta")
+        }
+        event_kinds = set(
+            session.scalars(
+                select(EventModel.kind).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind.in_(
+                        (
+                            "talia_sick_house_entrusted",
+                            "talia_sick_house_helped",
+                        )
+                    ),
+                )
+            )
+        )
+
+    assert len(sick_house_inputs) == 4
+    assert {item.input_value for item in sick_house_inputs} == {"helped_quietly"}
+    assert all(item.belief_id is not None for item in sick_house_inputs)
+    assert trust_by_resident == {
+        "talia": pytest.approx(0.9),
+        "oswin": pytest.approx(0.75),
+        "lina": pytest.approx(0.7),
+        "marta": pytest.approx(0.6),
+    }
+    assert event_kinds == {
+        "talia_sick_house_entrusted",
+        "talia_sick_house_helped",
+    }
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.favors == result.snapshot.favors
+    assert restored.player.endorsements == ["talia"]
+    assert restored.election == election
+
+
 def test_square_speech_persists_audited_ten_ten_loss(
     repository: CockroachRunRepository,
 ) -> None:

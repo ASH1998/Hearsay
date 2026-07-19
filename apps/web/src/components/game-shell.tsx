@@ -308,12 +308,18 @@ export function GameShell() {
         {snapshot.favors.map((favor) => (
           <article className="promise" key={favor.id}>
             <span className="promise__mark">
-              {favor.key === "orin_election_confession" ? "✧" : "⚓"}
+              {favor.key === "orin_election_confession"
+                ? "✧"
+                : favor.key === "talia_sick_house"
+                  ? "✚"
+                  : "⚓"}
             </span>
             <div>
               <strong>
                 {favor.key === "orin_election_confession"
                   ? "Orin's sealed confession"
+                  : favor.key === "talia_sick_house"
+                    ? "Talia's sick-house request"
                   : "Nessa's harbor log"}
               </strong>
               <p>{favor.content}</p>
@@ -324,11 +330,17 @@ export function GameShell() {
                     : favor.resolution === "concealed"
                       ? "Kept sealed · Orin's blessing earned"
                       : "Unresolved · reveal it or keep it sealed"
-                  : favor.corrected_publicly
-                    ? "Corrected publicly · endorsement available"
-                    : favor.status === "completed"
-                      ? "Delivered to Elias · correct Pip's story"
-                      : "Active · carry the log to Elias"}
+                  : favor.key === "talia_sick_house"
+                    ? favor.resolution === "helped_quietly"
+                      ? "Helped quietly · Talia's family backing earned"
+                      : favor.resolution === "gossiped_publicly"
+                        ? "Warned publicly · family confidence broken"
+                        : "Unresolved · help quietly or warn publicly"
+                    : favor.corrected_publicly
+                      ? "Corrected publicly · endorsement available"
+                      : favor.status === "completed"
+                        ? "Delivered to Elias · correct Pip's story"
+                        : "Active · carry the log to Elias"}
               </small>
             </div>
           </article>
@@ -494,6 +506,18 @@ export function GameShell() {
               (location) =>
                 location.id ===
                 snapshot.npcs.find((npc) => npc.id === "orin")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
+        </button>
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+          snapshot.npcs.find((npc) => npc.id === "talia") ?? null,
+        )}>
+          Find Talia
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "talia")?.location_id,
             )?.name ?? "Greyhaven"}
           </small>
         </button>
@@ -744,6 +768,41 @@ export function GameShell() {
                     type="button"
                   >
                     Keep the confession sealed
+                  </button>
+                </>
+              ) : null}
+              {selectedNpc.id === "talia" &&
+              !snapshot.favors.some(
+                (favor) => favor.key === "talia_sick_house",
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("accept_talia_favor", "talia")}
+                  type="button"
+                >
+                  Ask about Oswin&apos;s sick room
+                </button>
+              ) : null}
+              {selectedNpc.id === "talia" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "talia_sick_house" &&
+                  favor.status === "active",
+              ) ? (
+                <>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("help_oswin_quietly", "talia")}
+                    type="button"
+                  >
+                    Help Oswin quietly
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("gossip_oswin_illness", "talia")}
+                    type="button"
+                  >
+                    Warn Greyhaven through Pip
                   </button>
                 </>
               ) : null}

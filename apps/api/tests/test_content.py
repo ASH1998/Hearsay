@@ -23,13 +23,16 @@ def test_greyhaven_content_references_are_complete() -> None:
     assert {favor.id for favor in content.favors} == {
         "nessa_harbor_log",
         "orin_election_confession",
+        "talia_sick_house",
     }
     assert {
         choice.action_verb
-        for choice in content.confession_choices
+        for choice in content.favor_choices
     } == {
         "reveal_orin_confession",
         "conceal_orin_confession",
+        "help_oswin_quietly",
+        "gossip_oswin_illness",
     }
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6
@@ -87,9 +90,9 @@ def test_content_requires_all_public_argument_choices() -> None:
         GreyhavenContent.model_validate(payload)
 
 
-def test_content_requires_both_confession_choices() -> None:
+def test_content_requires_all_authored_favor_choices() -> None:
     payload = load_content().model_dump(mode="json")
-    payload["confession_choices"].pop()
+    payload["favor_choices"].pop()
 
-    with pytest.raises(ValidationError, match="reveal and conceal"):
+    with pytest.raises(ValidationError, match="reveal/conceal"):
         GreyhavenContent.model_validate(payload)

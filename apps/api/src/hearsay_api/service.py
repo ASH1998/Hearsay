@@ -84,6 +84,11 @@ ORIN_CONFESSION_CHOICE_VERBS = {
     ActionVerb.CONCEAL_ORIN_CONFESSION,
 }
 
+TALIA_SICK_HOUSE_CHOICE_VERBS = {
+    ActionVerb.HELP_OSWIN_QUIETLY,
+    ActionVerb.GOSSIP_OSWIN_ILLNESS,
+}
+
 
 class GameService:
     def __init__(
@@ -684,7 +689,7 @@ class GameService:
             )
             if favor is None or favor.status != "active":
                 raise InvalidActionError("There is no unresolved confession in your care.")
-            confession_choice = self.content.confession_choices_by_verb[
+            confession_choice = self.content.favor_choices_by_verb[
                 request.verb.value
             ]
             favor.status = "completed"
@@ -703,10 +708,10 @@ class GameService:
                 and "orin" not in snapshot.player.endorsements
             ):
                 snapshot.player.endorsements.append("orin")
-            if confession_choice.pip_speech is not None:
-                self._require_npc(snapshot, "pip").speech = (
-                    confession_choice.pip_speech
-                )
+            for resident_id, speech in (
+                confession_choice.resident_speeches.items()
+            ):
+                self._require_npc(snapshot, resident_id).speech = speech
             snapshot.dialogue = DialogueState(
                 speaker_id="orin",
                 speaker_name="Father Orin",
@@ -716,6 +721,65 @@ class GameService:
                 confession_choice.event_kind,
                 confession_choice.event_text,
             )
+        if request.verb == ActionVerb.ACCEPT_TALIA_FAVOR:
+            if request.target_id != "talia":
+                raise InvalidActionError("The sick-house favor comes from Talia.")
+            if any(favor.key == "talia_sick_house" for favor in snapshot.favors):
+                raise InvalidActionError("You already answered Talia's sick-house request.")
+            content = self.content.favors_by_id["talia_sick_house"]
+            snapshot.favors.append(
+                FavorState(
+                    id=uuid4(),
+                    key=content.id,
+                    giver_id=content.giver_id,
+                    content=content.content,
+                )
+            )
+            self._require_npc(snapshot, "oswin").speech = (
+                "Talia says the fever is ordinary. Pip will make it a plague by noon."
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="talia",
+                speaker_name="Talia Fen",
+                text=content.accept_dialogue,
+            )
+            return self._event(
+                "talia_sick_house_entrusted",
+                "Talia asks you to carry care to Oswin without feeding the town's fear.",
+            )
+        if request.verb in TALIA_SICK_HOUSE_CHOICE_VERBS:
+            if request.target_id != "talia":
+                raise InvalidActionError("Resolve Talia's request with Talia present.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "talia_sick_house"
+                ),
+                None,
+            )
+            if favor is None or favor.status != "active":
+                raise InvalidActionError("There is no unresolved sick-house favor.")
+            favor_choice = self.content.favor_choices_by_verb[request.verb.value]
+            favor.status = "completed"
+            favor.resolution = favor_choice.resolution
+            for resident_id, delta in favor_choice.relationship_deltas.items():
+                resident = self._require_npc(snapshot, resident_id)
+                resident.relationship = max(
+                    -100,
+                    min(100, resident.relationship + delta),
+                )
+            self._add_traits(snapshot, *favor_choice.traits)
+            if favor_choice.grants_endorsement:
+                snapshot.player.endorsements.append("talia")
+            for resident_id, speech in favor_choice.resident_speeches.items():
+                self._require_npc(snapshot, resident_id).speech = speech
+            snapshot.dialogue = DialogueState(
+                speaker_id="talia",
+                speaker_name="Talia Fen",
+                text=favor_choice.dialogue,
+            )
+            return self._event(favor_choice.event_kind, favor_choice.event_text)
         if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
             if not snapshot.player.candidate:
                 raise InvalidActionError("Declare your candidacy before addressing the square.")

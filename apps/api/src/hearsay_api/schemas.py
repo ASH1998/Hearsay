@@ -44,6 +44,9 @@ class ActionVerb(StrEnum):
     ACCEPT_ORIN_CONFESSION = "accept_orin_confession"
     REVEAL_ORIN_CONFESSION = "reveal_orin_confession"
     CONCEAL_ORIN_CONFESSION = "conceal_orin_confession"
+    ACCEPT_TALIA_FAVOR = "accept_talia_favor"
+    HELP_OSWIN_QUIETLY = "help_oswin_quietly"
+    GOSSIP_OSWIN_ILLNESS = "gossip_oswin_illness"
     GIVE_SQUARE_SPEECH = "give_square_speech"
     SLEEP = "sleep"
 
@@ -102,7 +105,12 @@ class FavorState(BaseModel):
     content: str
     status: Literal["active", "completed"] = "active"
     corrected_publicly: bool = False
-    resolution: Literal["revealed", "concealed"] | None = None
+    resolution: Literal[
+        "revealed",
+        "concealed",
+        "helped_quietly",
+        "gossiped_publicly",
+    ] | None = None
 
 
 class DialogueMemoryRef(BaseModel):
