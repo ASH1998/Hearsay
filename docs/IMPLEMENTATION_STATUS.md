@@ -298,6 +298,21 @@ Completed:
 - Ambient election memory is likewise limited to the last three and attenuated
   by hop distance and carrier style. Skeptical carriers counterweight rather
   than blindly amplify, preserving the seeded `11–9` path.
+- All twenty residents now have validated echo styles. On later even action
+  ticks, a deterministic rank can select a salient active public belief held
+  by any co-located resident, rather than requiring Pip to be the speaker.
+- A selected holder retells to one or two co-located residents who do not
+  already hold that proposition. The new text uses the listener's authored
+  voice, decays confidence and salience, and records the exact earlier version
+  as its immutable parent with `hearsay-autonomous-echo-v1` provenance.
+- Autonomous paths stop at hop four, never duplicate a proposition/holder
+  pair, and exclude private confessions, health information, guild records,
+  player decisions, and quiet family help. Hop depth is reconstructed from
+  persisted version edges rather than trusted from transient UI state.
+- Public `rumor_continues` events and restored speech bubbles identify the
+  named speaker, listener, and hop. Hop-two, hop-three, and hop-four versions
+  enter the election audit with geometric distance attenuation plus the
+  carrier-style modifier.
 - Nessa's first principal favor is complete after the storm: accept her dated
   harbor log, deliver it to Elias as evidence, correct Pip's public account,
   and call in Nessa's harbor endorsement. Each step is a consequential,
@@ -394,7 +409,7 @@ Completed:
 
 Validated:
 
-- One hundred nine local API tests pass. Pure election tests cover all six ending
+- One hundred fourteen local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -414,8 +429,11 @@ Validated:
   immediate ambient echo, and exact `15–5` Landslide/`8–12` Narrow-loss
   outcomes, plus both Rhea compact resolutions, candidacy gating, witness/guild
   graph topology, ballot-custody standing, and exact `12–8` Narrow-win/`14–6`
-  Landslide outcomes.
-- Eighteen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  Landslide outcomes. Autonomous tests additionally prove deterministic
+  holder-to-holder continuation, text mutation, co-location, exact parent
+  versions, hop-four termination, duplicate suppression, private-fact
+  exclusion, restoration, and hop-three election attenuation.
+- Nineteen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -447,13 +465,18 @@ Validated:
   `16–4` result.
   The Pip test proves the verified resolution, endorsement, public events,
   player→Kit→Pip/Edda and Pip→Tob routes, four additional Pip→ambient edges,
-  seven source-linked vote inputs, final Pip/Kit/Edda/Tob trust, and restored
-  `15–5` result.
+  ten source-linked vote inputs including later autonomous hops, final
+  Pip/Kit/Edda/Tob trust, and restored `15–5` result.
   The Rhea test proves the challenged resolution, public events,
-  player→Elias→Edda→Tob→Pip witness route and all five branches, ten
+  player→Elias→Edda→Tob→Pip witness route and all five branches, eleven
   source-linked vote inputs, final trust for every holder, and restored `12–8`
   result.
-- Seventeen browser playthroughs pass and collectively reach all six endings. The
+  The autonomous-continuation test queries five
+  `hearsay-autonomous-echo-v1` transmission rows with tick foreign keys, three
+  public continuation events, exact Fen→Orin/Rhea parent versions, Orin's
+  `-0.0125` hop-three vote input, and a non-Pip restored bubble after repository
+  recreation.
+- Eighteen browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -480,17 +503,18 @@ Validated:
   reach `12–8` By One Voice or `9–11` The Tied Bell, and show the exact
   sick-house memory in the election audit.
   Two Elias paths correct or burn Tob's arrest record, refresh the durable
-  resolution, render the legitimacy/witness state and public traits, reach
-  `16–4` The Town Turns or `0–20` The Story Unravels, and show the exact
-  wrongful-arrest memory in the election audit.
+  resolution, render the legitimacy/witness state and public traits, and reach
+  `16–4` The Town Turns or `0–20` The Story Unravels.
   Two Pip paths verify or embellish the tally-sheet source, render a live
   Pip→resident chatter bubble and the matching public traits, reach `15–5` The
-  Town Turns or `8–12` The Tied Bell, and show the exact receipt/ballot-stuffing
-  memory in the election audit.
+  Town Turns or `8–12` The Tied Bell.
   Two Rhea paths challenge or sign the compact, refresh the durable guildhouse
   safeguard, render the matching public traits, reach `12–8` By One Voice or
   `14–6` The Town Turns, and show the exact public-count/sole-custody memory in
   the election audit.
+  The autonomous path visibly creates two Hettie Voss→resident hop-three
+  bubbles, survives reload with both routes intact, and reaches the expected
+  belief-backed `11–9` result.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -499,14 +523,12 @@ Remaining:
 
 - Second principal favors and the broader social, information, and ambition
   verb set remain.
-- General autonomous multi-hop rumor ticks beyond authored principal routes
-  and Pip's immediate ambient fan-out remain.
 - The remaining three-layer event-deck slices beyond storm and public argument
   remain.
 
 ## Next implementation slice
 
-1. Extend rumor ticks beyond Pip's immediate fan-out so co-located holders can
-   autonomously choose and retell salient beliefs on later ticks, with bounded
-   hop depth, visible pair chatter, immutable parent lineage, and real
-   Cockroach replay proof.
+1. Add Market Day as the next complete three-layer event: extra stalls, denser
+   market crowds and audio; deterministic ambient clustering and Bram
+   availability changes; authored resident awareness; durable draw/effect
+   state; refresh-safe rendering; and real Cockroach replay proof.

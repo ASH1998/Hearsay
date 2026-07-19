@@ -1425,6 +1425,24 @@
             "type": "string",
             "title": "Speaker Id"
           },
+          "speaker_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speaker Name"
+          },
+          "hop": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Hop",
+            "default": 2
+          },
           "text": {
             "type": "string",
             "title": "Text"

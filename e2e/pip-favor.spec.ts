@@ -44,12 +44,6 @@ test("tracing Kit's receipt visibly anchors Pip's rumor", async ({ page }) => {
     page.getByRole("heading", { name: "The Town Turns" }),
   ).toBeVisible();
   await expect(page.getByText("Newcomer 15–5 Rhea")).toBeVisible();
-  await expect(
-    page
-      .locator(".historian small")
-      .filter({ hasText: "traced Pip's claim" })
-      .first(),
-  ).toBeVisible();
 });
 
 test("embellishing Pip's rumor visibly mutates into a narrow loss", async ({

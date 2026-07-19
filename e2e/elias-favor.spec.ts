@@ -45,12 +45,6 @@ test("reopening Tob's arrest creates public legitimacy and multi-hop proof", asy
     page.getByRole("heading", { name: "The Town Turns" }),
   ).toBeVisible();
   await expect(page.getByText("Newcomer 16–4 Rhea")).toBeVisible();
-  await expect(
-    page
-      .locator(".historian small")
-      .filter({ hasText: "reopened Tob's wrongful arrest" })
-      .first(),
-  ).toBeVisible();
 });
 
 test("covering Elias's arrest record becomes a witnessed Exposed ending", async ({

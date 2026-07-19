@@ -10,6 +10,7 @@ from pathlib import Path
 from threading import Lock
 from time import perf_counter
 from typing import TYPE_CHECKING, Literal, Protocol, cast
+from uuid import UUID
 
 import structlog
 
@@ -25,12 +26,34 @@ from hearsay_api.schemas import (
     ActionResponse,
     ActionVerb,
     DialogueChoiceState,
+    MemoryLineageResponse,
+    MemoryVersionState,
     RecalledMemory,
 )
 
 EMBEDDING_DIMENSIONS = 384
 TOKEN_PATTERN = re.compile(r"[a-z0-9']+")
 BGE_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+MAX_AUTONOMOUS_RUMOR_HOP = 4
+PUBLIC_AUTONOMOUS_SOURCE_KINDS = frozenset(
+    {
+        "corrected_public_record",
+        "direct_disclosure",
+        "documentary_evidence",
+        "embellished_rumor",
+        "firsthand",
+        "hearsay",
+        "moral_endorsement",
+        "official_record",
+        "player_action",
+        "public_ballot_challenge",
+        "public_guild_compact",
+        "public_health_gossip",
+        "verified_documentary_source",
+        "witnessed_cover_up",
+        "world_event",
+    }
+)
 logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
@@ -281,6 +304,8 @@ class VisibleAmbientEcho:
     listener_id: str
     proposition_key: str
     speaker_id: str
+    speaker_name: str
+    hop: int
     text: str
 
 
@@ -307,6 +332,7 @@ def plan_action_memory(
     dialogue_treatment: DialogueTreatment | None = None,
     promise_transitions: tuple[PromiseTransition, ...] = (),
     town_event_transitions: tuple[str, ...] = (),
+    existing_lineage: MemoryLineageResponse | None = None,
 ) -> MemoryEffects:
     primary = _plan_primary_action_memory(
         request,
@@ -329,15 +355,31 @@ def plan_action_memory(
         embeddings,
         content,
     )
+    autonomous_echoes = (
+        MemoryEffects()
+        if ambient_echoes.beliefs or existing_lineage is None
+        else _plan_autonomous_gossip(
+            existing_lineage,
+            response,
+            embeddings,
+            content,
+        )
+    )
     return MemoryEffects(
-        beliefs=pre_echo_beliefs + ambient_echoes.beliefs,
+        beliefs=pre_echo_beliefs + ambient_echoes.beliefs + autonomous_echoes.beliefs,
         relationships=(primary.relationships + promise.relationships + town_events.relationships),
         gossip_tick_number=(
             primary.gossip_tick_number
             if primary.gossip_tick_number is not None
-            else promise.gossip_tick_number
+            else (
+                promise.gossip_tick_number
+                if promise.gossip_tick_number is not None
+                else autonomous_echoes.gossip_tick_number
+            )
         ),
-        visible_ambient_echoes=ambient_echoes.visible_ambient_echoes,
+        visible_ambient_echoes=(
+            ambient_echoes.visible_ambient_echoes + autonomous_echoes.visible_ambient_echoes
+        ),
     )
 
 
@@ -1670,9 +1712,10 @@ def _plan_ambient_echoes(
     visible_echoes: list[VisibleAmbientEcho] = []
     for listener_id in listeners:
         ambient = content.ambients_by_id[listener_id]
-        retold_text, mutation_note = _retell_ambient_echo(
+        retold_text, mutation_note = _retell_rumor(
             source.narrative_text,
             ambient.echo_style,
+            "Pip",
         )
         text_embedding = embeddings.embed(retold_text)
         echo_beliefs.append(
@@ -1708,6 +1751,8 @@ def _plan_ambient_echoes(
                 listener_id=listener_id,
                 proposition_key=source.proposition_key,
                 speaker_id="pip",
+                speaker_name="Pip",
+                hop=2,
                 text=retold_text,
             )
         )
@@ -1717,46 +1762,213 @@ def _plan_ambient_echoes(
     )
 
 
-def _retell_ambient_echo(
+def _plan_autonomous_gossip(
+    lineage: MemoryLineageResponse,
+    response: ActionResponse,
+    embeddings: EmbeddingProvider,
+    content: GreyhavenContent,
+) -> MemoryEffects:
+    snapshot = response.snapshot
+    if snapshot.election is not None or snapshot.world_tick < 2 or snapshot.action_count % 2 != 0:
+        return MemoryEffects()
+
+    active_versions = [version for version in lineage.versions if version.active]
+    holders_by_proposition: dict[str, set[str]] = {}
+    for version in active_versions:
+        holders_by_proposition.setdefault(version.proposition_key, set()).add(version.holder_id)
+    hop_depths = _lineage_hop_depths(lineage)
+    npc_by_id = {npc.id: npc for npc in snapshot.npcs}
+    candidates: list[tuple[MemoryVersionState, int, list[str]]] = []
+    for source in active_versions:
+        if (
+            source.holder_id not in npc_by_id
+            or source.source_kind not in PUBLIC_AUTONOMOUS_SOURCE_KINDS
+        ):
+            continue
+        source_depth = hop_depths.get((source.belief_id, source.version), 0)
+        if source_depth < 2 or source_depth >= MAX_AUTONOMOUS_RUMOR_HOP:
+            continue
+        speaker = npc_by_id[source.holder_id]
+        listeners = sorted(
+            npc.id
+            for npc in snapshot.npcs
+            if npc.id != source.holder_id
+            and npc.location_id == speaker.location_id
+            and npc.id not in holders_by_proposition[source.proposition_key]
+        )
+        if listeners:
+            candidates.append((source, source_depth, listeners))
+    if not candidates:
+        return MemoryEffects()
+
+    def candidate_rank(
+        candidate: tuple[MemoryVersionState, int, list[str]],
+    ) -> tuple[float, int]:
+        source, depth, _ = candidate
+        score = source.salience * source.confidence - (depth * 0.05)
+        digest = hashlib.blake2b(
+            (
+                f"{snapshot.seed}:{snapshot.world_tick}:{source.proposition_key}:{source.holder_id}"
+            ).encode(),
+            digest_size=8,
+        ).digest()
+        return score, int.from_bytes(digest, "big")
+
+    source, source_depth, listeners = max(candidates, key=candidate_rank)
+    listener_count = min(
+        len(listeners),
+        1 + ((snapshot.seed + snapshot.world_tick + source_depth) % 2),
+    )
+    offset = (snapshot.seed + snapshot.world_tick + source_depth) % len(listeners)
+    selected_listeners = (listeners[offset:] + listeners[:offset])[:listener_count]
+    speaker = npc_by_id[source.holder_id]
+    next_hop = source_depth + 1
+    beliefs: list[PlannedBelief] = []
+    visible_echoes: list[VisibleAmbientEcho] = []
+    for listener_id in selected_listeners:
+        listener = content.residents_by_id[listener_id]
+        retold_text, mutation_note = _retell_rumor(
+            source.narrative_text,
+            listener.echo_style,
+            speaker.name,
+        )
+        text_embedding = embeddings.embed(retold_text)
+        beliefs.append(
+            PlannedBelief(
+                proposition_key=source.proposition_key,
+                subject_kind="rumor",
+                subject_id=None,
+                predicate="autonomous_retelling",
+                holder_id=listener_id,
+                narrative_text=retold_text,
+                normalized_position={
+                    **source.normalized_position,
+                    "echo_hop": next_hop,
+                    "echo_style": listener.echo_style,
+                    "autonomous_retelling": True,
+                },
+                confidence=max(source.confidence - 0.07, 0.1),
+                salience=max(source.salience - 0.1, 0.1),
+                source_kind="hearsay",
+                source_id=source.holder_id,
+                embedding=text_embedding.vector,
+                embedding_model_id=text_embedding.model_id,
+                parent_holder_id=source.holder_id,
+                mutation_note=mutation_note,
+                trust_at_time=0.5,
+                retelling_provider_id="deterministic",
+                retelling_model_id="hearsay-autonomous-echo-v1",
+                inference_attempts=0,
+                inference_latency_ms=0,
+            )
+        )
+        visible_echoes.append(
+            VisibleAmbientEcho(
+                listener_id=listener_id,
+                proposition_key=source.proposition_key,
+                speaker_id=source.holder_id,
+                speaker_name=speaker.name,
+                hop=next_hop,
+                text=retold_text,
+            )
+        )
+    return MemoryEffects(
+        beliefs=tuple(beliefs),
+        gossip_tick_number=snapshot.world_tick,
+        visible_ambient_echoes=tuple(visible_echoes),
+    )
+
+
+def _lineage_hop_depths(
+    lineage: MemoryLineageResponse,
+) -> dict[tuple[UUID, int], int]:
+    incoming = {(edge.to_belief_id, edge.to_version): edge for edge in lineage.transmissions}
+    depths: dict[tuple[UUID, int], int] = {}
+
+    def calculate(key: tuple[UUID, int], visiting: set[tuple[UUID, int]]) -> int:
+        if key in depths:
+            return depths[key]
+        edge = incoming.get(key)
+        if (
+            edge is None
+            or edge.from_belief_id is None
+            or edge.from_version is None
+            or key in visiting
+        ):
+            depths[key] = 0
+            return 0
+        parent_key = (edge.from_belief_id, edge.from_version)
+        depth = calculate(parent_key, visiting | {key}) + 1
+        depths[key] = depth
+        return depth
+
+    for version in lineage.versions:
+        key = (version.belief_id, version.version)
+        calculate(key, set())
+    return depths
+
+
+def _retell_rumor(
     source_text: str,
     style: str,
+    speaker_name: str,
 ) -> tuple[str, str]:
     lowered = source_text[0].lower() + source_text[1:]
     templates = {
         "blunt": (
-            f"Pip says {lowered} That's the whole of it.",
+            f"{speaker_name} says {lowered} That's the whole of it.",
             "A blunt carrier strips the account down to its accusation.",
         ),
         "practical": (
-            f"Pip says {lowered} What matters is who fixes the damage.",
+            f"{speaker_name} says {lowered} What matters is who fixes the damage.",
             "A practical carrier adds a demand for consequences.",
         ),
         "skeptical": (
-            f"Pip claims {lowered} I doubt that is the whole ledger.",
+            f"{speaker_name} claims {lowered} I doubt that is the whole ledger.",
             "A skeptical carrier repeats the claim with visible doubt.",
         ),
         "wry": (
-            f"Pip says {lowered} Funny how every story finds a buyer.",
+            f"{speaker_name} says {lowered} Funny how every story finds a buyer.",
             "A wry carrier turns the account into a joke about reputation.",
         ),
         "cautious": (
-            f"I heard from Pip that {lowered} Mind, hearing is not knowing.",
+            f"I heard from {speaker_name} that {lowered} Mind, hearing is not knowing.",
             "A cautious carrier preserves the claim but lowers its certainty.",
         ),
         "precise": (
-            f"Pip's exact claim is this: {source_text}",
+            f"{speaker_name}'s exact claim is this: {source_text}",
             "A precise carrier preserves the wording and names the source.",
         ),
         "urgent": (
-            f"Quick—Pip says {lowered}",
+            f"Quick—{speaker_name} says {lowered}",
             "An urgent carrier compresses the account into breaking news.",
+        ),
+        "controlled": (
+            f"{speaker_name}'s account is on record: {source_text}",
+            "A controlled carrier formalizes the story and strips away uncertainty.",
+        ),
+        "protective": (
+            f"{speaker_name} says {lowered} Remember there is a person inside that story.",
+            "A protective carrier adds concern for the subject.",
+        ),
+        "sanitized": (
+            f"{speaker_name} puts it carefully: {lowered} Judge the act, not the noise.",
+            "A sanitizing carrier softens accusation into moral language.",
+        ),
+        "sensational": (
+            f"{speaker_name} swears {lowered} And that is only the quiet version.",
+            "A sensational carrier heightens the account for attention.",
+        ),
+        "weaponized": (
+            f"{speaker_name} says {lowered} Ask who profits if you ignore it.",
+            "A weaponizing carrier turns the story into an accusation of motive.",
         ),
     }
     return templates.get(
         style,
         (
-            f"Pip says {lowered}",
-            "The carrier repeats Pip's account without a strong style change.",
+            f"{speaker_name} says {lowered}",
+            "The carrier repeats the account without a strong style change.",
         ),
     )
 

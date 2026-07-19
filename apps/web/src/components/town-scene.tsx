@@ -142,10 +142,8 @@ function AnimatedResident({
           <button className="speech-bubble" type="button" onClick={onClick}>
             {latestEcho ? (
               <small>
-                {latestEcho.speaker_id === "pip"
-                  ? "Pip"
-                  : latestEcho.speaker_id}{" "}
-                → {npc.name}
+                {latestEcho.speaker_name ?? latestEcho.speaker_id} → {npc.name}
+                {" · "}hop {latestEcho.hop}
               </small>
             ) : null}
             {npc.speech}

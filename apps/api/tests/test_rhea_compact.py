@@ -198,7 +198,12 @@ def test_rhea_compact_choices_persist_ballot_custody_and_votes(
         for vote_input in vote.inputs
         if vote_input.key == "rhea-ballot-custody"
     }
-    assert set(compact_inputs) == set(core_contributions)
+    assert set(core_contributions) <= set(compact_inputs)
+    autonomous_voters = set(compact_inputs) - set(core_contributions)
+    assert len(autonomous_voters) == 1
+    autonomous_input = compact_inputs[autonomous_voters.pop()]
+    assert 0 < autonomous_input.contribution < 0.02
+    assert "Rumor hop 3" in autonomous_input.explanation
     for voter_id, contribution in core_contributions.items():
         vote_input = compact_inputs[voter_id]
         assert vote_input.value == resolution

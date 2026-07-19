@@ -256,11 +256,14 @@ def resolve_election(
                         "They remember the player signed Rhea's compact, preserving "
                         "sole guild ballot custody for market support."
                     )
-            if contribution and memory.normalized_position.get("echo_hop") == 2:
+            echo_hop = memory.normalized_position.get("echo_hop")
+            if contribution and isinstance(echo_hop, int) and echo_hop >= 2:
                 echo_style = memory.normalized_position.get("echo_style")
-                contribution *= -0.05 if echo_style == "skeptical" else 0.1
+                style_attenuation = -0.05 if echo_style == "skeptical" else 0.1
+                distance_attenuation = 0.5 ** (echo_hop - 2)
+                contribution *= style_attenuation * distance_attenuation
                 explanation = (
-                    f"Ambient echo, attenuated by distance and carrier style: {explanation}"
+                    f"Rumor hop {echo_hop}, attenuated by distance and carrier style: {explanation}"
                 )
             if not contribution:
                 continue

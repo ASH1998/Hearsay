@@ -545,6 +545,13 @@ export interface components {
             proposition_key: string;
             /** Speaker Id */
             speaker_id: string;
+            /** Speaker Name */
+            speaker_name?: string | null;
+            /**
+             * Hop
+             * @default 2
+             */
+            hop: number;
             /** Text */
             text: string;
         };

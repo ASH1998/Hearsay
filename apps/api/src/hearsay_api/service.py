@@ -286,6 +286,11 @@ class GameService:
                     snapshot,
                     request,
                 )
+            existing_lineage = (
+                self.repository.list_memory_lineage(run_id)
+                if consumed_time and snapshot.action_count % 2 == 0 and snapshot.election is None
+                else None
+            )
 
             response = ActionResponse(
                 action_id=uuid4(),
@@ -301,6 +306,7 @@ class GameService:
                 dialogue_treatment,
                 promise_transitions,
                 town_event_transitions,
+                existing_lineage,
             )
             self._apply_visible_ambient_echoes(
                 snapshot,
@@ -1123,6 +1129,7 @@ class GameService:
         if not echoes:
             return
         listener_names: list[str] = []
+        routes: list[str] = []
         for echo in echoes:
             npc = next(item for item in snapshot.npcs if item.id == echo.listener_id)
             npc.recent_echoes = (
@@ -1131,15 +1138,26 @@ class GameService:
                     NpcEchoState(
                         proposition_key=echo.proposition_key,
                         speaker_id=echo.speaker_id,
+                        speaker_name=echo.speaker_name,
+                        hop=echo.hop,
                         text=echo.text,
                     )
                 ]
             )[-3:]
             npc.speech = echo.text
             listener_names.append(npc.name)
-        chatter_event = cls._event(
-            "ambient_gossip",
-            f"Pip's version reaches {', '.join(listener_names)}.",
+            routes.append(f"{echo.speaker_name}→{npc.name} (hop {echo.hop})")
+        immediate_pip_fanout = all(echo.speaker_id == "pip" and echo.hop == 2 for echo in echoes)
+        chatter_event = (
+            cls._event(
+                "ambient_gossip",
+                f"Pip's version reaches {', '.join(listener_names)}.",
+            )
+            if immediate_pip_fanout
+            else cls._event(
+                "rumor_continues",
+                f"{'; '.join(routes)} carry the story onward.",
+            )
         )
         snapshot.recent_events = (
             snapshot.recent_events[:1] + [chatter_event] + snapshot.recent_events[1:]

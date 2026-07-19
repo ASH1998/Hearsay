@@ -255,6 +255,105 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
     assert "active_memories_retrieval_vector_idx" in "\n".join(str(row[0]) for row in explain_rows)
 
 
+def test_autonomous_later_hops_persist_and_enter_the_vote_audit(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=19))
+    for verb, target in (
+        ("promise_help", "marta"),
+        ("negotiate_bram", "bram"),
+        ("settle_shipment", "bram"),
+        ("talk", "elias"),
+        ("talk", "nessa"),
+        ("talk", "orin"),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    ):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == 12
+    assert election.ending.key == "narrow_win"
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "bram-price-confrontation",
+    )
+    autonomous_edges = [
+        edge for edge in lineage.transmissions if edge.model_id == "hearsay-autonomous-echo-v1"
+    ]
+    assert {
+        ("fen", "orin"),
+        ("fen", "rhea"),
+    } <= {(edge.speaker_id, edge.listener_id) for edge in autonomous_edges}
+    assert all(edge.original_text != edge.retold_text for edge in autonomous_edges)
+    autonomous_versions = [
+        version
+        for version in lineage.versions
+        if version.normalized_position.get("autonomous_retelling") is True
+    ]
+    assert autonomous_versions
+    assert {int(version.normalized_position["echo_hop"]) for version in autonomous_versions} == {3}
+
+    with repository.session_factory() as session:
+        autonomous_rows = list(
+            session.scalars(
+                select(TransmissionModel).where(
+                    TransmissionModel.game_run_id == created.run_id,
+                    TransmissionModel.model_id == "hearsay-autonomous-echo-v1",
+                )
+            )
+        )
+        rumor_event_count = session.scalar(
+            select(func.count())
+            .select_from(EventModel)
+            .where(
+                EventModel.game_run_id == created.run_id,
+                EventModel.kind == "rumor_continues",
+            )
+        )
+        orin_vote_input = session.scalar(
+            select(VoteInputModel)
+            .join(VoteModel, VoteModel.id == VoteInputModel.vote_id)
+            .where(
+                VoteInputModel.game_run_id == created.run_id,
+                VoteModel.voter_id == "orin",
+                VoteInputModel.input_key == "bram-price-confrontation",
+            )
+        )
+
+    assert len(autonomous_rows) == 5
+    assert all(row.tick_id is not None for row in autonomous_rows)
+    assert rumor_event_count == 3
+    assert orin_vote_input is not None
+    assert orin_vote_input.contribution == pytest.approx(-0.0125)
+    assert orin_vote_input.belief_id is not None
+    assert orin_vote_input.belief_version == 1
+    assert "Rumor hop 3" in orin_vote_input.explanation
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.election == election
+    assert any(
+        echo.hop == 3 and echo.speaker_id != "pip"
+        for npc in restored.npcs
+        for echo in npc.recent_echoes
+    )
+
+
 def test_concurrent_conflicting_claims_preserve_both_inputs_and_one_active_state(
     repository: CockroachRunRepository,
 ) -> None:
@@ -1164,15 +1263,23 @@ def test_pip_source_verification_persists_mutation_graph_and_votes(
                             "pip_source_entrusted",
                             "pip_source_verified",
                             "ambient_gossip",
+                            "rumor_continues",
                         )
                     ),
                 )
             )
         )
 
-    assert len(source_inputs) == 7
+    assert len(source_inputs) == 10
     assert {item.input_value for item in source_inputs} == {"verified_source"}
     assert all(item.belief_id is not None for item in source_inputs)
+    autonomous_inputs = [
+        item
+        for item in source_inputs
+        if "Rumor hop 3" in item.explanation or "Rumor hop 4" in item.explanation
+    ]
+    assert len(autonomous_inputs) == 3
+    assert all(abs(item.contribution) < 0.025 for item in autonomous_inputs)
     assert trust_by_resident == {
         "pip": pytest.approx(0.85),
         "kit": pytest.approx(0.7),
@@ -1183,6 +1290,7 @@ def test_pip_source_verification_persists_mutation_graph_and_votes(
         "pip_source_entrusted",
         "pip_source_verified",
         "ambient_gossip",
+        "rumor_continues",
     }
 
     replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
@@ -1295,15 +1403,19 @@ def test_rhea_ballot_challenge_persists_witness_graph_and_votes(
                             "rhea_compact_offered",
                             "rhea_ballot_challenged",
                             "public_argument_begins",
+                            "rumor_continues",
                         )
                     ),
                 )
             )
         )
 
-    assert len(compact_inputs) == 10
+    assert len(compact_inputs) == 11
     assert {item.input_value for item in compact_inputs} == {"challenged"}
     assert all(item.belief_id is not None for item in compact_inputs)
+    autonomous_inputs = [item for item in compact_inputs if "Rumor hop" in item.explanation]
+    assert len(autonomous_inputs) == 1
+    assert autonomous_inputs[0].contribution == pytest.approx(0.015)
     assert trust_by_resident == {
         "rhea": pytest.approx(0.15),
         "elias": pytest.approx(0.75),
@@ -1320,6 +1432,7 @@ def test_rhea_ballot_challenge_persists_witness_graph_and_votes(
         "rhea_compact_offered",
         "rhea_ballot_challenged",
         "public_argument_begins",
+        "rumor_continues",
     }
 
     replacement = CockroachRunRepository(TEST_DATABASE_URL or "")

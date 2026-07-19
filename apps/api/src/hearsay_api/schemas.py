@@ -95,6 +95,8 @@ class NpcState(BaseModel):
 class NpcEchoState(BaseModel):
     proposition_key: str
     speaker_id: str
+    speaker_name: str | None = None
+    hop: int = Field(default=2, ge=1, le=4)
     text: str
 
 

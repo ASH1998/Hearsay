@@ -23,7 +23,8 @@
       "color": "#d86f45",
       "opening": "Bram has my shipment tied up at the docks. Help me before evening, and I won't forget it.",
       "voter_bias": 0.0,
-      "schedule_id": "marta"
+      "schedule_id": "marta",
+      "echo_style": "practical"
     },
     {
       "id": "elias",
@@ -33,7 +34,8 @@
       "color": "#496e8f",
       "opening": "Greyhaven keeps its own order. See that you don't disturb it.",
       "voter_bias": -0.35,
-      "schedule_id": "elias"
+      "schedule_id": "elias",
+      "echo_style": "cautious"
     },
     {
       "id": "orin",
@@ -43,7 +45,8 @@
       "color": "#806f8e",
       "opening": "Words have a longer life than their speakers.",
       "voter_bias": -0.2,
-      "schedule_id": "orin"
+      "schedule_id": "orin",
+      "echo_style": "sanitized"
     },
     {
       "id": "nessa",
@@ -53,7 +56,8 @@
       "color": "#2b8c86",
       "opening": "The tide answers to nobody, least of all merchants.",
       "voter_bias": -0.1,
-      "schedule_id": "nessa"
+      "schedule_id": "nessa",
+      "echo_style": "blunt"
     },
     {
       "id": "bram",
@@ -63,7 +67,8 @@
       "color": "#b68b37",
       "opening": "Triple is simply what urgency costs.",
       "voter_bias": -0.55,
-      "schedule_id": "bram"
+      "schedule_id": "bram",
+      "echo_style": "weaponized"
     },
     {
       "id": "talia",
@@ -73,7 +78,8 @@
       "color": "#6c9b63",
       "opening": "Most troubles improve when someone arrives before being asked.",
       "voter_bias": 0.05,
-      "schedule_id": "talia"
+      "schedule_id": "talia",
+      "echo_style": "protective"
     },
     {
       "id": "pip",
@@ -83,7 +89,8 @@
       "color": "#bf5979",
       "opening": "You're the newcomer with the royal purse, aren't you? Or was it a royal warrant?",
       "voter_bias": -0.15,
-      "schedule_id": "pip"
+      "schedule_id": "pip",
+      "echo_style": "sensational"
     },
     {
       "id": "rhea",
@@ -93,7 +100,8 @@
       "color": "#8a4a42",
       "opening": "Elections in three days. The town could use a fresh name—or a useful fool.",
       "voter_bias": -1.0,
-      "schedule_id": "rhea"
+      "schedule_id": "rhea",
+      "echo_style": "controlled"
     }
   ],
   "ambients": [

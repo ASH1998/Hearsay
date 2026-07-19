@@ -42,6 +42,16 @@ def test_greyhaven_content_references_are_complete() -> None:
     }
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6
+    assert {principal.echo_style for principal in content.principals} == {
+        "blunt",
+        "cautious",
+        "controlled",
+        "practical",
+        "protective",
+        "sanitized",
+        "sensational",
+        "weaponized",
+    }
     assert all(location.neighbors for location in content.locations)
     assert {
         content.scheduled_location(resident.id, day, phase)
@@ -65,6 +75,14 @@ def test_content_rejects_malformed_resident_schedule() -> None:
     payload["schedule_templates"][0]["days"][0].pop()
 
     with pytest.raises(ValidationError, match="three days"):
+        GreyhavenContent.model_validate(payload)
+
+
+def test_content_rejects_unknown_resident_echo_style() -> None:
+    payload = load_content().model_dump(mode="json")
+    payload["principals"][0]["echo_style"] = "unbounded"
+
+    with pytest.raises(ValidationError, match="unsupported echo styles"):
         GreyhavenContent.model_validate(payload)
 
 

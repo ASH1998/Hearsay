@@ -28,6 +28,7 @@ class ResidentContent(BaseModel):
     opening: str
     voter_bias: float = Field(ge=-1, le=1)
     schedule_id: str
+    echo_style: str
 
 
 class PrincipalContent(ResidentContent):
@@ -35,7 +36,7 @@ class PrincipalContent(ResidentContent):
 
 
 class AmbientContent(ResidentContent):
-    echo_style: str
+    pass
 
 
 class EndingContent(BaseModel):
@@ -220,6 +221,29 @@ class GreyhavenContent(BaseModel):
                 raise ValueError(
                     f"Resident {resident.id} has unknown location {resident.location}."
                 )
+        supported_echo_styles = {
+            "blunt",
+            "cautious",
+            "controlled",
+            "precise",
+            "practical",
+            "protective",
+            "sanitized",
+            "sensational",
+            "skeptical",
+            "urgent",
+            "weaponized",
+            "wry",
+        }
+        invalid_echo_styles = {
+            resident.echo_style
+            for resident in self.residents
+            if resident.echo_style not in supported_echo_styles
+        }
+        if invalid_echo_styles:
+            raise ValueError(
+                f"Residents use unsupported echo styles: {sorted(invalid_echo_styles)}."
+            )
         schedule_ids = [schedule.id for schedule in self.schedule_templates]
         if len(schedule_ids) != len(set(schedule_ids)):
             raise ValueError("Schedule template IDs must be unique.")
