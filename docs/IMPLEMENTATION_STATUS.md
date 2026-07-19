@@ -357,10 +357,26 @@ Completed:
   and Pip fans the account to four proximity listeners. The cover-up instead
   preserves player→Tob→Marta/Pip witness lineage, so the destroyed page remains
   reconstructable.
+- Pip's first favor now entrusts the player with a precise but suspicious fact:
+  Kit delivered sealed replacement tally sheets to Rhea after the polls closed,
+  and the receipt calls them a clerical correction despite no public notice.
+  The Ledger forces one information choice: trace Kit's receipt and Edda's stamp
+  check, or knowingly replace tally sheets with an unsupported ballot-box claim.
+- Verification derives Reliable and Influential, stores Pip's endorsement,
+  raises Pip/Kit/Edda/Tob standing, and carries player→Kit→Pip/Edda and Pip→Tob
+  memories into four exact vote inputs and a `15–5` Landslide. Embellishment
+  derives Influential and Troublemaker, damages Kit/Marta confidence, and sends
+  distinct versions through Pip→Tob→Marta, Pip→Hettie→Cal, and Tob→Del before
+  the ordinary Pip proximity tick adds visible ambient listeners, producing an
+  audited `8–12` Narrow loss.
+- Both paths render an actual Pip→resident speech bubble during play and preserve
+  favor resolution, relationships, traits, endorsement, explicit parent graph,
+  ambient echo, vote inputs, events, and final outcome through refresh and
+  repository recreation.
 
 Validated:
 
-- One hundred three local API tests pass. Pure election tests cover all six ending
+- One hundred six local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -375,8 +391,11 @@ Validated:
   sick-house resolutions, private/public transmission routes, mutually
   exclusive state, family standing, exact `12–8`/`9–11` outcomes, both
   wrongful-arrest resolutions, authored multi-hop parents, legitimacy standing,
-  and exact `16–4` Landslide/`0–20` Exposed outcomes.
-- Sixteen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  exact `16–4` Landslide/`0–20` Exposed outcomes, both Pip source resolutions,
+  their mutually exclusive state, explicit mutation topology, source standing,
+  immediate ambient echo, and exact `15–5` Landslide/`8–12` Narrow-loss
+  outcomes.
+- Seventeen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -406,7 +425,11 @@ Validated:
   events, Elias→Tob→Marta and Tob→Pip→ambient transmission routes,
   belief-backed votes, final `0.80`/`0.80`/`0.65`/`0.65` trust, and restored
   `16–4` result.
-- Thirteen browser playthroughs pass and collectively reach all six endings. The
+  The Pip test proves the verified resolution, endorsement, public events,
+  player→Kit→Pip/Edda and Pip→Tob routes, four additional Pip→ambient edges,
+  seven source-linked vote inputs, final Pip/Kit/Edda/Tob trust, and restored
+  `15–5` result.
+- Fifteen browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -436,18 +459,23 @@ Validated:
   resolution, render the legitimacy/witness state and public traits, reach
   `16–4` The Town Turns or `0–20` The Story Unravels, and show the exact
   wrongful-arrest memory in the election audit.
+  Two Pip paths verify or embellish the tally-sheet source, render a live
+  Pip→resident chatter bubble and the matching public traits, reach `15–5` The
+  Town Turns or `8–12` The Tied Bell, and show the exact receipt/ballot-stuffing
+  memory in the election audit.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
 
 Remaining:
 
-- Additional principal favors and information/ambition verbs remain.
+- Rhea's principal favor plus the remaining second favors and ambition verbs
+  remain.
 - General autonomous multi-hop rumor ticks beyond authored principal routes
   and Pip's immediate ambient fan-out remain.
 
 ## Next implementation slice
 
-1. Add Pip's first source-tracing favor with verify/embellish information
-   choices, visible multi-hop rumor mutation, durable lineage, and election
+1. Add Rhea's first ballot-control confrontation with challenge/deal choices,
+   visible guildhouse consequences, durable evidence lineage, and election
    effects.

@@ -94,6 +94,11 @@ ELIAS_WRONGFUL_ARREST_CHOICE_VERBS = {
     ActionVerb.COVER_ELIAS_ARREST,
 }
 
+PIP_SOURCE_CHOICE_VERBS = {
+    ActionVerb.VERIFY_PIP_SOURCE,
+    ActionVerb.EMBELLISH_PIP_RUMOR,
+}
+
 
 class GameService:
     def __init__(
@@ -844,6 +849,65 @@ class GameService:
             snapshot.dialogue = DialogueState(
                 speaker_id="elias",
                 speaker_name="Elias Ward",
+                text=favor_choice.dialogue,
+            )
+            return self._event(favor_choice.event_kind, favor_choice.event_text)
+        if request.verb == ActionVerb.ACCEPT_PIP_FAVOR:
+            if request.target_id != "pip":
+                raise InvalidActionError("The ballot-source favor comes from Pip.")
+            if any(favor.key == "pip_ballot_source" for favor in snapshot.favors):
+                raise InvalidActionError("You already answered Pip's source request.")
+            content = self.content.favors_by_id["pip_ballot_source"]
+            snapshot.favors.append(
+                FavorState(
+                    id=uuid4(),
+                    key=content.id,
+                    giver_id=content.giver_id,
+                    content=content.content,
+                )
+            )
+            self._require_npc(snapshot, "kit").speech = (
+                "I delivered sealed tally sheets after closing. I kept the receipt."
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="pip",
+                speaker_name="Pip Marr",
+                text=content.accept_dialogue,
+            )
+            return self._event(
+                "pip_source_entrusted",
+                "Pip gives you Kit's after-hours tally-sheet claim to verify or sharpen.",
+            )
+        if request.verb in PIP_SOURCE_CHOICE_VERBS:
+            if request.target_id != "pip":
+                raise InvalidActionError("Resolve Pip's source request with Pip present.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "pip_ballot_source"
+                ),
+                None,
+            )
+            if favor is None or favor.status != "active":
+                raise InvalidActionError("There is no unresolved ballot-source rumor.")
+            favor_choice = self.content.favor_choices_by_verb[request.verb.value]
+            favor.status = "completed"
+            favor.resolution = favor_choice.resolution
+            for resident_id, delta in favor_choice.relationship_deltas.items():
+                resident = self._require_npc(snapshot, resident_id)
+                resident.relationship = max(
+                    -100,
+                    min(100, resident.relationship + delta),
+                )
+            self._add_traits(snapshot, *favor_choice.traits)
+            if favor_choice.grants_endorsement:
+                snapshot.player.endorsements.append("pip")
+            for resident_id, speech in favor_choice.resident_speeches.items():
+                self._require_npc(snapshot, resident_id).speech = speech
+            snapshot.dialogue = DialogueState(
+                speaker_id="pip",
+                speaker_name="Pip Marr",
                 text=favor_choice.dialogue,
             )
             return self._event(favor_choice.event_kind, favor_choice.event_text)

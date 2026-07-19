@@ -1281,6 +1281,175 @@ def _plan_primary_action_memory(
             ),
         )
 
+    if request.verb == ActionVerb.ACCEPT_PIP_FAVOR:
+        fact = content.favors_by_id["pip_ballot_source"].correction_text
+        pip_text = (
+            "Pip gave the player Kit's claim that sealed replacement tally "
+            "sheets reached Rhea after the polls closed."
+        )
+        pip_embedding = embeddings.embed(pip_text)
+        player_embedding = embeddings.embed(fact)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="pip-rhea-ballot-source",
+                    subject_kind="favor",
+                    subject_id="pip_ballot_source",
+                    predicate="rhea_received_after_hours_tally_sheets",
+                    holder_id="pip",
+                    narrative_text=pip_text,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "replacement_tally_sheets": True,
+                        "ballot_stuffing": False,
+                    },
+                    confidence=0.72,
+                    salience=0.95,
+                    source_kind="unverified_source",
+                    source_id="kit",
+                    embedding=pip_embedding.vector,
+                    embedding_model_id=pip_embedding.model_id,
+                ),
+                PlannedBelief(
+                    proposition_key="pip-rhea-ballot-source",
+                    subject_kind="favor",
+                    subject_id="pip_ballot_source",
+                    predicate="rhea_received_after_hours_tally_sheets",
+                    holder_id="player",
+                    narrative_text=fact,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "replacement_tally_sheets": True,
+                        "ballot_stuffing": False,
+                    },
+                    confidence=0.72,
+                    salience=0.95,
+                    source_kind="unverified_source",
+                    source_id="pip",
+                    embedding=player_embedding.vector,
+                    embedding_model_id=player_embedding.model_id,
+                    parent_holder_id="pip",
+                    mutation_note="Pip passes Kit's claim to the player without a receipt.",
+                    trust_at_time=0.55,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-source-lead-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            ),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="pip",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.1,
+                ),
+            ),
+        )
+
+    if request.verb in {
+        ActionVerb.VERIFY_PIP_SOURCE,
+        ActionVerb.EMBELLISH_PIP_RUMOR,
+    }:
+        favor_choice = content.favor_choices_by_verb[request.verb.value]
+        resolution = favor_choice.resolution
+        player_text = (
+            "The player traced Kit's receipt and verified that Rhea received "
+            "replacement tally sheets after polls closed."
+            if resolution == "verified_source"
+            else (
+                "The player invented a ballot box and told Pip that Rhea "
+                "stuffed it after midnight."
+            )
+        )
+        player_embedding = embeddings.embed(player_text)
+        source_beliefs: list[PlannedBelief] = [
+            PlannedBelief(
+                proposition_key="pip-rhea-ballot-source",
+                subject_kind="favor",
+                subject_id="pip_ballot_source",
+                predicate="rhea_received_after_hours_tally_sheets",
+                holder_id="player",
+                narrative_text=player_text,
+                normalized_position={
+                    "resolution": resolution,
+                    "replacement_tally_sheets": True,
+                    "ballot_stuffing": resolution == "embellished",
+                },
+                confidence=1.0,
+                salience=1.0,
+                source_kind="player_decision",
+                source_id="player",
+                embedding=player_embedding.vector,
+                embedding_model_id=player_embedding.model_id,
+            )
+        ]
+        for holder_id, contribution in (
+            favor_choice.holder_election_contributions.items()
+        ):
+            text_embedding = embeddings.embed(favor_choice.memory_text)
+            parent_holder_id = favor_choice.transmission_parents[holder_id]
+            source_beliefs.append(
+                PlannedBelief(
+                    proposition_key="pip-rhea-ballot-source",
+                    subject_kind="favor",
+                    subject_id="pip_ballot_source",
+                    predicate="rhea_received_after_hours_tally_sheets",
+                    holder_id=holder_id,
+                    narrative_text=favor_choice.memory_text,
+                    normalized_position={
+                        "resolution": resolution,
+                        "replacement_tally_sheets": True,
+                        "ballot_stuffing": resolution == "embellished",
+                        "election_contribution": contribution,
+                    },
+                    confidence=(
+                        0.98
+                        if resolution == "verified_source"
+                        else (0.68 if holder_id != "kit" else 1.0)
+                    ),
+                    salience=1.0,
+                    source_kind=(
+                        "verified_documentary_source"
+                        if resolution == "verified_source"
+                        else "embellished_rumor"
+                    ),
+                    source_id=parent_holder_id,
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
+                    parent_holder_id=parent_holder_id,
+                    mutation_note=(
+                        "Kit's receipt anchors each retelling to the verified claim."
+                        if resolution == "verified_source"
+                        else (
+                            "The carrier preserves the invented ballot box while "
+                            "moving the accusation farther from Kit's receipt."
+                        )
+                    ),
+                    trust_at_time=0.75 if resolution == "verified_source" else 0.5,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id=f"hearsay-ballot-source-{resolution}-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                )
+            )
+        return MemoryEffects(
+            beliefs=tuple(source_beliefs),
+            relationships=tuple(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id=resident_id,
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=delta / 100,
+                    affinity_delta=delta / 200,
+                )
+                for resident_id, delta in favor_choice.relationship_deltas.items()
+            ),
+            gossip_tick_number=response.snapshot.world_tick,
+        )
+
     if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
         text = (
             "The newcomer addressed Greyhaven as a candidate, but Pip thought "

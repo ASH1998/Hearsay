@@ -475,6 +475,9 @@
           "accept_elias_favor",
           "investigate_elias_arrest",
           "cover_elias_arrest",
+          "accept_pip_favor",
+          "verify_pip_source",
+          "embellish_pip_rumor",
           "give_square_speech",
           "sleep"
         ],
@@ -964,7 +967,9 @@
                   "helped_quietly",
                   "gossiped_publicly",
                   "investigated",
-                  "covered_up"
+                  "covered_up",
+                  "verified_source",
+                  "embellished"
                 ]
               },
               {

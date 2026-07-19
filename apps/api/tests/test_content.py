@@ -25,6 +25,7 @@ def test_greyhaven_content_references_are_complete() -> None:
         "orin_election_confession",
         "talia_sick_house",
         "elias_wrongful_arrest",
+        "pip_ballot_source",
     }
     assert {
         choice.action_verb
@@ -36,6 +37,8 @@ def test_greyhaven_content_references_are_complete() -> None:
         "gossip_oswin_illness",
         "investigate_elias_arrest",
         "cover_elias_arrest",
+        "verify_pip_source",
+        "embellish_pip_rumor",
     }
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6

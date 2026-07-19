@@ -314,6 +314,8 @@ export function GameShell() {
                   ? "✚"
                   : favor.key === "elias_wrongful_arrest"
                     ? "⚖"
+                    : favor.key === "pip_ballot_source"
+                      ? "☞"
                   : "⚓"}
             </span>
             <div>
@@ -324,6 +326,8 @@ export function GameShell() {
                     ? "Talia's sick-house request"
                     : favor.key === "elias_wrongful_arrest"
                       ? "Elias's omitted arrest correction"
+                      : favor.key === "pip_ballot_source"
+                        ? "Pip's ballot source"
                     : "Nessa's harbor log"}
               </strong>
               <p>{favor.content}</p>
@@ -346,6 +350,12 @@ export function GameShell() {
                         : favor.resolution === "covered_up"
                           ? "Correction destroyed · Tob witnessed it"
                           : "Unresolved · reopen or bury the old arrest"
+                      : favor.key === "pip_ballot_source"
+                        ? favor.resolution === "verified_source"
+                          ? "Source verified · Kit's receipt anchors the story"
+                          : favor.resolution === "embellished"
+                            ? "Embellished publicly · unsupported detail spreading"
+                            : "Unresolved · verify the source or sharpen the rumor"
                     : favor.corrected_publicly
                       ? "Corrected publicly · endorsement available"
                       : favor.status === "completed"
@@ -765,6 +775,41 @@ export function GameShell() {
                 >
                   Correct the storm rumor
                 </button>
+              ) : null}
+              {selectedNpc.id === "pip" &&
+              !snapshot.favors.some(
+                (favor) => favor.key === "pip_ballot_source",
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("accept_pip_favor", "pip")}
+                  type="button"
+                >
+                  Ask for Pip&apos;s ballot source
+                </button>
+              ) : null}
+              {selectedNpc.id === "pip" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "pip_ballot_source" &&
+                  favor.status === "active",
+              ) ? (
+                <>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("verify_pip_source", "pip")}
+                    type="button"
+                  >
+                    Trace Kit&apos;s receipt
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("embellish_pip_rumor", "pip")}
+                    type="button"
+                  >
+                    Make it ballot stuffing
+                  </button>
+                </>
               ) : null}
               {selectedNpc.id === "nessa" &&
               snapshot.favors.some(

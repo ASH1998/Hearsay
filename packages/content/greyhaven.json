@@ -437,6 +437,14 @@
       "accept_dialogue": "I jailed Tob for taking the guild seal on Rhea's word. The seal turned up in her desk the next morning. I released him and left the correction out of my ledger. Find the truth fit for record—or help me keep order.",
       "complete_dialogue": "A constable's mistake can be corrected, concealed, or inherited by everyone who trusts the ledger.",
       "correction_text": "Elias jailed Tob Rill for stealing the guild seal, but the seal was found in Rhea's desk and the correction never entered the constable ledger."
+    },
+    {
+      "id": "pip_ballot_source",
+      "giver_id": "pip",
+      "content": "Decide whether to verify Kit's replacement-tally delivery or embellish it into a ballot-stuffing accusation for Pip.",
+      "accept_dialogue": "Kit carried sealed replacement tally sheets to Rhea after the polls closed. There is a receipt, which is useful, and a silence around it, which is better. Verify the source—or give me the version Greyhaven will repeat.",
+      "complete_dialogue": "A source is where a story begins. A headline is where responsibility usually ends.",
+      "correction_text": "Kit Wren delivered sealed replacement tally sheets to Rhea after polls closed; the receipt calls them a clerical correction, but no public notice was posted."
     }
   ],
   "favor_choices": [
@@ -643,6 +651,85 @@
         "will": "elias"
       },
       "traits": ["Dishonest"],
+      "grants_endorsement": false
+    },
+    {
+      "favor_id": "pip_ballot_source",
+      "action_verb": "verify_pip_source",
+      "label": "Trace Kit's receipt",
+      "resolution": "verified_source",
+      "dialogue": "Kit kept the receipt, Edda checked the guild stamp, and now even I have to use the true version. Try not to look so pleased.",
+      "event_kind": "pip_source_verified",
+      "event_text": "You trace Pip's claim to Kit's receipt and Edda verifies the guild stamp on Rhea's after-hours tally sheets.",
+      "memory_text": "The player traced Pip's claim to Kit's receipt: Rhea received sealed replacement tally sheets after polls closed, officially marked as a clerical correction.",
+      "resident_speeches": {
+        "pip": "Kit's receipt is real. Replacement tally sheets, after closing, marked clerical correction.",
+        "kit": "I delivered the packet. I kept the receipt because Rhea asked me not to.",
+        "edda": "The guild stamp is genuine. Suspicion may begin there; invention may not."
+      },
+      "relationship_deltas": {
+        "pip": 25,
+        "kit": 20,
+        "edda": 20,
+        "tob": 10
+      },
+      "holder_election_contributions": {
+        "kit": 0.45,
+        "pip": 0.4,
+        "edda": 0.4,
+        "tob": 0.25
+      },
+      "transmission_parents": {
+        "kit": "player",
+        "pip": "kit",
+        "edda": "kit",
+        "tob": "pip"
+      },
+      "traits": ["Reliable", "Influential"],
+      "grants_endorsement": true
+    },
+    {
+      "favor_id": "pip_ballot_source",
+      "action_verb": "embellish_pip_rumor",
+      "label": "Make it ballot stuffing",
+      "resolution": "embellished",
+      "dialogue": "Ballots instead of tally sheets. Stuffed instead of delivered. Much stronger legs. Kit will hate it, but hatred is still attention.",
+      "event_kind": "pip_rumor_embellished",
+      "event_text": "You tell Pip that Rhea stuffed a ballot box after midnight. The unsupported detail crosses the square immediately.",
+      "memory_text": "The player turned Kit's tally-sheet delivery into an unsupported accusation that Rhea stuffed a ballot box after midnight.",
+      "resident_speeches": {
+        "pip": "Rhea stuffed a ballot box after midnight—Kit carried it, or near enough for a proper story.",
+        "kit": "I carried tally sheets, not ballots. The newcomer knew the difference.",
+        "tob": "Pip says ballot box. Kit says tally sheets. Someone paid for the sharper noun."
+      },
+      "relationship_deltas": {
+        "pip": 30,
+        "tob": 15,
+        "marta": -20,
+        "kit": -25,
+        "hettie": 10,
+        "cal": 10,
+        "del": 10
+      },
+      "holder_election_contributions": {
+        "pip": 0.45,
+        "tob": 0.3,
+        "marta": -0.35,
+        "hettie": 0.5,
+        "cal": 0.4,
+        "del": 0.25,
+        "kit": -0.45
+      },
+      "transmission_parents": {
+        "pip": "player",
+        "tob": "pip",
+        "marta": "tob",
+        "hettie": "pip",
+        "cal": "hettie",
+        "del": "tob",
+        "kit": "player"
+      },
+      "traits": ["Influential", "Troublemaker"],
       "grants_endorsement": false
     }
   ],

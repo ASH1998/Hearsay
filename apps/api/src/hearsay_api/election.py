@@ -234,6 +234,27 @@ def resolve_election(
                         "They remember the player helped Elias destroy the "
                         "correction that cleared Tob Rill."
                     )
+            elif proposition_key == "pip-rhea-ballot-source":
+                resolution = memory.normalized_position.get("resolution")
+                value = resolution if isinstance(resolution, str) else None
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else 0.0
+                )
+                if value == "verified_source":
+                    explanation = (
+                        "They remember the player traced Pip's claim to Kit's "
+                        "receipt for Rhea's after-hours tally sheets."
+                    )
+                else:
+                    explanation = (
+                        "They remember the player embellished Kit's tally-sheet "
+                        "delivery into an unsupported ballot-stuffing rumor."
+                    )
             if (
                 contribution
                 and memory.normalized_position.get("echo_hop") == 2

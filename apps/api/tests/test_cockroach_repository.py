@@ -1121,6 +1121,122 @@ def test_elias_investigation_persists_multihop_legitimacy_and_votes(
     assert restored.election == election
 
 
+def test_pip_source_verification_persists_mutation_graph_and_votes(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=163))
+    for verb, target in (
+        ("accept_pip_favor", "pip"),
+        ("verify_pip_source", "pip"),
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    ):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == 15
+    assert election.ending.key == "landslide"
+    assert result.snapshot.favors[0].resolution == "verified_source"
+    assert result.snapshot.player.endorsements == ["pip"]
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "pip-rhea-ballot-source",
+    )
+    assert {"pip", "player", "kit", "edda", "tob"} <= {
+        version.holder_id
+        for version in lineage.versions
+    }
+    transmission_edges = {
+        (edge.speaker_id, edge.listener_id)
+        for edge in lineage.transmissions
+    }
+    assert {
+        ("pip", "player"),
+        ("player", "kit"),
+        ("kit", "pip"),
+        ("kit", "edda"),
+        ("pip", "tob"),
+    } <= transmission_edges
+    assert len(
+        [
+            edge
+            for edge in lineage.transmissions
+            if edge.speaker_id == "pip"
+            and edge.listener_id not in {"player", "tob"}
+        ]
+    ) == 4
+
+    with repository.session_factory() as session:
+        source_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "pip-rhea-ballot-source",
+                )
+            )
+        )
+        trust_by_resident = {
+            resident_id: session.scalar(
+                select(RelationshipModel.trust).where(
+                    RelationshipModel.game_run_id == created.run_id,
+                    RelationshipModel.a_id == resident_id,
+                    RelationshipModel.b_id == "player",
+                )
+            )
+            for resident_id in ("pip", "kit", "edda", "tob")
+        }
+        event_kinds = set(
+            session.scalars(
+                select(EventModel.kind).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind.in_(
+                        (
+                            "pip_source_entrusted",
+                            "pip_source_verified",
+                            "ambient_gossip",
+                        )
+                    ),
+                )
+            )
+        )
+
+    assert len(source_inputs) == 7
+    assert {item.input_value for item in source_inputs} == {"verified_source"}
+    assert all(item.belief_id is not None for item in source_inputs)
+    assert trust_by_resident == {
+        "pip": pytest.approx(0.85),
+        "kit": pytest.approx(0.7),
+        "edda": pytest.approx(0.7),
+        "tob": pytest.approx(0.6),
+    }
+    assert event_kinds == {
+        "pip_source_entrusted",
+        "pip_source_verified",
+        "ambient_gossip",
+    }
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.favors == result.snapshot.favors
+    assert restored.player.endorsements == ["pip"]
+    assert restored.election == election
+
+
 def test_square_speech_persists_audited_ten_ten_loss(
     repository: CockroachRunRepository,
 ) -> None:

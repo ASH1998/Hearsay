@@ -50,6 +50,9 @@ class ActionVerb(StrEnum):
     ACCEPT_ELIAS_FAVOR = "accept_elias_favor"
     INVESTIGATE_ELIAS_ARREST = "investigate_elias_arrest"
     COVER_ELIAS_ARREST = "cover_elias_arrest"
+    ACCEPT_PIP_FAVOR = "accept_pip_favor"
+    VERIFY_PIP_SOURCE = "verify_pip_source"
+    EMBELLISH_PIP_RUMOR = "embellish_pip_rumor"
     GIVE_SQUARE_SPEECH = "give_square_speech"
     SLEEP = "sleep"
 
@@ -115,6 +118,8 @@ class FavorState(BaseModel):
         "gossiped_publicly",
         "investigated",
         "covered_up",
+        "verified_source",
+        "embellished",
     ] | None = None
 
 
