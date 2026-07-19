@@ -322,11 +322,7 @@ def plan_action_memory(
         embeddings,
     )
     town_events = _plan_town_event_transitions(town_event_transitions)
-    pre_echo_beliefs = (
-        primary.beliefs
-        + promise.beliefs
-        + town_events.beliefs
-    )
+    pre_echo_beliefs = primary.beliefs + promise.beliefs + town_events.beliefs
     ambient_echoes = _plan_ambient_echoes(
         pre_echo_beliefs,
         response,
@@ -335,11 +331,7 @@ def plan_action_memory(
     )
     return MemoryEffects(
         beliefs=pre_echo_beliefs + ambient_echoes.beliefs,
-        relationships=(
-            primary.relationships
-            + promise.relationships
-            + town_events.relationships
-        ),
+        relationships=(primary.relationships + promise.relationships + town_events.relationships),
         gossip_tick_number=(
             primary.gossip_tick_number
             if primary.gossip_tick_number is not None
@@ -542,9 +534,7 @@ def _plan_primary_action_memory(
     if request.verb in argument_choice_verbs:
         choice = content.argument_choices_by_verb[request.verb.value]
         beliefs: list[PlannedBelief] = []
-        for holder_id, contribution in (
-            choice.holder_election_contributions.items()
-        ):
+        for holder_id, contribution in choice.holder_election_contributions.items():
             narrative = choice.memory_text
             text_embedding = embeddings.embed(narrative)
             beliefs.append(
@@ -592,10 +582,7 @@ def _plan_primary_action_memory(
         )
 
     if request.verb == ActionVerb.ACCEPT_NESSA_FAVOR:
-        text = (
-            "Nessa entrusted the player with the storm-dated harbor log "
-            "to show Constable Elias."
-        )
+        text = "Nessa entrusted the player with the storm-dated harbor log to show Constable Elias."
         embedded = embeddings.embed(text)
         return MemoryEffects(
             beliefs=(
@@ -701,9 +688,7 @@ def _plan_primary_action_memory(
                     embedding=embedded.vector,
                     embedding_model_id=embedded.model_id,
                     parent_holder_id="elias",
-                    mutation_note=(
-                        "The player preserves Elias's evidence-backed correction."
-                    ),
+                    mutation_note=("The player preserves Elias's evidence-backed correction."),
                     trust_at_time=0.9,
                     retelling_provider_id="deterministic",
                     retelling_model_id="hearsay-evidence-correction-v1",
@@ -718,9 +703,7 @@ def _plan_primary_action_memory(
             "Nessa publicly endorsed the player for proving the storm protected "
             "crews rather than abandoned cargo."
         )
-        dock_text = (
-            "Nessa says the newcomer brought proof when the harbor was being blamed."
-        )
+        dock_text = "Nessa says the newcomer brought proof when the harbor was being blamed."
         nessa_embedding = embeddings.embed(nessa_text)
         dock_embedding = embeddings.embed(dock_text)
         return MemoryEffects(
@@ -857,9 +840,7 @@ def _plan_primary_action_memory(
         ActionVerb.REVEAL_ORIN_CONFESSION,
         ActionVerb.CONCEAL_ORIN_CONFESSION,
     }:
-        confession_choice = content.favor_choices_by_verb[
-            request.verb.value
-        ]
+        confession_choice = content.favor_choices_by_verb[request.verb.value]
         resolution = confession_choice.resolution
         player_text = (
             f"The player chose to {resolution.removesuffix('ed')} Orin's "
@@ -886,9 +867,7 @@ def _plan_primary_action_memory(
                 embedding_model_id=player_embedding.model_id,
             )
         ]
-        for holder_id, contribution in (
-            confession_choice.holder_election_contributions.items()
-        ):
+        for holder_id, contribution in confession_choice.holder_election_contributions.items():
             text_embedding = embeddings.embed(confession_choice.memory_text)
             parent_holder_id = confession_choice.transmission_parents[holder_id]
             confession_beliefs.append(
@@ -907,9 +886,7 @@ def _plan_primary_action_memory(
                     confidence=1.0 if holder_id in {"orin", "elias"} else 0.94,
                     salience=1.0,
                     source_kind=(
-                        "direct_disclosure"
-                        if resolution == "revealed"
-                        else "moral_endorsement"
+                        "direct_disclosure" if resolution == "revealed" else "moral_endorsement"
                     ),
                     source_id=parent_holder_id,
                     embedding=text_embedding.vector,
@@ -938,9 +915,7 @@ def _plan_primary_action_memory(
                     trust_delta=delta / 100,
                     affinity_delta=delta / 200,
                 )
-                for resident_id, delta in (
-                    confession_choice.relationship_deltas.items()
-                )
+                for resident_id, delta in (confession_choice.relationship_deltas.items())
             ),
             gossip_tick_number=(
                 response.snapshot.world_tick
@@ -1023,8 +998,7 @@ def _plan_primary_action_memory(
         favor_choice = content.favor_choices_by_verb[request.verb.value]
         resolution = favor_choice.resolution
         player_text = (
-            "The player quietly delivered Talia's draught and kept Oswin's "
-            "ordinary fever private."
+            "The player quietly delivered Talia's draught and kept Oswin's ordinary fever private."
             if resolution == "helped_quietly"
             else (
                 "The player told Pip that Oswin had an ordinary fever, "
@@ -1053,9 +1027,7 @@ def _plan_primary_action_memory(
                 embedding_model_id=player_embedding.model_id,
             )
         ]
-        for holder_id, contribution in (
-            favor_choice.holder_election_contributions.items()
-        ):
+        for holder_id, contribution in favor_choice.holder_election_contributions.items():
             text_embedding = embeddings.embed(favor_choice.memory_text)
             parent_holder_id = favor_choice.transmission_parents[holder_id]
             sick_house_beliefs.append(
@@ -1219,9 +1191,7 @@ def _plan_primary_action_memory(
                 embedding_model_id=player_embedding.model_id,
             )
         ]
-        for holder_id, contribution in (
-            favor_choice.holder_election_contributions.items()
-        ):
+        for holder_id, contribution in favor_choice.holder_election_contributions.items():
             text_embedding = embeddings.embed(favor_choice.memory_text)
             parent_holder_id = favor_choice.transmission_parents[holder_id]
             arrest_beliefs.append(
@@ -1359,8 +1329,7 @@ def _plan_primary_action_memory(
             "replacement tally sheets after polls closed."
             if resolution == "verified_source"
             else (
-                "The player invented a ballot box and told Pip that Rhea "
-                "stuffed it after midnight."
+                "The player invented a ballot box and told Pip that Rhea stuffed it after midnight."
             )
         )
         player_embedding = embeddings.embed(player_text)
@@ -1385,9 +1354,7 @@ def _plan_primary_action_memory(
                 embedding_model_id=player_embedding.model_id,
             )
         ]
-        for holder_id, contribution in (
-            favor_choice.holder_election_contributions.items()
-        ):
+        for holder_id, contribution in favor_choice.holder_election_contributions.items():
             text_embedding = embeddings.embed(favor_choice.memory_text)
             parent_holder_id = favor_choice.transmission_parents[holder_id]
             source_beliefs.append(
@@ -1519,11 +1486,7 @@ def _plan_ambient_echoes(
     snapshot = response.snapshot
     if snapshot.world_tick == 0 or snapshot.action_count % 2 != 0:
         return MemoryEffects()
-    pip_sources = [
-        belief
-        for belief in beliefs
-        if belief.holder_id == "pip"
-    ]
+    pip_sources = [belief for belief in beliefs if belief.holder_id == "pip"]
     if not pip_sources:
         return MemoryEffects()
     source = max(pip_sources, key=lambda belief: belief.salience)
@@ -1531,8 +1494,7 @@ def _plan_ambient_echoes(
     candidates = sorted(
         npc.id
         for npc in snapshot.npcs
-        if npc.id in content.ambients_by_id
-        and npc.location_id == pip.location_id
+        if npc.id in content.ambients_by_id and npc.location_id == pip.location_id
     )
     if not candidates:
         return MemoryEffects()
@@ -1542,10 +1504,7 @@ def _plan_ambient_echoes(
         2 + ((snapshot.seed + snapshot.world_tick) % 3),
     )
     offset = (snapshot.seed + snapshot.world_tick) % len(candidates)
-    listeners = (
-        candidates[offset:]
-        + candidates[:offset]
-    )[:hop_count]
+    listeners = (candidates[offset:] + candidates[:offset])[:hop_count]
     echo_beliefs: list[PlannedBelief] = []
     visible_echoes: list[VisibleAmbientEcho] = []
     for listener_id in listeners:
@@ -1745,9 +1704,7 @@ def _plan_promise_transitions(
         beliefs=tuple(beliefs),
         relationships=tuple(relationships),
         gossip_tick_number=(
-            response.snapshot.world_tick
-            if beliefs and response.snapshot.world_tick > 0
-            else None
+            response.snapshot.world_tick if beliefs and response.snapshot.world_tick > 0 else None
         ),
     )
 
@@ -1796,9 +1753,7 @@ def derive_dialogue_treatment(
         )
 
     promise_memories = [
-        memory
-        for memory in memories
-        if memory.proposition_key == "player-promise-marta-shipment"
+        memory for memory in memories if memory.proposition_key == "player-promise-marta-shipment"
     ]
     promise_status = next(
         (

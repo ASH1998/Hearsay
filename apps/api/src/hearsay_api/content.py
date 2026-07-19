@@ -144,10 +144,7 @@ class FavorChoiceContent(BaseModel):
         }.get(self.action_verb)
         if expected_resolution is not None and self.resolution != expected_resolution:
             raise ValueError("Favor action and resolution must agree.")
-        if any(
-            delta < -100 or delta > 100
-            for delta in self.relationship_deltas.values()
-        ):
+        if any(delta < -100 or delta > 100 for delta in self.relationship_deltas.values()):
             raise ValueError("Favor relationship deltas must be within -100..100.")
         if any(
             contribution < -1 or contribution > 1
@@ -222,10 +219,7 @@ class GreyhavenContent(BaseModel):
         schedule_ids = [schedule.id for schedule in self.schedule_templates]
         if len(schedule_ids) != len(set(schedule_ids)):
             raise ValueError("Schedule template IDs must be unique.")
-        schedules_by_id = {
-            schedule.id: schedule
-            for schedule in self.schedule_templates
-        }
+        schedules_by_id = {schedule.id: schedule for schedule in self.schedule_templates}
         for resident in self.residents:
             if resident.schedule_id not in schedules_by_id:
                 raise ValueError(
@@ -250,23 +244,16 @@ class GreyhavenContent(BaseModel):
         }
         ending_ids = {ending.id for ending in self.endings}
         if ending_ids != required_endings:
-            raise ValueError(
-                "Greyhaven must define exactly the six authoritative endings."
-            )
+            raise ValueError("Greyhaven must define exactly the six authoritative endings.")
         required_bram_approaches = {
             "threaten_bram",
             "flatter_bram",
             "negotiate_bram",
             "lie_to_bram",
         }
-        approach_verbs = {
-            approach.action_verb
-            for approach in self.bram_approaches
-        }
+        approach_verbs = {approach.action_verb for approach in self.bram_approaches}
         if approach_verbs != required_bram_approaches:
-            raise ValueError(
-                "Bram must define threaten, flatter, negotiate, and lie approaches."
-            )
+            raise ValueError("Bram must define threaten, flatter, negotiate, and lie approaches.")
         for approach in self.bram_approaches:
             unknown_traits = set(approach.traits) - set(self.public_traits)
             if unknown_traits:
@@ -287,13 +274,10 @@ class GreyhavenContent(BaseModel):
                 event.schedule_location_override is not None
                 and event.schedule_location_override not in known_locations
             ):
-                raise ValueError(
-                    f"Town event {event.id} has an unknown schedule override."
-                )
-            unknown_residents = (
-                set(event.active_awareness)
-                | set(event.resolved_awareness)
-            ) - set(resident_ids)
+                raise ValueError(f"Town event {event.id} has an unknown schedule override.")
+            unknown_residents = (set(event.active_awareness) | set(event.resolved_awareness)) - set(
+                resident_ids
+            )
             if unknown_residents:
                 raise ValueError(
                     f"Town event {event.id} has unknown aware residents: "
@@ -304,28 +288,16 @@ class GreyhavenContent(BaseModel):
             "side_with_nessa",
             "calm_argument",
         }
-        argument_verbs = {
-            choice.action_verb
-            for choice in self.argument_choices
-        }
+        argument_verbs = {choice.action_verb for choice in self.argument_choices}
         if argument_verbs != required_argument_choices:
-            raise ValueError(
-                "The public argument requires Bram, Nessa, and calm choices."
-            )
+            raise ValueError("The public argument requires Bram, Nessa, and calm choices.")
         for choice in self.argument_choices:
             if choice.dialogue_speaker_id not in resident_ids:
-                raise ValueError(
-                    f"Argument choice {choice.action_verb} has an unknown speaker."
-                )
+                raise ValueError(f"Argument choice {choice.action_verb} has an unknown speaker.")
             unknown_traits = set(choice.traits) - set(self.public_traits)
-            unknown_holders = (
-                set(choice.holder_election_contributions)
-                - set(resident_ids)
-            )
+            unknown_holders = set(choice.holder_election_contributions) - set(resident_ids)
             if unknown_traits or unknown_holders:
-                raise ValueError(
-                    f"Argument choice {choice.action_verb} has invalid references."
-                )
+                raise ValueError(f"Argument choice {choice.action_verb} has invalid references.")
         favor_ids = [favor.id for favor in self.favors]
         if len(favor_ids) != len(set(favor_ids)):
             raise ValueError("Favor IDs must be unique.")
@@ -354,10 +326,7 @@ class GreyhavenContent(BaseModel):
             "verify_pip_source",
             "embellish_pip_rumor",
         }
-        favor_choice_verbs = {
-            choice.action_verb
-            for choice in self.favor_choices
-        }
+        favor_choice_verbs = {choice.action_verb for choice in self.favor_choices}
         if favor_choice_verbs != required_favor_choices:
             raise ValueError(
                 "Authored favors require Orin's reveal/conceal and "
@@ -366,27 +335,17 @@ class GreyhavenContent(BaseModel):
             )
         for favor_choice in self.favor_choices:
             unknown_traits = set(favor_choice.traits) - set(self.public_traits)
-            unknown_relationships = (
-                set(favor_choice.relationship_deltas)
-                - set(resident_ids)
-            )
-            unknown_holders = (
-                set(favor_choice.holder_election_contributions)
-                - set(resident_ids)
-            )
+            unknown_relationships = set(favor_choice.relationship_deltas) - set(resident_ids)
+            unknown_holders = set(favor_choice.holder_election_contributions) - set(resident_ids)
             unknown_speakers = set(favor_choice.resident_speeches) - set(resident_ids)
-            unknown_parent_holders = (
-                set(favor_choice.transmission_parents)
-                - set(favor_choice.holder_election_contributions)
+            unknown_parent_holders = set(favor_choice.transmission_parents) - set(
+                favor_choice.holder_election_contributions
             )
             unknown_parents = (
-                set(favor_choice.transmission_parents.values())
-                - set(resident_ids)
-                - {"player"}
+                set(favor_choice.transmission_parents.values()) - set(resident_ids) - {"player"}
             )
-            missing_parent_routes = (
-                set(favor_choice.holder_election_contributions)
-                - set(favor_choice.transmission_parents)
+            missing_parent_routes = set(favor_choice.holder_election_contributions) - set(
+                favor_choice.transmission_parents
             )
             available_parents = {"player"}
             invalid_parent_order = False
@@ -406,9 +365,7 @@ class GreyhavenContent(BaseModel):
                 or missing_parent_routes
                 or invalid_parent_order
             ):
-                raise ValueError(
-                    f"Favor choice {favor_choice.action_verb} has invalid references."
-                )
+                raise ValueError(f"Favor choice {favor_choice.action_verb} has invalid references.")
         return self
 
     @property
@@ -437,10 +394,7 @@ class GreyhavenContent(BaseModel):
 
     @property
     def bram_approaches_by_verb(self) -> dict[str, BramApproachContent]:
-        return {
-            approach.action_verb: approach
-            for approach in self.bram_approaches
-        }
+        return {approach.action_verb: approach for approach in self.bram_approaches}
 
     @property
     def town_events_by_id(self) -> dict[str, TownEventContent]:
@@ -448,10 +402,7 @@ class GreyhavenContent(BaseModel):
 
     @property
     def argument_choices_by_verb(self) -> dict[str, ArgumentChoiceContent]:
-        return {
-            choice.action_verb: choice
-            for choice in self.argument_choices
-        }
+        return {choice.action_verb: choice for choice in self.argument_choices}
 
     @property
     def favors_by_id(self) -> dict[str, FavorContent]:
@@ -459,17 +410,11 @@ class GreyhavenContent(BaseModel):
 
     @property
     def favor_choices_by_verb(self) -> dict[str, FavorChoiceContent]:
-        return {
-            choice.action_verb: choice
-            for choice in self.favor_choices
-        }
+        return {choice.action_verb: choice for choice in self.favor_choices}
 
     @property
     def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:
-        return {
-            schedule.id: schedule
-            for schedule in self.schedule_templates
-        }
+        return {schedule.id: schedule for schedule in self.schedule_templates}
 
     def scheduled_location(
         self,

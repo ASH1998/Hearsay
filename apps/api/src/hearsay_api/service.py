@@ -200,10 +200,7 @@ class GameService:
         for attempt in range(self.max_concurrency_retries + 1):
             snapshot = self._hydrate_content(self.repository.get(run_id))
             town_event_transitions: tuple[str, ...] = ()
-            promise_status_before = {
-                promise.id: promise.status
-                for promise in snapshot.promises
-            }
+            promise_status_before = {promise.id: promise.status for promise in snapshot.promises}
             if snapshot.status != "active":
                 raise InvalidActionError("This run has already ended.")
 
@@ -213,10 +210,7 @@ class GameService:
             if consumed_time:
                 self._advance_clock(snapshot, request.verb)
                 town_event_events = self._update_town_events(snapshot)
-                town_event_transitions = tuple(
-                    event.kind
-                    for event in town_event_events
-                )
+                town_event_transitions = tuple(event.kind for event in town_event_events)
                 schedule_event = self._apply_schedules(snapshot)
                 promise_events = self._resolve_expired_promises(snapshot)
                 transition_events = list(town_event_events)
@@ -506,19 +500,14 @@ class GameService:
                 (
                     event
                     for event in snapshot.town_events
-                    if event.key == "public_argument"
-                    and event.status == "active"
+                    if event.key == "public_argument" and event.status == "active"
                 ),
                 None,
             )
             if argument is None:
-                raise InvalidActionError(
-                    "Bram and Nessa are not currently arguing in the square."
-                )
+                raise InvalidActionError("Bram and Nessa are not currently arguing in the square.")
             if snapshot.player.argument_choice is not None:
-                raise InvalidActionError(
-                    "You already chose how to answer the public argument."
-                )
+                raise InvalidActionError("You already chose how to answer the public argument.")
             choice = self.content.argument_choices_by_verb[request.verb.value]
             snapshot.player.argument_choice = request.verb.value
             bram = self._require_npc(snapshot, "bram")
@@ -579,11 +568,7 @@ class GameService:
             if request.target_id != "elias":
                 raise InvalidActionError("Nessa's harbor log must go to Elias.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "nessa_harbor_log"
-                ),
+                (item for item in snapshot.favors if item.key == "nessa_harbor_log"),
                 None,
             )
             if favor is None or favor.status != "active":
@@ -608,11 +593,7 @@ class GameService:
             if request.target_id != "pip":
                 raise InvalidActionError("Correct the storm rumor with Pip.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "nessa_harbor_log"
-                ),
+                (item for item in snapshot.favors if item.key == "nessa_harbor_log"),
                 None,
             )
             if favor is None or favor.status != "completed":
@@ -636,11 +617,7 @@ class GameService:
             if request.target_id != "nessa":
                 raise InvalidActionError("Ask Nessa for the harbor endorsement.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "nessa_harbor_log"
-                ),
+                (item for item in snapshot.favors if item.key == "nessa_harbor_log"),
                 None,
             )
             if favor is None or not favor.corrected_publicly:
@@ -663,10 +640,7 @@ class GameService:
         if request.verb == ActionVerb.ACCEPT_ORIN_CONFESSION:
             if request.target_id != "orin":
                 raise InvalidActionError("Orin's confession can only be accepted from Orin.")
-            if any(
-                favor.key == "orin_election_confession"
-                for favor in snapshot.favors
-            ):
+            if any(favor.key == "orin_election_confession" for favor in snapshot.favors):
                 raise InvalidActionError("You already accepted Orin's confidence.")
             content = self.content.favors_by_id["orin_election_confession"]
             snapshot.favors.append(
@@ -690,37 +664,24 @@ class GameService:
             if request.target_id != "orin":
                 raise InvalidActionError("Resolve Orin's confidence with Orin present.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "orin_election_confession"
-                ),
+                (item for item in snapshot.favors if item.key == "orin_election_confession"),
                 None,
             )
             if favor is None or favor.status != "active":
                 raise InvalidActionError("There is no unresolved confession in your care.")
-            confession_choice = self.content.favor_choices_by_verb[
-                request.verb.value
-            ]
+            confession_choice = self.content.favor_choices_by_verb[request.verb.value]
             favor.status = "completed"
             favor.resolution = confession_choice.resolution
-            for resident_id, delta in (
-                confession_choice.relationship_deltas.items()
-            ):
+            for resident_id, delta in confession_choice.relationship_deltas.items():
                 resident = self._require_npc(snapshot, resident_id)
                 resident.relationship = max(
                     -100,
                     min(100, resident.relationship + delta),
                 )
             self._add_traits(snapshot, *confession_choice.traits)
-            if (
-                confession_choice.grants_endorsement
-                and "orin" not in snapshot.player.endorsements
-            ):
+            if confession_choice.grants_endorsement and "orin" not in snapshot.player.endorsements:
                 snapshot.player.endorsements.append("orin")
-            for resident_id, speech in (
-                confession_choice.resident_speeches.items()
-            ):
+            for resident_id, speech in confession_choice.resident_speeches.items():
                 self._require_npc(snapshot, resident_id).speech = speech
             snapshot.dialogue = DialogueState(
                 speaker_id="orin",
@@ -745,9 +706,9 @@ class GameService:
                     content=content.content,
                 )
             )
-            self._require_npc(snapshot, "oswin").speech = (
-                "Talia says the fever is ordinary. Pip will make it a plague by noon."
-            )
+            self._require_npc(
+                snapshot, "oswin"
+            ).speech = "Talia says the fever is ordinary. Pip will make it a plague by noon."
             snapshot.dialogue = DialogueState(
                 speaker_id="talia",
                 speaker_name="Talia Fen",
@@ -761,11 +722,7 @@ class GameService:
             if request.target_id != "talia":
                 raise InvalidActionError("Resolve Talia's request with Talia present.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "talia_sick_house"
-                ),
+                (item for item in snapshot.favors if item.key == "talia_sick_house"),
                 None,
             )
             if favor is None or favor.status != "active":
@@ -793,10 +750,7 @@ class GameService:
         if request.verb == ActionVerb.ACCEPT_ELIAS_FAVOR:
             if request.target_id != "elias":
                 raise InvalidActionError("The wrongful-arrest favor comes from Elias.")
-            if any(
-                favor.key == "elias_wrongful_arrest"
-                for favor in snapshot.favors
-            ):
+            if any(favor.key == "elias_wrongful_arrest" for favor in snapshot.favors):
                 raise InvalidActionError("You already answered Elias's old-arrest request.")
             content = self.content.favors_by_id["elias_wrongful_arrest"]
             snapshot.favors.append(
@@ -807,9 +761,9 @@ class GameService:
                     content=content.content,
                 )
             )
-            self._require_npc(snapshot, "tob").speech = (
-                "Elias released me. He never wrote why the guild seal proved me innocent."
-            )
+            self._require_npc(
+                snapshot, "tob"
+            ).speech = "Elias released me. He never wrote why the guild seal proved me innocent."
             snapshot.dialogue = DialogueState(
                 speaker_id="elias",
                 speaker_name="Elias Ward",
@@ -823,11 +777,7 @@ class GameService:
             if request.target_id != "elias":
                 raise InvalidActionError("Resolve the old arrest with Elias present.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "elias_wrongful_arrest"
-                ),
+                (item for item in snapshot.favors if item.key == "elias_wrongful_arrest"),
                 None,
             )
             if favor is None or favor.status != "active":
@@ -866,9 +816,9 @@ class GameService:
                     content=content.content,
                 )
             )
-            self._require_npc(snapshot, "kit").speech = (
-                "I delivered sealed tally sheets after closing. I kept the receipt."
-            )
+            self._require_npc(
+                snapshot, "kit"
+            ).speech = "I delivered sealed tally sheets after closing. I kept the receipt."
             snapshot.dialogue = DialogueState(
                 speaker_id="pip",
                 speaker_name="Pip Marr",
@@ -882,11 +832,7 @@ class GameService:
             if request.target_id != "pip":
                 raise InvalidActionError("Resolve Pip's source request with Pip present.")
             favor = next(
-                (
-                    item
-                    for item in snapshot.favors
-                    if item.key == "pip_ballot_source"
-                ),
+                (item for item in snapshot.favors if item.key == "pip_ballot_source"),
                 None,
             )
             if favor is None or favor.status != "active":
@@ -951,9 +897,7 @@ class GameService:
 
     def _bram_approach(self, verb: ActionVerb) -> BramApproachContent:
         content_verb = (
-            ActionVerb.NEGOTIATE_BRAM.value
-            if verb == ActionVerb.CONFRONT
-            else verb.value
+            ActionVerb.NEGOTIATE_BRAM.value if verb == ActionVerb.CONFRONT else verb.value
         )
         return self.content.bram_approaches_by_verb[content_verb]
 
@@ -981,6 +925,7 @@ class GameService:
             snapshot.phase = "evening"
         else:
             snapshot.phase = "night"
+
     def _apply_schedules(self, snapshot: RunSnapshot) -> WorldEvent | None:
         destinations: dict[str, int] = {}
         moved = 0
@@ -1009,10 +954,7 @@ class GameService:
         )
         return self._event(
             "schedule_shift",
-            (
-                f"{snapshot.phase.title()} routines move {moved} residents: "
-                f"{destination_summary}."
-            ),
+            (f"{snapshot.phase.title()} routines move {moved} residents: {destination_summary}."),
         )
 
     def _scheduled_location(
@@ -1045,20 +987,10 @@ class GameService:
         current_time = snapshot.day * 4 + phase_order[snapshot.phase]
         events: list[WorldEvent] = []
         for event_content in self.content.town_events:
-            start_time = (
-                event_content.start_day * 4
-                + phase_order[event_content.start_phase]
-            )
-            end_time = (
-                event_content.end_day * 4
-                + phase_order[event_content.end_phase]
-            )
+            start_time = event_content.start_day * 4 + phase_order[event_content.start_phase]
+            end_time = event_content.end_day * 4 + phase_order[event_content.end_phase]
             state = next(
-                (
-                    item
-                    for item in snapshot.town_events
-                    if item.key == event_content.id
-                ),
+                (item for item in snapshot.town_events if item.key == event_content.id),
                 None,
             )
             if state is None and current_time >= start_time:
@@ -1084,11 +1016,7 @@ class GameService:
                         event_content.start_text,
                     )
                 )
-            if (
-                state is not None
-                and state.status == "active"
-                and current_time >= end_time
-            ):
+            if state is not None and state.status == "active" and current_time >= end_time:
                 state.status = "resolved"
                 state.resolved_day = event_content.end_day
                 state.resolved_phase = cast(
@@ -1109,8 +1037,7 @@ class GameService:
         snapshot.weather = (
             "rain"
             if any(
-                event.status == "active" and event.key == "storm"
-                for event in snapshot.town_events
+                event.status == "active" and event.key == "storm" for event in snapshot.town_events
             )
             else "clear"
         )
@@ -1135,11 +1062,7 @@ class GameService:
             return
         listener_names: list[str] = []
         for echo in echoes:
-            npc = next(
-                item
-                for item in snapshot.npcs
-                if item.id == echo.listener_id
-            )
+            npc = next(item for item in snapshot.npcs if item.id == echo.listener_id)
             npc.recent_echoes = (
                 npc.recent_echoes
                 + [
@@ -1157,9 +1080,7 @@ class GameService:
             f"Pip's version reaches {', '.join(listener_names)}.",
         )
         snapshot.recent_events = (
-            snapshot.recent_events[:1]
-            + [chatter_event]
-            + snapshot.recent_events[1:]
+            snapshot.recent_events[:1] + [chatter_event] + snapshot.recent_events[1:]
         )[:8]
 
     @staticmethod
@@ -1167,34 +1088,23 @@ class GameService:
         snapshot.world_tick += 1
         pip = next(npc for npc in snapshot.npcs if npc.id == "pip")
         storm_active = any(
-            event.key == "storm" and event.status == "active"
-            for event in snapshot.town_events
+            event.key == "storm" and event.status == "active" for event in snapshot.town_events
         )
         argument_active = any(
-            event.key == "public_argument"
-            and event.status == "active"
+            event.key == "public_argument" and event.status == "active"
             for event in snapshot.town_events
         )
-        if storm_active and any(
-            promise.status == "broken"
-            for promise in snapshot.promises
-        ):
+        if storm_active and any(promise.status == "broken" for promise in snapshot.promises):
             pip.speech = (
                 "The storm drove everyone inside to hear how evening exposed "
                 "the newcomer's empty word."
             )
-        elif storm_active and any(
-            promise.status == "kept"
-            for promise in snapshot.promises
-        ):
+        elif storm_active and any(promise.status == "kept" for promise in snapshot.promises):
             pip.speech = (
-                "Even through the storm, Marta's crates are moving. "
-                "The newcomer paid Bram's price."
+                "Even through the storm, Marta's crates are moving. The newcomer paid Bram's price."
             )
         elif storm_active:
-            pip.speech = (
-                "Nessa's boats stayed in. Bram says that makes every late crate her fault."
-            )
+            pip.speech = "Nessa's boats stayed in. Bram says that makes every late crate her fault."
         elif argument_active:
             pip.speech = (
                 "Bram blames Nessa for the storm. "
@@ -1224,12 +1134,9 @@ class GameService:
         }
         events: list[WorldEvent] = []
         for promise in snapshot.promises:
-            deadline_reached = (
-                snapshot.day > promise.deadline_day
-                or (
-                    snapshot.day == promise.deadline_day
-                    and phase_order[snapshot.phase] >= phase_order[promise.deadline_phase]
-                )
+            deadline_reached = snapshot.day > promise.deadline_day or (
+                snapshot.day == promise.deadline_day
+                and phase_order[snapshot.phase] >= phase_order[promise.deadline_phase]
             )
             if promise.status != "active" or not deadline_reached:
                 continue

@@ -46,26 +46,23 @@ def test_settling_shipment_keeps_promise_spreads_memory_and_changes_treatment() 
         created.run_id,
         "player-promise-marta-shipment",
     )
-    marta_versions = [
-        version
-        for version in lineage.versions
-        if version.holder_id == "marta"
-    ]
+    marta_versions = [version for version in lineage.versions if version.holder_id == "marta"]
     assert [version.version for version in marta_versions] == [1, 2]
     assert [version.active for version in marta_versions] == [False, True]
     assert marta_versions[-1].normalized_position["promise_status"] == "kept"
     assert any(version.holder_id == "pip" for version in lineage.versions)
-    assert len(
-        [
-            transmission
-            for transmission in lineage.transmissions
-            if transmission.speaker_id == "marta"
-        ]
-    ) == 1
+    assert (
+        len(
+            [
+                transmission
+                for transmission in lineage.transmissions
+                if transmission.speaker_id == "marta"
+            ]
+        )
+        == 1
+    )
     ambient_transmissions = [
-        transmission
-        for transmission in lineage.transmissions
-        if transmission.speaker_id == "pip"
+        transmission for transmission in lineage.transmissions if transmission.speaker_id == "pip"
     ]
     assert 2 <= len(ambient_transmissions) <= 4
 

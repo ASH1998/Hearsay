@@ -27,10 +27,7 @@ def test_greyhaven_content_references_are_complete() -> None:
         "elias_wrongful_arrest",
         "pip_ballot_source",
     }
-    assert {
-        choice.action_verb
-        for choice in content.favor_choices
-    } == {
+    assert {choice.action_verb for choice in content.favor_choices} == {
         "reveal_orin_confession",
         "conceal_orin_confession",
         "help_oswin_quietly",
@@ -78,11 +75,7 @@ def test_content_requires_every_authored_bram_approach() -> None:
 
 def test_content_requires_never_cut_storm() -> None:
     payload = load_content().model_dump(mode="json")
-    payload["town_events"] = [
-        event
-        for event in payload["town_events"]
-        if event["id"] != "storm"
-    ]
+    payload["town_events"] = [event for event in payload["town_events"] if event["id"] != "storm"]
 
     with pytest.raises(ValidationError, match="never-cut storm"):
         GreyhavenContent.model_validate(payload)

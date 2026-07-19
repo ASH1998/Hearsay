@@ -81,8 +81,7 @@ def test_kept_promise_produces_explainable_winning_election() -> None:
     promise_input = next(
         item
         for item in marta_vote.inputs
-        if item.kind == "belief"
-        and item.key == "player-promise-marta-shipment"
+        if item.kind == "belief" and item.key == "player-promise-marta-shipment"
     )
     assert promise_input.value == "kept"
     assert promise_input.belief_id is not None

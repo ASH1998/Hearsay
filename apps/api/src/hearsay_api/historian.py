@@ -107,8 +107,7 @@ class CockroachCloudMcpTransport:
             await session.initialize()
             result = await session.list_tools()
             return tuple(
-                McpTool(name=tool.name, input_schema=tool.inputSchema)
-                for tool in result.tools
+                McpTool(name=tool.name, input_schema=tool.inputSchema) for tool in result.tools
             )
 
     async def call_tool(
@@ -135,10 +134,7 @@ class CockroachCloudMcpTransport:
                 raise HistorianUnavailableError("Managed MCP tool returned an error.")
             return {
                 "structured_content": result.structuredContent,
-                "content": [
-                    block.model_dump(mode="json")
-                    for block in result.content
-                ],
+                "content": [block.model_dump(mode="json") for block in result.content],
             }
 
 
@@ -232,9 +228,7 @@ class HistorianService:
 
         if fallback_reason is None:
             fallback_reason = (
-                "managed_mcp_not_configured"
-                if self.provider_mode == "auto"
-                else "fallback_forced"
+                "managed_mcp_not_configured" if self.provider_mode == "auto" else "fallback_forced"
             )
         lineage = self.repository.list_memory_lineage(
             run_id,

@@ -37,35 +37,22 @@ def test_public_argument_stages_square_damages_factions_and_clears() -> None:
 
     started = reach_argument(service, created.run_id)
 
-    event = next(
-        event
-        for event in started.snapshot.town_events
-        if event.key == "public_argument"
-    )
+    event = next(event for event in started.snapshot.town_events if event.key == "public_argument")
     assert event.status == "active"
     assert started.snapshot.day == 2
     assert started.snapshot.phase == "afternoon"
     assert {npc.location_id for npc in started.snapshot.npcs} == {"square"}
     assert started.snapshot.recent_events[1].kind == "public_argument_begins"
     assert "drowned sailors" in (
-        next(npc for npc in started.snapshot.npcs if npc.id == "pip").speech
-        or ""
+        next(npc for npc in started.snapshot.npcs if npc.id == "pip").speech or ""
     )
 
     calmed = act(service, created.run_id, "calm_argument")
     assert calmed.snapshot.player.argument_choice == "calm_argument"
     assert calmed.snapshot.player.traits == ["Influential"]
     assert calmed.snapshot.recent_events[0].kind == "argument_calmed"
-    assert next(
-        npc.relationship
-        for npc in calmed.snapshot.npcs
-        if npc.id == "bram"
-    ) == 10
-    assert next(
-        npc.relationship
-        for npc in calmed.snapshot.npcs
-        if npc.id == "nessa"
-    ) == 10
+    assert next(npc.relationship for npc in calmed.snapshot.npcs if npc.id == "bram") == 10
+    assert next(npc.relationship for npc in calmed.snapshot.npcs if npc.id == "nessa") == 10
 
     lineage = service.get_memory_lineage(
         created.run_id,
@@ -76,19 +63,16 @@ def test_public_argument_stages_square_damages_factions_and_clears() -> None:
         "nessa",
         "pip",
     }
-    assert {
-        version.normalized_position["choice"]
-        for version in lineage.versions
-    } == {"calm_argument"}
+    assert {version.normalized_position["choice"] for version in lineage.versions} == {
+        "calm_argument"
+    }
 
     with pytest.raises(InvalidActionError, match="already chose"):
         act(service, created.run_id, "side_with_bram")
 
     cleared = act(service, created.run_id, "sleep")
     argument = next(
-        event
-        for event in cleared.snapshot.town_events
-        if event.key == "public_argument"
+        event for event in cleared.snapshot.town_events if event.key == "public_argument"
     )
     assert argument.status == "resolved"
     assert cleared.snapshot.day == 3
@@ -118,16 +102,13 @@ def test_each_argument_choice_changes_standing_and_vote_memory(
     chosen = act(service, created.run_id, verb)
 
     assert chosen.snapshot.player.traits == traits
-    assert next(
-        npc.relationship
-        for npc in chosen.snapshot.npcs
-        if npc.id == "bram"
-    ) == bram_standing
-    assert next(
-        npc.relationship
-        for npc in chosen.snapshot.npcs
-        if npc.id == "nessa"
-    ) == nessa_standing
+    assert (
+        next(npc.relationship for npc in chosen.snapshot.npcs if npc.id == "bram") == bram_standing
+    )
+    assert (
+        next(npc.relationship for npc in chosen.snapshot.npcs if npc.id == "nessa")
+        == nessa_standing
+    )
 
     act(service, created.run_id, "sleep")
     election_result = act(service, created.run_id, "sleep")

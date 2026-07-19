@@ -61,10 +61,6 @@ def test_square_speech_is_once_daily_and_produces_audited_ten_ten_loss() -> None
     assert election.tie_favors_rhea is True
     assert election.ending.key == "narrow_loss"
     pip_vote = next(vote for vote in election.votes if vote.voter_id == "pip")
-    speech_input = next(
-        item
-        for item in pip_vote.inputs
-        if item.key == "player-square-speech"
-    )
+    speech_input = next(item for item in pip_vote.inputs if item.key == "player-square-speech")
     assert speech_input.belief_id is not None
     assert speech_input.contribution == pytest.approx(-0.01)

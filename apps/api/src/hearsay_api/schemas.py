@@ -111,16 +111,19 @@ class FavorState(BaseModel):
     content: str
     status: Literal["active", "completed"] = "active"
     corrected_publicly: bool = False
-    resolution: Literal[
-        "revealed",
-        "concealed",
-        "helped_quietly",
-        "gossiped_publicly",
-        "investigated",
-        "covered_up",
-        "verified_source",
-        "embellished",
-    ] | None = None
+    resolution: (
+        Literal[
+            "revealed",
+            "concealed",
+            "helped_quietly",
+            "gossiped_publicly",
+            "investigated",
+            "covered_up",
+            "verified_source",
+            "embellished",
+        ]
+        | None
+    ) = None
 
 
 class DialogueMemoryRef(BaseModel):

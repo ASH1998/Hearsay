@@ -158,30 +158,14 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
     assert len(lineage.versions) == 6
     assert len(lineage.transmissions) == 5
     ambient_versions = [
-        version
-        for version in lineage.versions
-        if version.holder_id not in {"bram", "pip"}
+        version for version in lineage.versions if version.holder_id not in {"bram", "pip"}
     ]
-    ambient_transmissions = [
-        item
-        for item in lineage.transmissions
-        if item.speaker_id == "pip"
-    ]
+    ambient_transmissions = [item for item in lineage.transmissions if item.speaker_id == "pip"]
     assert len(ambient_versions) == 4
-    assert {
-        version.normalized_position["echo_hop"]
-        for version in ambient_versions
-    } == {2}
+    assert {version.normalized_position["echo_hop"] for version in ambient_versions} == {2}
     assert len(ambient_transmissions) == 4
-    assert {
-        item.model_id
-        for item in ambient_transmissions
-    } == {"hearsay-ambient-echo-v1"}
-    transmission = next(
-        item
-        for item in lineage.transmissions
-        if item.speaker_id == "bram"
-    )
+    assert {item.model_id for item in ambient_transmissions} == {"hearsay-ambient-echo-v1"}
+    transmission = next(item for item in lineage.transmissions if item.speaker_id == "bram")
     assert transmission.speaker_id == "bram"
     assert transmission.listener_id == "pip"
     assert transmission.original_text != transmission.retold_text
@@ -231,9 +215,7 @@ def test_signature_rumor_is_transactional_recallable_and_provenanced(
         relationship_count = session.scalar(select(func.count()).select_from(RelationshipModel))
         trace_count = session.scalar(select(func.count()).select_from(RetrievalTraceModel))
         ambient_gossip_count = session.scalar(
-            select(func.count())
-            .select_from(EventModel)
-            .where(EventModel.kind == "ambient_gossip")
+            select(func.count()).select_from(EventModel).where(EventModel.kind == "ambient_gossip")
         )
         pip_dimensions = session.scalar(
             select(func.vector_dims(ActiveMemoryModel.embedding))
@@ -496,11 +478,14 @@ def test_broken_promise_persists_both_visible_events_and_memory_consequence(
     )
     assert len(lineage.versions) == 5
     assert len(lineage.transmissions) == 3
-    assert next(
-        version
-        for version in lineage.versions
-        if version.holder_id == "marta" and version.active
-    ).normalized_position["promise_status"] == "broken"
+    assert (
+        next(
+            version
+            for version in lineage.versions
+            if version.holder_id == "marta" and version.active
+        ).normalized_position["promise_status"]
+        == "broken"
+    )
 
     with repository.session_factory() as session:
         event_kinds = list(
@@ -546,11 +531,7 @@ def test_schedule_shift_persists_event_and_resident_locations(
 
     assert result.snapshot.phase == "afternoon"
     assert result.snapshot.recent_events[1].kind == "schedule_shift"
-    assert next(
-        npc.location_id
-        for npc in result.snapshot.npcs
-        if npc.id == "pip"
-    ) == "market"
+    assert next(npc.location_id for npc in result.snapshot.npcs if npc.id == "pip") == "market"
 
     replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
     try:
@@ -558,19 +539,14 @@ def test_schedule_shift_persists_event_and_resident_locations(
     finally:
         replacement.dispose()
 
-    assert {
-        npc.id: npc.location_id
-        for npc in restored.npcs
-    } == {
-        npc.id: npc.location_id
-        for npc in result.snapshot.npcs
+    assert {npc.id: npc.location_id for npc in restored.npcs} == {
+        npc.id: npc.location_id for npc in result.snapshot.npcs
     }
 
     with repository.session_factory() as session:
         schedule_events = list(
             session.scalars(
-                select(EventModel)
-                .where(
+                select(EventModel).where(
                     EventModel.game_run_id == created.run_id,
                     EventModel.kind == "schedule_shift",
                 )
@@ -672,8 +648,7 @@ def test_public_argument_persists_faction_damage_choice_and_vote_inputs(
             session.scalars(
                 select(VoteInputModel).where(
                     VoteInputModel.game_run_id == created.run_id,
-                    VoteInputModel.input_key
-                    == "public-argument-player-intervention",
+                    VoteInputModel.input_key == "public-argument-player-intervention",
                 )
             )
         )
@@ -752,10 +727,7 @@ def test_nessa_favor_persists_correction_endorsement_and_faction_votes(
         "jonas",
         "mae",
     }
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    } == {
+    assert {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions} == {
         ("elias", "pip"),
         ("nessa", "jonas"),
         ("nessa", "mae"),
@@ -832,10 +804,7 @@ def test_orin_concealment_persists_blessing_lineage_and_elder_votes(
         "edda",
         "will",
     }
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    } == {
+    assert {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions} == {
         ("orin", "player"),
         ("player", "orin"),
         ("orin", "edda"),
@@ -938,10 +907,7 @@ def test_talia_quiet_help_persists_family_lineage_and_votes(
         "lina",
         "marta",
     }
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    } == {
+    assert {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions} == {
         ("talia", "player"),
         ("player", "talia"),
         ("talia", "oswin"),
@@ -1047,10 +1013,7 @@ def test_elias_investigation_persists_multihop_legitimacy_and_votes(
         "edda",
         "pip",
     } <= {version.holder_id for version in lineage.versions}
-    transmission_edges = {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    }
+    transmission_edges = {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions}
     assert {
         ("elias", "player"),
         ("player", "elias"),
@@ -1059,10 +1022,7 @@ def test_elias_investigation_persists_multihop_legitimacy_and_votes(
         ("elias", "edda"),
         ("tob", "pip"),
     } <= transmission_edges
-    assert any(
-        edge.speaker_id == "pip"
-        for edge in lineage.transmissions
-    )
+    assert any(edge.speaker_id == "pip" for edge in lineage.transmissions)
 
     with repository.session_factory() as session:
         arrest_inputs = list(
@@ -1155,13 +1115,9 @@ def test_pip_source_verification_persists_mutation_graph_and_votes(
         "pip-rhea-ballot-source",
     )
     assert {"pip", "player", "kit", "edda", "tob"} <= {
-        version.holder_id
-        for version in lineage.versions
+        version.holder_id for version in lineage.versions
     }
-    transmission_edges = {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    }
+    transmission_edges = {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions}
     assert {
         ("pip", "player"),
         ("player", "kit"),
@@ -1169,14 +1125,16 @@ def test_pip_source_verification_persists_mutation_graph_and_votes(
         ("kit", "edda"),
         ("pip", "tob"),
     } <= transmission_edges
-    assert len(
-        [
-            edge
-            for edge in lineage.transmissions
-            if edge.speaker_id == "pip"
-            and edge.listener_id not in {"player", "tob"}
-        ]
-    ) == 4
+    assert (
+        len(
+            [
+                edge
+                for edge in lineage.transmissions
+                if edge.speaker_id == "pip" and edge.listener_id not in {"player", "tob"}
+            ]
+        )
+        == 4
+    )
 
     with repository.session_factory() as session:
         source_inputs = list(

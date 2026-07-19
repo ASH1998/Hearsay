@@ -65,8 +65,7 @@ def test_storm_has_render_state_schedule_override_awareness_and_refresh() -> Non
     assert cleared.snapshot.recent_events[1].kind == "storm_clears"
     assert {npc.location_id for npc in cleared.snapshot.npcs} != {"inn"}
     assert "harbor is open again" in (
-        next(npc for npc in cleared.snapshot.npcs if npc.id == "nessa").speech
-        or ""
+        next(npc for npc in cleared.snapshot.npcs if npc.id == "nessa").speech or ""
     )
 
 
@@ -79,7 +78,8 @@ def test_sleeping_through_storm_still_records_both_lifecycle_events() -> None:
     assert result.snapshot.day == 2
     assert result.snapshot.weather == "clear"
     assert result.snapshot.town_events[0].status == "resolved"
-    assert [
-        event.kind
-        for event in result.snapshot.recent_events[:3]
-    ] == ["sleep", "storm_begins", "storm_clears"]
+    assert [event.kind for event in result.snapshot.recent_events[:3]] == [
+        "sleep",
+        "storm_begins",
+        "storm_clears",
+    ]

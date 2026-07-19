@@ -523,9 +523,7 @@ class CockroachRunRepository:
                     GameRunModel.revision,
                     GameRunModel.action_count,
                     GameRunModel.snapshot,
-                ).where(
-                    GameRunModel.id == run_id
-                )
+                ).where(GameRunModel.id == run_id)
             ).one_or_none()
             if current is None:
                 raise RunNotFoundError(run_id)
@@ -577,8 +575,7 @@ class CockroachRunRepository:
                 )
             )
             previous_event_ids = {
-                str(item["id"])
-                for item in current.snapshot.get("recent_events", [])
+                str(item["id"]) for item in current.snapshot.get("recent_events", [])
             }
             new_events = [
                 event

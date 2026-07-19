@@ -98,10 +98,9 @@ def test_orin_confession_choices_change_elders_and_audited_votes(
         "orin",
         "player",
     }
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in entrusted_lineage.transmissions
-    } == {("orin", "player")}
+    assert {(edge.speaker_id, edge.listener_id) for edge in entrusted_lineage.transmissions} == {
+        ("orin", "player")
+    }
 
     resolved = act(service, created.run_id, verb, "orin")
     favor = resolved.snapshot.favors[0]
@@ -111,16 +110,13 @@ def test_orin_confession_choices_change_elders_and_audited_votes(
     assert resolved.snapshot.player.endorsements == endorsements
     assert resolved.snapshot.recent_events[0].kind == f"orin_confession_{resolution}"
     for resident_id, relationship in relationships.items():
-        assert next(
-            npc.relationship
-            for npc in resolved.snapshot.npcs
-            if npc.id == resident_id
-        ) == relationship
+        assert (
+            next(npc.relationship for npc in resolved.snapshot.npcs if npc.id == resident_id)
+            == relationship
+        )
 
     other_verb = (
-        "conceal_orin_confession"
-        if verb == "reveal_orin_confession"
-        else "reveal_orin_confession"
+        "conceal_orin_confession" if verb == "reveal_orin_confession" else "reveal_orin_confession"
     )
     with pytest.raises(InvalidActionError, match="no unresolved confession"):
         act(service, created.run_id, other_verb, "orin")
@@ -129,18 +125,9 @@ def test_orin_confession_choices_change_elders_and_audited_votes(
         created.run_id,
         "orin-rhea-election-confession",
     )
-    edges = {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    }
+    edges = {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions}
     assert {("orin", "player"), *required_edges} <= edges
-    assert len(
-        [
-            version
-            for version in lineage.versions
-            if version.holder_id == "player"
-        ]
-    ) == 2
+    assert len([version for version in lineage.versions if version.holder_id == "player"]) == 2
 
     act(service, created.run_id, "sleep")
     act(service, created.run_id, "declare_candidacy", "rhea")
@@ -153,8 +140,7 @@ def test_orin_confession_choices_change_elders_and_audited_votes(
         vote.voter_id: vote_input
         for vote in election.votes
         for vote_input in vote.inputs
-        if vote_input.key == "orin-rhea-election-confession"
-        and vote.voter_id in contributions
+        if vote_input.key == "orin-rhea-election-confession" and vote.voter_id in contributions
     }
     assert set(confession_inputs) == set(contributions)
     for voter_id, contribution in contributions.items():

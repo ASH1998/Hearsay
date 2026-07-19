@@ -19,10 +19,7 @@ def act(service: GameService, run_id: UUID, verb: str, target_id: str) -> None:
 
 
 def locations_by_resident(service: GameService, run_id: UUID) -> dict[str, str]:
-    return {
-        npc.id: npc.location_id
-        for npc in service.get_snapshot(run_id).npcs
-    }
+    return {npc.id: npc.location_id for npc in service.get_snapshot(run_id).npcs}
 
 
 def test_three_day_schedules_move_all_residents_and_survive_refresh() -> None:
@@ -54,25 +51,14 @@ def test_three_day_schedules_move_all_residents_and_survive_refresh() -> None:
     assert evening["pip"] == "inn"
     assert evening["rhea"] == "inn"
     assert evening["nessa"] == "inn"
-    assert any(
-        event.kind == "schedule_shift"
-        for event in evening_snapshot.recent_events[:4]
-    )
+    assert any(event.kind == "schedule_shift" for event in evening_snapshot.recent_events[:4])
 
     act(service, created.run_id, "sleep", "marta")
     day_two_snapshot = service.get_snapshot(created.run_id)
     assert day_two_snapshot.day == 2
     assert day_two_snapshot.phase == "morning"
-    assert next(
-        npc.location_id
-        for npc in day_two_snapshot.npcs
-        if npc.id == "pip"
-    ) == "square"
-    assert any(
-        event.kind == "schedule_shift"
-        for event in day_two_snapshot.recent_events[:4]
-    )
+    assert next(npc.location_id for npc in day_two_snapshot.npcs if npc.id == "pip") == "square"
+    assert any(event.kind == "schedule_shift" for event in day_two_snapshot.recent_events[:4])
     assert locations_by_resident(service, created.run_id) == {
-        npc.id: npc.location_id
-        for npc in day_two_snapshot.npcs
+        npc.id: npc.location_id for npc in day_two_snapshot.npcs
     }

@@ -143,15 +143,10 @@ def test_signature_loop_exposes_complete_memory_lineage_and_recall() -> None:
         assert transmission["to_belief_id"] is not None
         assert "malicious intent" in transmission["mutation_note"]
         ambient_transmissions = [
-            item
-            for item in lineage["transmissions"]
-            if item["speaker_id"] == "pip"
+            item for item in lineage["transmissions"] if item["speaker_id"] == "pip"
         ]
         assert len(ambient_transmissions) == 3
-        assert all(
-            item["model_id"] == "hearsay-ambient-echo-v1"
-            for item in ambient_transmissions
-        )
+        assert all(item["model_id"] == "hearsay-ambient-echo-v1" for item in ambient_transmissions)
 
         recall_response = client.post(
             f"/v1/runs/{run_id}/memories/recall",
@@ -191,20 +186,12 @@ def test_repeated_claim_creates_an_immutable_superseded_version() -> None:
         ]
         assert [version["version"] for version in bram_versions] == [1, 2]
         assert [version["active"] for version in bram_versions] == [False, True]
-        assert len(
-            [
-                item
-                for item in lineage["transmissions"]
-                if item["speaker_id"] == "bram"
-            ]
-        ) == 2
-        assert 2 <= len(
-            [
-                item
-                for item in lineage["transmissions"]
-                if item["speaker_id"] == "pip"
-            ]
-        ) <= 4
+        assert len([item for item in lineage["transmissions"] if item["speaker_id"] == "bram"]) == 2
+        assert (
+            2
+            <= len([item for item in lineage["transmissions"] if item["speaker_id"] == "pip"])
+            <= 4
+        )
 
 
 def test_npc_dialogue_uses_holder_scoped_recalled_memory() -> None:

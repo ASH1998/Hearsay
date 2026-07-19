@@ -91,10 +91,7 @@ async def test_managed_mcp_trace_is_the_only_sponsor_proof_path() -> None:
     transport = FakeMcpTransport(
         {
             "versions": [item.model_dump(mode="json") for item in lineage.versions],
-            "transmissions": [
-                item.model_dump(mode="json")
-                for item in lineage.transmissions
-            ],
+            "transmissions": [item.model_dump(mode="json") for item in lineage.transmissions],
             "inputs": [],
         }
     )

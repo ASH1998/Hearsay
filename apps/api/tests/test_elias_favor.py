@@ -97,12 +97,9 @@ def test_elias_wrongful_arrest_choices_change_legitimacy_and_votes(
     assert favor.key == "elias_wrongful_arrest"
     assert favor.status == "active"
     assert favor.resolution is None
-    assert accepted.snapshot.recent_events[0].kind == (
-        "elias_wrongful_arrest_entrusted"
-    )
+    assert accepted.snapshot.recent_events[0].kind == ("elias_wrongful_arrest_entrusted")
     assert "innocent" in (
-        next(npc for npc in accepted.snapshot.npcs if npc.id == "tob").speech
-        or ""
+        next(npc for npc in accepted.snapshot.npcs if npc.id == "tob").speech or ""
     )
 
     entrusted_lineage = service.get_memory_lineage(
@@ -113,10 +110,9 @@ def test_elias_wrongful_arrest_choices_change_legitimacy_and_votes(
         "elias",
         "player",
     }
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in entrusted_lineage.transmissions
-    } == {("elias", "player")}
+    assert {(edge.speaker_id, edge.listener_id) for edge in entrusted_lineage.transmissions} == {
+        ("elias", "player")
+    }
 
     resolved = act(service, created.run_id, verb, "elias")
     favor = resolved.snapshot.favors[0]
@@ -126,16 +122,13 @@ def test_elias_wrongful_arrest_choices_change_legitimacy_and_votes(
     assert resolved.snapshot.player.endorsements == endorsements
     assert resolved.snapshot.recent_events[0].kind == event_kind
     for resident_id, relationship in relationships.items():
-        assert next(
-            npc.relationship
-            for npc in resolved.snapshot.npcs
-            if npc.id == resident_id
-        ) == relationship
+        assert (
+            next(npc.relationship for npc in resolved.snapshot.npcs if npc.id == resident_id)
+            == relationship
+        )
 
     other_verb = (
-        "cover_elias_arrest"
-        if verb == "investigate_elias_arrest"
-        else "investigate_elias_arrest"
+        "cover_elias_arrest" if verb == "investigate_elias_arrest" else "investigate_elias_arrest"
     )
     with pytest.raises(InvalidActionError, match="no unresolved wrongful-arrest"):
         act(service, created.run_id, other_verb, "elias")
@@ -144,18 +137,9 @@ def test_elias_wrongful_arrest_choices_change_legitimacy_and_votes(
         created.run_id,
         "elias-tob-wrongful-arrest",
     )
-    edges = {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    }
+    edges = {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions}
     assert {("elias", "player"), *required_edges} <= edges
-    assert len(
-        [
-            version
-            for version in lineage.versions
-            if version.holder_id == "player"
-        ]
-    ) == 2
+    assert len([version for version in lineage.versions if version.holder_id == "player"]) == 2
 
     act(service, created.run_id, "sleep")
     act(service, created.run_id, "declare_candidacy", "rhea")
@@ -168,8 +152,7 @@ def test_elias_wrongful_arrest_choices_change_legitimacy_and_votes(
         vote.voter_id: vote_input
         for vote in election_state.votes
         for vote_input in vote.inputs
-        if vote_input.key == "elias-tob-wrongful-arrest"
-        and vote.voter_id in contributions
+        if vote_input.key == "elias-tob-wrongful-arrest" and vote.voter_id in contributions
     }
     assert set(arrest_inputs) == set(contributions)
     for voter_id, contribution in contributions.items():

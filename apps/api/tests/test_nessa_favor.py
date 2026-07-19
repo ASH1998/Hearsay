@@ -35,24 +35,16 @@ def test_nessa_harbor_log_becomes_correction_endorsement_and_vote_evidence() -> 
     delivered = act(service, created.run_id, "deliver_harbor_log", "elias")
     assert delivered.snapshot.favors[0].status == "completed"
     assert delivered.snapshot.player.traits == ["Reliable"]
-    assert next(
-        npc.relationship
-        for npc in delivered.snapshot.npcs
-        if npc.id == "nessa"
-    ) == 25
-    assert next(
-        npc.relationship
-        for npc in delivered.snapshot.npcs
-        if npc.id == "elias"
-    ) == 10
+    assert next(npc.relationship for npc in delivered.snapshot.npcs if npc.id == "nessa") == 25
+    assert next(npc.relationship for npc in delivered.snapshot.npcs if npc.id == "elias") == 10
 
     corrected = act(service, created.run_id, "correct_storm_rumor", "pip")
     assert corrected.snapshot.favors[0].corrected_publicly is True
     assert corrected.snapshot.recent_events[0].kind == "storm_rumor_corrected"
-    assert "harbor log proves" in (
-        next(npc for npc in corrected.snapshot.npcs if npc.id == "pip").speech
-        or ""
-    ).lower()
+    assert (
+        "harbor log proves"
+        in (next(npc for npc in corrected.snapshot.npcs if npc.id == "pip").speech or "").lower()
+    )
 
     endorsed = act(service, created.run_id, "ask_nessa_endorsement", "nessa")
     assert endorsed.snapshot.player.endorsements == ["nessa"]
@@ -70,17 +62,8 @@ def test_nessa_harbor_log_becomes_correction_endorsement_and_vote_evidence() -> 
         "jonas",
         "mae",
     }
-    assert len(
-        [
-            version
-            for version in lineage.versions
-            if version.holder_id == "nessa"
-        ]
-    ) == 3
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    } == {
+    assert len([version for version in lineage.versions if version.holder_id == "nessa"]) == 3
+    assert {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions} == {
         ("elias", "pip"),
         ("nessa", "jonas"),
         ("nessa", "mae"),

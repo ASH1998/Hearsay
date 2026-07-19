@@ -97,8 +97,7 @@ def test_talia_sick_house_choices_change_family_memory_and_votes(
     assert favor.resolution is None
     assert accepted.snapshot.recent_events[0].kind == "talia_sick_house_entrusted"
     assert "ordinary" in (
-        next(npc for npc in accepted.snapshot.npcs if npc.id == "oswin").speech
-        or ""
+        next(npc for npc in accepted.snapshot.npcs if npc.id == "oswin").speech or ""
     )
 
     entrusted_lineage = service.get_memory_lineage(
@@ -109,10 +108,9 @@ def test_talia_sick_house_choices_change_family_memory_and_votes(
         "talia",
         "player",
     }
-    assert {
-        (edge.speaker_id, edge.listener_id)
-        for edge in entrusted_lineage.transmissions
-    } == {("talia", "player")}
+    assert {(edge.speaker_id, edge.listener_id) for edge in entrusted_lineage.transmissions} == {
+        ("talia", "player")
+    }
 
     resolved = act(service, created.run_id, verb, "talia")
     favor = resolved.snapshot.favors[0]
@@ -122,17 +120,12 @@ def test_talia_sick_house_choices_change_family_memory_and_votes(
     assert resolved.snapshot.player.endorsements == endorsements
     assert resolved.snapshot.recent_events[0].kind == event_kind
     for resident_id, relationship in relationships.items():
-        assert next(
-            npc.relationship
-            for npc in resolved.snapshot.npcs
-            if npc.id == resident_id
-        ) == relationship
+        assert (
+            next(npc.relationship for npc in resolved.snapshot.npcs if npc.id == resident_id)
+            == relationship
+        )
 
-    other_verb = (
-        "gossip_oswin_illness"
-        if verb == "help_oswin_quietly"
-        else "help_oswin_quietly"
-    )
+    other_verb = "gossip_oswin_illness" if verb == "help_oswin_quietly" else "help_oswin_quietly"
     with pytest.raises(InvalidActionError, match="no unresolved sick-house"):
         act(service, created.run_id, other_verb, "talia")
 
@@ -140,18 +133,9 @@ def test_talia_sick_house_choices_change_family_memory_and_votes(
         created.run_id,
         "talia-oswin-sick-house",
     )
-    edges = {
-        (edge.speaker_id, edge.listener_id)
-        for edge in lineage.transmissions
-    }
+    edges = {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions}
     assert {("talia", "player"), *required_edges} <= edges
-    assert len(
-        [
-            version
-            for version in lineage.versions
-            if version.holder_id == "player"
-        ]
-    ) == 2
+    assert len([version for version in lineage.versions if version.holder_id == "player"]) == 2
 
     act(service, created.run_id, "sleep")
     act(service, created.run_id, "declare_candidacy", "rhea")
@@ -164,8 +148,7 @@ def test_talia_sick_house_choices_change_family_memory_and_votes(
         vote.voter_id: vote_input
         for vote in election_state.votes
         for vote_input in vote.inputs
-        if vote_input.key == "talia-oswin-sick-house"
-        and vote.voter_id in contributions
+        if vote_input.key == "talia-oswin-sick-house" and vote.voter_id in contributions
     }
     assert set(sick_house_inputs) == set(contributions)
     for voter_id, contribution in contributions.items():

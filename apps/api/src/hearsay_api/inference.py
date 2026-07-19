@@ -127,18 +127,14 @@ class DeterministicInferenceProvider:
             lowered_claim = request.original_claim.lower()
             if "threatened bram" in lowered_claim:
                 return RumorRetelling(
-                    retold_claim=(
-                        "The newcomer threatened to ruin Bram if the crates stayed put."
-                    ),
+                    retold_claim=("The newcomer threatened to ruin Bram if the crates stayed put."),
                     semantic_position=SemanticPosition(
                         event="shipment_threat",
                         target="bram",
                         intent="intimidate_bram",
                         location="market_row",
                     ),
-                    drift_note=(
-                        "Pip turns a shipment threat into a broader threat against Bram."
-                    ),
+                    drift_note=("Pip turns a shipment threat into a broader threat against Bram."),
                     confidence_delta=-0.12,
                 )
             if "praised bram" in lowered_claim:
@@ -152,9 +148,7 @@ class DeterministicInferenceProvider:
                         intent="praise_bram",
                         location="market_row",
                     ),
-                    drift_note=(
-                        "Pip inflates tactical praise into a sweeping endorsement."
-                    ),
+                    drift_note=("Pip inflates tactical praise into a sweeping endorsement."),
                     confidence_delta=-0.18,
                 )
             if "lied that constable elias" in lowered_claim:
@@ -168,9 +162,7 @@ class DeterministicInferenceProvider:
                         intent="deceive_bram",
                         location="market_row",
                     ),
-                    drift_note=(
-                        "Pip turns a spoken lie about an order into a claim of forgery."
-                    ),
+                    drift_note=("Pip turns a spoken lie about an order into a claim of forgery."),
                     confidence_delta=-0.08,
                 )
             return RumorRetelling(

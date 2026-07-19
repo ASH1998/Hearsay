@@ -42,15 +42,10 @@ def test_pip_echoes_to_two_to_four_colocated_ambients_with_lineage() -> None:
         "bram-price-confrontation",
     )
     ambient_transmissions = [
-        transmission
-        for transmission in lineage.transmissions
-        if transmission.speaker_id == "pip"
+        transmission for transmission in lineage.transmissions if transmission.speaker_id == "pip"
     ]
     assert 2 <= len(ambient_transmissions) <= 4
-    listeners = {
-        transmission.listener_id
-        for transmission in ambient_transmissions
-    }
+    listeners = {transmission.listener_id for transmission in ambient_transmissions}
     assert listeners <= set(service.content.ambients_by_id)
     assert all(
         next(npc for npc in snapshot.npcs if npc.id == listener).location_id

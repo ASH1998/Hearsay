@@ -65,15 +65,13 @@ def test_bram_approaches_have_distinct_visible_and_memory_consequences(
     )
     assert len(lineage.versions) == 2
     assert len(lineage.transmissions) == 1
-    assert {
-        version.normalized_position["approach"]
-        for version in lineage.versions
-    } == {verb}
-    assert next(
-        version
-        for version in lineage.versions
-        if version.holder_id == "pip"
-    ).narrative_text.find(rumor_fragment) >= 0
+    assert {version.normalized_position["approach"] for version in lineage.versions} == {verb}
+    assert (
+        next(
+            version for version in lineage.versions if version.holder_id == "pip"
+        ).narrative_text.find(rumor_fragment)
+        >= 0
+    )
 
 
 @pytest.mark.parametrize(

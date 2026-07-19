@@ -58,9 +58,7 @@ def resolve_election(
                 value=resident.voter_bias,
                 weight=1,
                 contribution=resident.voter_bias,
-                explanation=(
-                    f"{resident.name}'s authored starting disposition toward a newcomer."
-                ),
+                explanation=(f"{resident.name}'s authored starting disposition toward a newcomer."),
             )
         ]
         for trait in snapshot.player.traits:
@@ -119,9 +117,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else -0.25
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else -0.25
                 )
                 explanation = (
                     "They retain the market-row account of the player's "
@@ -134,9 +130,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else 0.0
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
                 )
                 explanation = (
                     "They remember how the player answered Bram and Nessa's "
@@ -149,9 +143,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else 0.0
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
                 )
                 explanation = (
                     "They remember the harbor log proved Nessa protected her "
@@ -163,9 +155,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else -0.01
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else -0.01
                 )
                 explanation = (
                     "They heard the candidate's square speech but still weighed "
@@ -178,9 +168,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else 0.0
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
                 )
                 if value == "revealed":
                     explanation = (
@@ -199,9 +187,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else 0.0
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
                 )
                 if value == "helped_quietly":
                     explanation = (
@@ -220,9 +206,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else 0.0
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
                 )
                 if value == "investigated":
                     explanation = (
@@ -241,9 +225,7 @@ def resolve_election(
                     "election_contribution",
                 )
                 contribution = (
-                    float(raw_contribution)
-                    if isinstance(raw_contribution, int | float)
-                    else 0.0
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
                 )
                 if value == "verified_source":
                     explanation = (
@@ -255,19 +237,11 @@ def resolve_election(
                         "They remember the player embellished Kit's tally-sheet "
                         "delivery into an unsupported ballot-stuffing rumor."
                     )
-            if (
-                contribution
-                and memory.normalized_position.get("echo_hop") == 2
-            ):
+            if contribution and memory.normalized_position.get("echo_hop") == 2:
                 echo_style = memory.normalized_position.get("echo_style")
-                contribution *= (
-                    -0.05
-                    if echo_style == "skeptical"
-                    else 0.1
-                )
+                contribution *= -0.05 if echo_style == "skeptical" else 0.1
                 explanation = (
-                    "Ambient echo, attenuated by distance and carrier style: "
-                    f"{explanation}"
+                    f"Ambient echo, attenuated by distance and carrier style: {explanation}"
                 )
             if not contribution:
                 continue
@@ -345,11 +319,7 @@ def resolve_election(
         candidate=snapshot.player.candidate,
     )
     ending_content = content.endings_by_id[ending_key]
-    memory_votes = [
-        vote
-        for vote in votes
-        if any(item.kind == "belief" for item in vote.inputs)
-    ]
+    memory_votes = [vote for vote in votes if any(item.kind == "belief" for item in vote.inputs)]
     ordered_decisive = sorted(
         memory_votes,
         key=lambda item: abs(item.player_score),
