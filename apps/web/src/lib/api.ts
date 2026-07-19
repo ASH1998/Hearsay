@@ -15,11 +15,15 @@ export type NpcState = Omit<Schemas["NpcState"], "speech" | "recent_echoes"> & {
 };
 export type RunSnapshot = Omit<
   GeneratedSnapshot,
-  "player" | "npcs" | "promises" | "dialogue" | "town_events" | "recent_events"
+  "player" | "npcs" | "promises" | "favors" | "dialogue" | "town_events" | "recent_events"
 > & {
-  player: Schemas["PlayerState"] & { traits: string[] };
+  player: Omit<Schemas["PlayerState"], "traits" | "endorsements"> & {
+    traits: string[];
+    endorsements: string[];
+  };
   npcs: NpcState[];
   promises: PromiseState[];
+  favors: Schemas["FavorState"][];
   dialogue: Schemas["DialogueState"] | null;
   town_events: Schemas["TownEventState"][];
   recent_events: Schemas["WorldEvent"][];

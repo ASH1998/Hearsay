@@ -147,6 +147,11 @@ Town Ledger actions let the player back Bram, defend Nessa, or calm the crowd.
 The chosen intervention changes visible standing and traits, becomes immutable
 memory for Bram/Nessa/Pip, survives refresh, and appears as exact election
 evidence.
+Nessa now has a complete post-storm favor: carry her dated harbor log to Elias,
+use it to correct Pip's blame story, then ask for the harbor endorsement. The
+ledger, Reliable/Influential traits, principal standings, five voter memories,
+three transmission edges, endorsement, refresh state, and Landslide ending all
+derive from those normal actions and persist in CockroachDB.
 
 ## Authority
 

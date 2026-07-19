@@ -20,6 +20,7 @@ def test_greyhaven_content_references_are_complete() -> None:
         "public_argument",
     }
     assert len(content.argument_choices) == 3
+    assert {favor.id for favor in content.favors} == {"nessa_harbor_log"}
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6
     assert all(location.neighbors for location in content.locations)

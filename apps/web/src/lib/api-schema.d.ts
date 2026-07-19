@@ -172,7 +172,7 @@ export interface components {
          * ActionVerb
          * @enum {string}
          */
-        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "side_with_bram" | "side_with_nessa" | "calm_argument" | "sleep";
+        ActionVerb: "move" | "observe" | "read_notice_board" | "talk" | "promise_help" | "settle_shipment" | "declare_candidacy" | "confront" | "threaten_bram" | "flatter_bram" | "negotiate_bram" | "lie_to_bram" | "side_with_bram" | "side_with_nessa" | "calm_argument" | "accept_nessa_favor" | "deliver_harbor_log" | "correct_storm_rumor" | "ask_nessa_endorsement" | "sleep";
         /** BeliefInputState */
         BeliefInputState: {
             /**
@@ -338,6 +338,31 @@ export interface components {
             player_won: boolean;
             /** Decisive Voter Ids */
             decisive_voter_ids?: string[];
+        };
+        /** FavorState */
+        FavorState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Giver Id */
+            giver_id: string;
+            /** Content */
+            content: string;
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "completed";
+            /**
+             * Corrected Publicly
+             * @default false
+             */
+            corrected_publicly: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -558,6 +583,8 @@ export interface components {
             candidate: boolean;
             /** Argument Choice */
             argument_choice?: string | null;
+            /** Endorsements */
+            endorsements?: string[];
         };
         /** PromiseState */
         PromiseState: {
@@ -671,6 +698,8 @@ export interface components {
             npcs: components["schemas"]["NpcState"][];
             /** Promises */
             promises?: components["schemas"]["PromiseState"][];
+            /** Favors */
+            favors?: components["schemas"]["FavorState"][];
             dialogue?: components["schemas"]["DialogueState"] | null;
             /** Town Events */
             town_events?: components["schemas"]["TownEventState"][];

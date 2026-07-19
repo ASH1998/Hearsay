@@ -37,6 +37,10 @@ class ActionVerb(StrEnum):
     SIDE_WITH_BRAM = "side_with_bram"
     SIDE_WITH_NESSA = "side_with_nessa"
     CALM_ARGUMENT = "calm_argument"
+    ACCEPT_NESSA_FAVOR = "accept_nessa_favor"
+    DELIVER_HARBOR_LOG = "deliver_harbor_log"
+    CORRECT_STORM_RUMOR = "correct_storm_rumor"
+    ASK_NESSA_ENDORSEMENT = "ask_nessa_endorsement"
     SLEEP = "sleep"
 
 
@@ -85,6 +89,15 @@ class PromiseState(BaseModel):
     deadline_day: int
     deadline_phase: Phase
     status: Literal["active", "kept", "broken"] = "active"
+
+
+class FavorState(BaseModel):
+    id: UUID
+    key: str
+    giver_id: str
+    content: str
+    status: Literal["active", "completed"] = "active"
+    corrected_publicly: bool = False
 
 
 class DialogueMemoryRef(BaseModel):
@@ -137,6 +150,7 @@ class PlayerState(BaseModel):
     traits: list[str] = Field(default_factory=list)
     candidate: bool = False
     argument_choice: str | None = None
+    endorsements: list[str] = Field(default_factory=list)
 
 
 class VoteInputState(BaseModel):
@@ -192,6 +206,7 @@ class RunSnapshot(BaseModel):
     locations: list[LocationState]
     npcs: list[NpcState]
     promises: list[PromiseState] = Field(default_factory=list)
+    favors: list[FavorState] = Field(default_factory=list)
     dialogue: DialogueState | None = None
     town_events: list[TownEventState] = Field(default_factory=list)
     election: ElectionState | None = None

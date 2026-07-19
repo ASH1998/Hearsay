@@ -591,6 +591,203 @@ def _plan_primary_action_memory(
             ),
         )
 
+    if request.verb == ActionVerb.ACCEPT_NESSA_FAVOR:
+        text = (
+            "Nessa entrusted the player with the storm-dated harbor log "
+            "to show Constable Elias."
+        )
+        embedded = embeddings.embed(text)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="nessa-storm-harbor-log",
+                    subject_kind="favor",
+                    subject_id="nessa_harbor_log",
+                    predicate="harbor_log_proves_storm_timing",
+                    holder_id="nessa",
+                    narrative_text=text,
+                    normalized_position={
+                        "status": "entrusted",
+                        "nessa_protected_crews": True,
+                    },
+                    confidence=1.0,
+                    salience=0.95,
+                    source_kind="firsthand",
+                    source_id="nessa",
+                    embedding=embedded.vector,
+                    embedding_model_id=embedded.model_id,
+                ),
+            ),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="nessa",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.1,
+                ),
+            ),
+        )
+
+    if request.verb == ActionVerb.DELIVER_HARBOR_LOG:
+        text = content.favors_by_id["nessa_harbor_log"].correction_text
+        embedded = embeddings.embed(text)
+        harbor_beliefs = tuple(
+            PlannedBelief(
+                proposition_key="nessa-storm-harbor-log",
+                subject_kind="favor",
+                subject_id="nessa_harbor_log",
+                predicate="harbor_log_proves_storm_timing",
+                holder_id=holder_id,
+                narrative_text=text,
+                normalized_position={
+                    "status": "verified",
+                    "nessa_protected_crews": True,
+                    "election_contribution": contribution,
+                },
+                confidence=1.0,
+                salience=1.0,
+                source_kind="documentary_evidence",
+                source_id="harbor_log",
+                embedding=embedded.vector,
+                embedding_model_id=embedded.model_id,
+            )
+            for holder_id, contribution in (
+                ("nessa", 0.45),
+                ("elias", 0.4),
+            )
+        )
+        return MemoryEffects(
+            beliefs=harbor_beliefs,
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="nessa",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.25,
+                ),
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="elias",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.1,
+                ),
+            ),
+        )
+
+    if request.verb == ActionVerb.CORRECT_STORM_RUMOR:
+        text = content.favors_by_id["nessa_harbor_log"].correction_text
+        embedded = embeddings.embed(text)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="nessa-storm-harbor-log",
+                    subject_kind="favor",
+                    subject_id="nessa_harbor_log",
+                    predicate="harbor_log_proves_storm_timing",
+                    holder_id="pip",
+                    narrative_text=text,
+                    normalized_position={
+                        "status": "corrected_publicly",
+                        "nessa_protected_crews": True,
+                        "election_contribution": 0.35,
+                    },
+                    confidence=0.98,
+                    salience=1.0,
+                    source_kind="documentary_evidence",
+                    source_id="elias",
+                    embedding=embedded.vector,
+                    embedding_model_id=embedded.model_id,
+                    parent_holder_id="elias",
+                    mutation_note=(
+                        "The player preserves Elias's evidence-backed correction."
+                    ),
+                    trust_at_time=0.9,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-evidence-correction-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            ),
+        )
+
+    if request.verb == ActionVerb.ASK_NESSA_ENDORSEMENT:
+        nessa_text = (
+            "Nessa publicly endorsed the player for proving the storm protected "
+            "crews rather than abandoned cargo."
+        )
+        dock_text = (
+            "Nessa says the newcomer brought proof when the harbor was being blamed."
+        )
+        nessa_embedding = embeddings.embed(nessa_text)
+        dock_embedding = embeddings.embed(dock_text)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="nessa-storm-harbor-log",
+                    subject_kind="favor",
+                    subject_id="nessa_harbor_log",
+                    predicate="harbor_log_proves_storm_timing",
+                    holder_id="nessa",
+                    narrative_text=nessa_text,
+                    normalized_position={
+                        "status": "endorsed",
+                        "nessa_protected_crews": True,
+                        "election_contribution": 0.6,
+                    },
+                    confidence=1.0,
+                    salience=1.0,
+                    source_kind="firsthand",
+                    source_id="nessa",
+                    embedding=nessa_embedding.vector,
+                    embedding_model_id=nessa_embedding.model_id,
+                ),
+                *(
+                    PlannedBelief(
+                        proposition_key="nessa-storm-harbor-log",
+                        subject_kind="favor",
+                        subject_id="nessa_harbor_log",
+                        predicate="harbor_log_proves_storm_timing",
+                        holder_id=holder_id,
+                        narrative_text=dock_text,
+                        normalized_position={
+                            "status": "endorsed",
+                            "nessa_protected_crews": True,
+                            "election_contribution": 0.35,
+                        },
+                        confidence=0.92,
+                        salience=0.9,
+                        source_kind="hearsay",
+                        source_id="nessa",
+                        embedding=dock_embedding.vector,
+                        embedding_model_id=dock_embedding.model_id,
+                        parent_holder_id="nessa",
+                        mutation_note=(
+                            "The dock workers turn Nessa's endorsement into faction backing."
+                        ),
+                        trust_at_time=0.9,
+                        retelling_provider_id="deterministic",
+                        retelling_model_id="hearsay-faction-endorsement-v1",
+                        inference_attempts=0,
+                        inference_latency_ms=0,
+                    )
+                    for holder_id in ("jonas", "mae")
+                ),
+            ),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="nessa",
+                    b_kind="player",
+                    b_id="player",
+                    trust_floor=0.8,
+                    affinity_delta=0.2,
+                ),
+            ),
+        )
+
     return MemoryEffects()
 
 

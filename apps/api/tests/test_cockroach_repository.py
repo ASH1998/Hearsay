@@ -713,6 +713,86 @@ def test_public_argument_persists_faction_damage_choice_and_vote_inputs(
     assert restored.election == result.snapshot.election
 
 
+def test_nessa_favor_persists_correction_endorsement_and_faction_votes(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=113))
+    actions = (
+        ("sleep", None),
+        ("accept_nessa_favor", "nessa"),
+        ("deliver_harbor_log", "elias"),
+        ("correct_storm_rumor", "pip"),
+        ("ask_nessa_endorsement", "nessa"),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    )
+    for verb, target in actions:
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    assert result.snapshot.election is not None
+    assert result.snapshot.player.endorsements == ["nessa"]
+    assert result.snapshot.favors[0].corrected_publicly is True
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "nessa-storm-harbor-log",
+    )
+    assert {version.holder_id for version in lineage.versions} == {
+        "nessa",
+        "elias",
+        "pip",
+        "jonas",
+        "mae",
+    }
+    assert {
+        (edge.speaker_id, edge.listener_id)
+        for edge in lineage.transmissions
+    } == {
+        ("elias", "pip"),
+        ("nessa", "jonas"),
+        ("nessa", "mae"),
+    }
+
+    with repository.session_factory() as session:
+        favor_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "nessa-storm-harbor-log",
+                )
+            )
+        )
+        nessa_trust = session.scalar(
+            select(RelationshipModel.trust).where(
+                RelationshipModel.game_run_id == created.run_id,
+                RelationshipModel.a_id == "nessa",
+                RelationshipModel.b_id == "player",
+            )
+        )
+
+    assert len(favor_inputs) == 5
+    assert all(item.belief_id is not None for item in favor_inputs)
+    assert nessa_trust is not None
+    assert nessa_trust >= 0.8
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.favors == result.snapshot.favors
+    assert restored.player.endorsements == ["nessa"]
+    assert restored.election == result.snapshot.election
+
+
 def test_election_persists_twenty_votes_and_exact_decision_inputs(
     repository: CockroachRunRepository,
 ) -> None:

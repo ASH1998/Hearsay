@@ -142,6 +142,21 @@ def resolve_election(
                     "They remember how the player answered Bram and Nessa's "
                     f"argument: {(value or 'unknown').replace('_', ' ')}."
                 )
+            elif proposition_key == "nessa-storm-harbor-log":
+                status = memory.normalized_position.get("status")
+                value = status if isinstance(status, str) else None
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else 0.0
+                )
+                explanation = (
+                    "They remember the harbor log proved Nessa protected her "
+                    f"crews; favor status: {value or 'known'}."
+                )
             if (
                 contribution
                 and memory.normalized_position.get("echo_hop") == 2

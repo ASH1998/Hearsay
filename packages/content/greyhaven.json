@@ -405,6 +405,16 @@
       }
     }
   ],
+  "favors": [
+    {
+      "id": "nessa_harbor_log",
+      "giver_id": "nessa",
+      "content": "Carry Nessa's storm log to Elias, then correct Bram's story with Pip.",
+      "accept_dialogue": "The harbor log shows every boat tied before the worst wind. Put it in Elias's hands before Bram makes caution sound like guilt.",
+      "complete_dialogue": "That log has dates, crew marks, and weather. Bram's version will not survive reading.",
+      "correction_text": "The harbor log proves Nessa kept the fleet in before the storm and protected every crew."
+    }
+  ],
   "schedule_templates": [
     {
       "id": "marta",

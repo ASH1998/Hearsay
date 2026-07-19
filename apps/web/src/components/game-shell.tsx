@@ -99,16 +99,18 @@ export function GameShell() {
         if (snapshot.weather !== "rain" && next.weather === "rain") {
           playThunder();
         }
-        if (selectedNpc) {
-          setSelectedNpc(next.npcs.find((npc) => npc.id === selectedNpc.id) ?? null);
-        }
+        setSelectedNpc((current) =>
+          current
+            ? next.npcs.find((npc) => npc.id === current.id) ?? null
+            : null,
+        );
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "The action failed.");
       } finally {
         setBusy(false);
       }
     },
-    [selectedNpc, snapshot],
+    [snapshot],
   );
 
   const openHistorian = useCallback(async () => {
@@ -303,6 +305,22 @@ export function GameShell() {
         ) : (
           <p className="muted">Your word has not cost you anything—yet.</p>
         )}
+        {snapshot.favors.map((favor) => (
+          <article className="promise" key={favor.id}>
+            <span className="promise__mark">⚓</span>
+            <div>
+              <strong>Nessa&apos;s harbor log</strong>
+              <p>{favor.content}</p>
+              <small>
+                {favor.corrected_publicly
+                  ? "Corrected publicly · endorsement available"
+                  : favor.status === "completed"
+                    ? "Delivered to Elias · correct Pip's story"
+                    : "Active · carry the log to Elias"}
+              </small>
+            </div>
+          </article>
+        ))}
         {snapshot.player.traits.length ? (
           <p className="muted">
             Chalk says: {snapshot.player.traits.join(" · ")}
@@ -428,6 +446,30 @@ export function GameShell() {
               (location) =>
                 location.id ===
                 snapshot.npcs.find((npc) => npc.id === "rhea")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
+        </button>
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+          snapshot.npcs.find((npc) => npc.id === "nessa") ?? null,
+        )}>
+          Find Nessa
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "nessa")?.location_id,
+            )?.name ?? "Greyhaven"}
+          </small>
+        </button>
+        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+          snapshot.npcs.find((npc) => npc.id === "elias") ?? null,
+        )}>
+          Find Elias
+          <small>
+            {snapshot.locations.find(
+              (location) =>
+                location.id ===
+                snapshot.npcs.find((npc) => npc.id === "elias")?.location_id,
             )?.name ?? "Greyhaven"}
           </small>
         </button>
@@ -576,6 +618,63 @@ export function GameShell() {
                   onClick={() => act("declare_candidacy", "rhea")}
                 >
                   Declare candidacy for mayor
+                </button>
+              ) : null}
+              {selectedNpc.id === "nessa" &&
+              snapshot.day >= 2 &&
+              !snapshot.favors.some(
+                (favor) => favor.key === "nessa_harbor_log",
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("accept_nessa_favor", "nessa")}
+                  type="button"
+                >
+                  Offer to carry the harbor log
+                </button>
+              ) : null}
+              {selectedNpc.id === "elias" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "nessa_harbor_log" &&
+                  favor.status === "active",
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("deliver_harbor_log", "elias")}
+                  type="button"
+                >
+                  Give Elias the harbor log
+                </button>
+              ) : null}
+              {selectedNpc.id === "pip" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "nessa_harbor_log" &&
+                  favor.status === "completed" &&
+                  !favor.corrected_publicly,
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("correct_storm_rumor", "pip")}
+                  type="button"
+                >
+                  Correct the storm rumor
+                </button>
+              ) : null}
+              {selectedNpc.id === "nessa" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "nessa_harbor_log" &&
+                  favor.corrected_publicly,
+              ) &&
+              !snapshot.player.endorsements.includes("nessa") ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("ask_nessa_endorsement", "nessa")}
+                  type="button"
+                >
+                  Ask for the harbor&apos;s endorsement
                 </button>
               ) : null}
             </div>

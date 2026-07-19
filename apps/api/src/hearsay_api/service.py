@@ -37,6 +37,7 @@ from hearsay_api.schemas import (
     CreateRunResponse,
     DialogueMemoryRef,
     DialogueState,
+    FavorState,
     LocationState,
     MemoryLineageResponse,
     MemoryRecallRequest,
@@ -529,6 +530,116 @@ class GameService:
             pip = self._require_npc(snapshot, "pip")
             pip.speech = choice.memory_text
             return self._event(choice.event_kind, choice.event_text)
+        if request.verb == ActionVerb.ACCEPT_NESSA_FAVOR:
+            if request.target_id != "nessa":
+                raise InvalidActionError("The harbor-log favor comes from Nessa.")
+            if snapshot.day < 2:
+                raise InvalidActionError("Nessa offers the harbor log after the storm.")
+            if any(favor.key == "nessa_harbor_log" for favor in snapshot.favors):
+                raise InvalidActionError("You already answered Nessa's harbor-log favor.")
+            content = self.content.favors_by_id["nessa_harbor_log"]
+            snapshot.favors.append(
+                FavorState(
+                    id=uuid4(),
+                    key=content.id,
+                    giver_id=content.giver_id,
+                    content=content.content,
+                )
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="nessa",
+                speaker_name="Nessa Reed",
+                text=content.accept_dialogue,
+            )
+            return self._event(
+                "nessa_favor_accepted",
+                "You agree to carry Nessa's storm log to Elias.",
+            )
+        if request.verb == ActionVerb.DELIVER_HARBOR_LOG:
+            if request.target_id != "elias":
+                raise InvalidActionError("Nessa's harbor log must go to Elias.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "nessa_harbor_log"
+                ),
+                None,
+            )
+            if favor is None or favor.status != "active":
+                raise InvalidActionError("There is no active harbor-log favor.")
+            favor.status = "completed"
+            nessa = self._require_npc(snapshot, "nessa")
+            elias = self._require_npc(snapshot, "elias")
+            nessa.relationship = min(100, nessa.relationship + 25)
+            elias.relationship = min(100, elias.relationship + 10)
+            self._add_traits(snapshot, "Reliable")
+            content = self.content.favors_by_id["nessa_harbor_log"]
+            snapshot.dialogue = DialogueState(
+                speaker_id="elias",
+                speaker_name="Elias Ward",
+                text=content.complete_dialogue,
+            )
+            return self._event(
+                "harbor_log_delivered",
+                "Elias accepts Nessa's dated harbor log as evidence.",
+            )
+        if request.verb == ActionVerb.CORRECT_STORM_RUMOR:
+            if request.target_id != "pip":
+                raise InvalidActionError("Correct the storm rumor with Pip.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "nessa_harbor_log"
+                ),
+                None,
+            )
+            if favor is None or favor.status != "completed":
+                raise InvalidActionError("Deliver the harbor log before correcting the rumor.")
+            if favor.corrected_publicly:
+                raise InvalidActionError("You already corrected the storm rumor.")
+            favor.corrected_publicly = True
+            content = self.content.favors_by_id["nessa_harbor_log"]
+            pip = self._require_npc(snapshot, "pip")
+            pip.speech = content.correction_text
+            snapshot.dialogue = DialogueState(
+                speaker_id="pip",
+                speaker_name="Pip Marr",
+                text="Evidence is terribly inconvenient. It does make a better story, though.",
+            )
+            return self._event(
+                "storm_rumor_corrected",
+                "You make Pip read the harbor log aloud to the square.",
+            )
+        if request.verb == ActionVerb.ASK_NESSA_ENDORSEMENT:
+            if request.target_id != "nessa":
+                raise InvalidActionError("Ask Nessa for the harbor endorsement.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "nessa_harbor_log"
+                ),
+                None,
+            )
+            if favor is None or not favor.corrected_publicly:
+                raise InvalidActionError(
+                    "Correct Bram's storm story before asking Nessa to endorse you."
+                )
+            if "nessa" in snapshot.player.endorsements:
+                raise InvalidActionError("Nessa already endorsed your candidacy.")
+            snapshot.player.endorsements.append("nessa")
+            self._add_traits(snapshot, "Influential")
+            snapshot.dialogue = DialogueState(
+                speaker_id="nessa",
+                speaker_name="Nessa Reed",
+                text="The harbor remembers who brought proof instead of another accusation.",
+            )
+            return self._event(
+                "nessa_endorsement",
+                "Nessa gives the newcomer the harbor faction's public backing.",
+            )
         if request.verb == ActionVerb.SLEEP:
             snapshot.dialogue = None
             return self._event("sleep", "Greyhaven keeps talking after your lamp goes dark.")

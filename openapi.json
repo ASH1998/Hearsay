@@ -462,6 +462,10 @@
           "side_with_bram",
           "side_with_nessa",
           "calm_argument",
+          "accept_nessa_favor",
+          "deliver_harbor_log",
+          "correct_storm_rumor",
+          "ask_nessa_endorsement",
           "sleep"
         ],
         "title": "ActionVerb"
@@ -906,6 +910,49 @@
           "player_won"
         ],
         "title": "EndingState"
+      },
+      "FavorState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "giver_id": {
+            "type": "string",
+            "title": "Giver Id"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "completed"
+            ],
+            "title": "Status",
+            "default": "active"
+          },
+          "corrected_publicly": {
+            "type": "boolean",
+            "title": "Corrected Publicly",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "key",
+          "giver_id",
+          "content"
+        ],
+        "title": "FavorState"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1443,6 +1490,13 @@
               }
             ],
             "title": "Argument Choice"
+          },
+          "endorsements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Endorsements"
           }
         },
         "type": "object",
@@ -1663,6 +1717,13 @@
             },
             "type": "array",
             "title": "Promises"
+          },
+          "favors": {
+            "items": {
+              "$ref": "#/components/schemas/FavorState"
+            },
+            "type": "array",
+            "title": "Favors"
           },
           "dialogue": {
             "anyOf": [

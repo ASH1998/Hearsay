@@ -298,18 +298,31 @@ Completed:
 - Ambient election memory is likewise limited to the last three and attenuated
   by hop distance and carrier style. Skeptical carriers counterweight rather
   than blindly amplify, preserving the seeded `11–9` path.
+- Nessa's first principal favor is complete after the storm: accept her dated
+  harbor log, deliver it to Elias as evidence, correct Pip's public account,
+  and call in Nessa's harbor endorsement. Each step is a consequential,
+  validated action with visible dialogue/event/ledger state.
+- Delivery derives Reliable and changes Nessa/Elias standing; endorsement
+  derives Influential and is stored explicitly on the player. The chain writes
+  three Nessa versions plus Elias, Pip, Jonas, and Mae memories, with
+  Elias→Pip correction and Nessa→dockworker endorsement transmissions.
+- The full normal-play chain declares candidacy and reaches the Landslide
+  (`The Town Turns`) ending. Five exact harbor-log belief/version inputs appear
+  in the election audit, and refresh preserves favor, correction, endorsement,
+  traits, and outcome.
 
 Validated:
 
-- Eighty-nine local API tests pass. Pure election tests cover all six ending
+- Ninety local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
   four Bram effects, playable threat/lie endings, the storm lifecycle,
   all-resident evacuation, awareness, clearing, skipped-interval history, event
   faction damage, all three interventions, their exact vote memories, 2–4
-  proximity selection, visible echo restoration, and the shallow recall cap.
-- Eleven real Cockroach Cloud tests pass against `hearsay_test`. The election
+  proximity selection, visible echo restoration, shallow recall, and the
+  complete evidence/correction/endorsement chain to Landslide.
+- Twelve real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -324,7 +337,10 @@ Validated:
   The signature test also proves four hop-two ambient beliefs, four Pip
   transmission edges with `hearsay-ambient-echo-v1`, one public chatter event,
   correct active-memory counts, and unchanged indexed Pip recall.
-- Three browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
+  The Nessa test proves five holder memories, all three correction/endorsement
+  transmission edges, five vote inputs, Nessa's `0.80` trust floor, and
+  repository recreation of favor, endorsement, and election state.
+- Four browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
   Market row location, storm start, and storm refresh before the `11–9` result and exact v1 promise memory
@@ -333,19 +349,21 @@ Validated:
   the belief-backed threat input in the election explanation.
   The third stages the Day 2 square crowd, calms it, refreshes the active event,
   clears it on Day 3, and renders the exact intervention memory at election.
+  The fourth completes Nessa's harbor-log chain, refreshes it, and reaches the
+  belief-explained Landslide ending. The expanded layout also fixed an async
+  close/reopen race and separates actions, Ledger, and conversation z-layers.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
 
 Remaining:
 
-- Additional favors and information/ambition verbs needed for multiple viable
-  paths to all six endings.
+- Additional principal favors and information/ambition verbs remain.
 - Broader rumor propagation, election tuning, and seeded Narrow loss,
   Humiliation, and Landslide browser playthroughs.
 
 ## Next implementation slice
 
-1. Add Nessa's first favor chain and the warn/correct information verbs so the
-   player can protect the harbor faction, challenge a live rumor, or trade that
-   trust for an endorsement instead of relying only on Marta's shipment.
+1. Add a seeded Narrow loss/Humiliation playthrough and a square-speech
+   ambition verb that can counter one public rumor once per day, with the
+   intervention recorded as immutable election evidence.

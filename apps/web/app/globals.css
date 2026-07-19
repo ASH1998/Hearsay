@@ -342,9 +342,12 @@ button:disabled {
 }
 
 .ledger {
+  z-index: 3;
   top: 6.5rem;
   right: 1.5rem;
   width: min(21rem, calc(100vw - 3rem));
+  max-height: calc(100vh - 12rem);
+  overflow: auto;
   padding: 1.1rem;
   border-top: 4px solid var(--rust);
   background:
@@ -407,6 +410,12 @@ button:disabled {
   gap: 0.4rem;
 }
 
+@media (min-width: 1000px) {
+  .actions {
+    right: 23.5rem;
+  }
+}
+
 .actions button {
   min-height: 4.5rem;
   font-weight: 800;
@@ -463,6 +472,7 @@ button:disabled {
 }
 
 .conversation {
+  z-index: 4;
   bottom: 5rem;
   left: 50%;
   display: grid;

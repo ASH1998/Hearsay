@@ -92,6 +92,17 @@ class ArgumentChoiceContent(BaseModel):
     holder_election_contributions: dict[str, float]
 
 
+class FavorContent(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    giver_id: str
+    content: str
+    accept_dialogue: str
+    complete_dialogue: str
+    correction_text: str
+
+
 class ScheduleTemplateContent(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -119,6 +130,7 @@ class GreyhavenContent(BaseModel):
     bram_approaches: tuple[BramApproachContent, ...]
     town_events: tuple[TownEventContent, ...]
     argument_choices: tuple[ArgumentChoiceContent, ...]
+    favors: tuple[FavorContent, ...]
     schedule_templates: tuple[ScheduleTemplateContent, ...]
     public_traits: tuple[str, ...]
 
@@ -259,6 +271,13 @@ class GreyhavenContent(BaseModel):
                 raise ValueError(
                     f"Argument choice {choice.action_verb} has invalid references."
                 )
+        favor_ids = [favor.id for favor in self.favors]
+        if len(favor_ids) != len(set(favor_ids)):
+            raise ValueError("Favor IDs must be unique.")
+        if "nessa_harbor_log" not in favor_ids:
+            raise ValueError("Nessa's harbor-log favor is required.")
+        if any(favor.giver_id not in resident_ids for favor in self.favors):
+            raise ValueError("Every favor giver must be a known resident.")
         return self
 
     @property
@@ -302,6 +321,10 @@ class GreyhavenContent(BaseModel):
             choice.action_verb: choice
             for choice in self.argument_choices
         }
+
+    @property
+    def favors_by_id(self) -> dict[str, FavorContent]:
+        return {favor.id: favor for favor in self.favors}
 
     @property
     def schedules_by_id(self) -> dict[str, ScheduleTemplateContent]:
