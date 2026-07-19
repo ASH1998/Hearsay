@@ -17,9 +17,13 @@ export type RunSnapshot = Omit<
   GeneratedSnapshot,
   "player" | "npcs" | "promises" | "favors" | "dialogue" | "town_events" | "recent_events"
 > & {
-  player: Omit<Schemas["PlayerState"], "traits" | "endorsements"> & {
+  player: Omit<
+    Schemas["PlayerState"],
+    "traits" | "endorsements" | "square_speech_days"
+  > & {
     traits: string[];
     endorsements: string[];
+    square_speech_days: number[];
   };
   npcs: NpcState[];
   promises: PromiseState[];

@@ -310,10 +310,16 @@ Completed:
   (`The Town Turns`) ending. Five exact harbor-log belief/version inputs appear
   in the election audit, and refresh preserves favor, correction, endorsement,
   traits, and outcome.
+- A declared candidate can give one consequential square speech per day. It
+  derives Influential, writes Pip's skeptical firsthand memory, propagates
+  proximity echoes, and records the used day so refresh cannot repeat it.
+- Declaring without support reaches Humiliation (`No Seconding Voice`); a
+  speech-only campaign reaches an audited `10–10` Narrow loss
+  (`The Tied Bell`) under Rhea's explicit tie rule.
 
 Validated:
 
-- Ninety local API tests pass. Pure election tests cover all six ending
+- Ninety-two local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -321,8 +327,9 @@ Validated:
   all-resident evacuation, awareness, clearing, skipped-interval history, event
   faction damage, all three interventions, their exact vote memories, 2–4
   proximity selection, visible echo restoration, shallow recall, and the
-  complete evidence/correction/endorsement chain to Landslide.
-- Twelve real Cockroach Cloud tests pass against `hearsay_test`. The election
+  complete evidence/correction/endorsement chain to Landslide, speech
+  once-per-day enforcement, Humiliation, and exact `10–10` Narrow loss.
+- Thirteen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -340,7 +347,9 @@ Validated:
   The Nessa test proves five holder memories, all three correction/endorsement
   transmission edges, five vote inputs, Nessa's `0.80` trust floor, and
   repository recreation of favor, endorsement, and election state.
-- Four browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
+  The speech test proves its public event, belief-backed vote inputs, exact
+  tie, Rhea winner, Narrow loss ending, and restored election.
+- Six browser playthroughs pass. The first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
   Market row location, storm start, and storm refresh before the `11–9` result and exact v1 promise memory
@@ -352,6 +361,9 @@ Validated:
   The fourth completes Nessa's harbor-log chain, refreshes it, and reaches the
   belief-explained Landslide ending. The expanded layout also fixed an async
   close/reopen race and separates actions, Ledger, and conversation z-layers.
+  Two more paths prove unsupported Humiliation and the speech-driven `10–10`
+  Narrow loss. Playwright uses three local/two CI workers and a 60-second
+  full-story timeout so WebGL overlays remain deterministic.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -359,11 +371,9 @@ Validated:
 Remaining:
 
 - Additional principal favors and information/ambition verbs remain.
-- Broader rumor propagation, election tuning, and seeded Narrow loss,
-  Humiliation, and Landslide browser playthroughs.
+- Broader multi-hop rumor propagation and a seeded Exposed browser playthrough.
 
 ## Next implementation slice
 
-1. Add a seeded Narrow loss/Humiliation playthrough and a square-speech
-   ambition verb that can counter one public rumor once per day, with the
-   intervention recorded as immutable election evidence.
+1. Add Orin's confession favor and a reveal/conceal information choice, then
+   route the revealed lie into a seeded Exposed browser ending.

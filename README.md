@@ -152,6 +152,10 @@ use it to correct Pip's blame story, then ask for the harbor endorsement. The
 ledger, Reliable/Influential traits, principal standings, five voter memories,
 three transmission edges, endorsement, refresh state, and Landslide ending all
 derive from those normal actions and persist in CockroachDB.
+A declared candidate may also address the square once per game day. The speech
+derives Influential and writes Pip's exact skeptical memory before proximity
+echoes carry it onward. An unsupported candidacy reaches Humiliation, while the
+speech-only path resolves `10–10` in Rhea's favor as an audited Narrow loss.
 
 ## Authority
 

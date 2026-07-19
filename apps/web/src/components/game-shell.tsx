@@ -481,6 +481,17 @@ export function GameShell() {
           Sleep until morning
           <small>Advance to the next day</small>
         </button>
+        {snapshot.player.candidate &&
+        !snapshot.player.square_speech_days.includes(snapshot.day) ? (
+          <button
+            disabled={busy || gameOver}
+            onClick={() => act("give_square_speech", "square")}
+            type="button"
+          >
+            Address the square
+            <small>Once today · consequential</small>
+          </button>
+        ) : null}
       </section>
 
       {selectedNpc ? (

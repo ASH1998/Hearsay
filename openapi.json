@@ -466,6 +466,7 @@
           "deliver_harbor_log",
           "correct_storm_rumor",
           "ask_nessa_endorsement",
+          "give_square_speech",
           "sleep"
         ],
         "title": "ActionVerb"
@@ -1497,6 +1498,13 @@
             },
             "type": "array",
             "title": "Endorsements"
+          },
+          "square_speech_days": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Square Speech Days"
           }
         },
         "type": "object",

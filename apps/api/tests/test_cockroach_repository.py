@@ -793,6 +793,55 @@ def test_nessa_favor_persists_correction_endorsement_and_faction_votes(
     assert restored.election == result.snapshot.election
 
 
+def test_square_speech_persists_audited_ten_ten_loss(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=123))
+    for verb, target in (
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("give_square_speech", "square"),
+        ("sleep", None),
+        ("sleep", None),
+    ):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == election.rhea_votes == 10
+    assert election.ending.key == "narrow_loss"
+
+    with repository.session_factory() as session:
+        speech_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "player-square-speech",
+                )
+            )
+        )
+        speech_events = list(
+            session.scalars(
+                select(EventModel).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind == "square_speech",
+                )
+            )
+        )
+    assert speech_inputs
+    assert all(item.belief_id is not None for item in speech_inputs)
+    assert len(speech_events) == 1
+    assert repository.get(created.run_id).election == election
+
+
 def test_election_persists_twenty_votes_and_exact_decision_inputs(
     repository: CockroachRunRepository,
 ) -> None:

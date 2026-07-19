@@ -41,6 +41,7 @@ class ActionVerb(StrEnum):
     DELIVER_HARBOR_LOG = "deliver_harbor_log"
     CORRECT_STORM_RUMOR = "correct_storm_rumor"
     ASK_NESSA_ENDORSEMENT = "ask_nessa_endorsement"
+    GIVE_SQUARE_SPEECH = "give_square_speech"
     SLEEP = "sleep"
 
 
@@ -151,6 +152,7 @@ class PlayerState(BaseModel):
     candidate: bool = False
     argument_choice: str | None = None
     endorsements: list[str] = Field(default_factory=list)
+    square_speech_days: list[int] = Field(default_factory=list)
 
 
 class VoteInputState(BaseModel):

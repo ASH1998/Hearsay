@@ -788,6 +788,36 @@ def _plan_primary_action_memory(
             ),
         )
 
+    if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
+        text = (
+            "The newcomer addressed Greyhaven as a candidate, but Pip thought "
+            "the performance outran the proof."
+        )
+        embedded = embeddings.embed(text)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="player-square-speech",
+                    subject_kind="event",
+                    subject_id=f"day-{response.snapshot.day}-square-speech",
+                    predicate="player_addressed_square",
+                    holder_id="pip",
+                    narrative_text=text,
+                    normalized_position={
+                        "day": response.snapshot.day,
+                        "status": "heard",
+                        "election_contribution": -0.01,
+                    },
+                    confidence=1.0,
+                    salience=0.9,
+                    source_kind="firsthand",
+                    source_id="player",
+                    embedding=embedded.vector,
+                    embedding_model_id=embedded.model_id,
+                ),
+            ),
+        )
+
     return MemoryEffects()
 
 

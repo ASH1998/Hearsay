@@ -640,6 +640,29 @@ class GameService:
                 "nessa_endorsement",
                 "Nessa gives the newcomer the harbor faction's public backing.",
             )
+        if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
+            if not snapshot.player.candidate:
+                raise InvalidActionError("Declare your candidacy before addressing the square.")
+            if snapshot.day in snapshot.player.square_speech_days:
+                raise InvalidActionError("You already addressed the square today.")
+            snapshot.player.square_speech_days.append(snapshot.day)
+            self._add_traits(snapshot, "Influential")
+            pip = self._require_npc(snapshot, "pip")
+            pip.speech = (
+                "The newcomer made the square listen. Listening is not the same as believing."
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="pip",
+                speaker_name="Pip Marr",
+                text=(
+                    "Good rhythm. Strong ending. Half the town heard hope; "
+                    "the other half heard rehearsal."
+                ),
+            )
+            return self._event(
+                "square_speech",
+                "You make Greyhaven listen, though not every listener is persuaded.",
+            )
         if request.verb == ActionVerb.SLEEP:
             snapshot.dialogue = None
             return self._event("sleep", "Greyhaven keeps talking after your lamp goes dark.")
