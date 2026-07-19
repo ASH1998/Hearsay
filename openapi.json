@@ -478,6 +478,9 @@
           "accept_pip_favor",
           "verify_pip_source",
           "embellish_pip_rumor",
+          "accept_rhea_compact",
+          "challenge_rhea_ballot",
+          "deal_with_rhea",
           "give_square_speech",
           "sleep"
         ],
@@ -969,7 +972,9 @@
                   "investigated",
                   "covered_up",
                   "verified_source",
-                  "embellished"
+                  "embellished",
+                  "challenged",
+                  "made_deal"
                 ]
               },
               {

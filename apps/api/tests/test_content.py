@@ -26,6 +26,7 @@ def test_greyhaven_content_references_are_complete() -> None:
         "talia_sick_house",
         "elias_wrongful_arrest",
         "pip_ballot_source",
+        "rhea_ballot_compact",
     }
     assert {choice.action_verb for choice in content.favor_choices} == {
         "reveal_orin_confession",
@@ -36,6 +37,8 @@ def test_greyhaven_content_references_are_complete() -> None:
         "cover_elias_arrest",
         "verify_pip_source",
         "embellish_pip_rumor",
+        "challenge_rhea_ballot",
+        "deal_with_rhea",
     }
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6

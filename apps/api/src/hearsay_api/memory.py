@@ -1417,6 +1417,167 @@ def _plan_primary_action_memory(
             gossip_tick_number=response.snapshot.world_tick,
         )
 
+    if request.verb == ActionVerb.ACCEPT_RHEA_COMPACT:
+        fact = content.favors_by_id["rhea_ballot_compact"].correction_text
+        rhea_text = (
+            "Rhea offered the candidate a compact preserving the guild's sole "
+            "ballot custody and showed the prior poll book's blank clerk lines."
+        )
+        rhea_embedding = embeddings.embed(rhea_text)
+        player_embedding = embeddings.embed(fact)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="rhea-ballot-custody",
+                    subject_kind="favor",
+                    subject_id="rhea_ballot_compact",
+                    predicate="guild_controls_ballot_custody",
+                    holder_id="rhea",
+                    narrative_text=rhea_text,
+                    normalized_position={
+                        "resolution": "offered",
+                        "guild_sole_custody": True,
+                        "public_count": False,
+                        "missing_countersignatures": True,
+                    },
+                    confidence=1.0,
+                    salience=1.0,
+                    source_kind="private_guild_record",
+                    source_id="rhea",
+                    embedding=rhea_embedding.vector,
+                    embedding_model_id=rhea_embedding.model_id,
+                ),
+                PlannedBelief(
+                    proposition_key="rhea-ballot-custody",
+                    subject_kind="favor",
+                    subject_id="rhea_ballot_compact",
+                    predicate="guild_controls_ballot_custody",
+                    holder_id="player",
+                    narrative_text=fact,
+                    normalized_position={
+                        "resolution": "offered",
+                        "guild_sole_custody": True,
+                        "public_count": False,
+                        "missing_countersignatures": True,
+                    },
+                    confidence=1.0,
+                    salience=1.0,
+                    source_kind="private_guild_record",
+                    source_id="rhea",
+                    embedding=player_embedding.vector,
+                    embedding_model_id=player_embedding.model_id,
+                    parent_holder_id="rhea",
+                    mutation_note=(
+                        "Rhea lets the candidate inspect the poll-book defect "
+                        "while offering her compact."
+                    ),
+                    trust_at_time=0.45,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-rhea-compact-offer-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            ),
+        )
+
+    if request.verb in {
+        ActionVerb.CHALLENGE_RHEA_BALLOT,
+        ActionVerb.DEAL_WITH_RHEA,
+    }:
+        favor_choice = content.favor_choices_by_verb[request.verb.value]
+        resolution = favor_choice.resolution
+        challenged = resolution == "challenged"
+        player_text = (
+            "The player rejected Rhea's compact, posted the unsigned poll-book "
+            "page, and demanded an independently witnessed public count."
+            if challenged
+            else (
+                "The player signed Rhea's compact, preserving sole guild ballot "
+                "custody in return for support from her market network."
+            )
+        )
+        player_embedding = embeddings.embed(player_text)
+        compact_beliefs: list[PlannedBelief] = [
+            PlannedBelief(
+                proposition_key="rhea-ballot-custody",
+                subject_kind="favor",
+                subject_id="rhea_ballot_compact",
+                predicate="guild_controls_ballot_custody",
+                holder_id="player",
+                narrative_text=player_text,
+                normalized_position={
+                    "resolution": resolution,
+                    "guild_sole_custody": not challenged,
+                    "public_count": challenged,
+                    "missing_countersignatures": True,
+                },
+                confidence=1.0,
+                salience=1.0,
+                source_kind="player_decision",
+                source_id="player",
+                embedding=player_embedding.vector,
+                embedding_model_id=player_embedding.model_id,
+            )
+        ]
+        for holder_id, contribution in favor_choice.holder_election_contributions.items():
+            text_embedding = embeddings.embed(favor_choice.memory_text)
+            parent_holder_id = favor_choice.transmission_parents[holder_id]
+            compact_beliefs.append(
+                PlannedBelief(
+                    proposition_key="rhea-ballot-custody",
+                    subject_kind="favor",
+                    subject_id="rhea_ballot_compact",
+                    predicate="guild_controls_ballot_custody",
+                    holder_id=holder_id,
+                    narrative_text=favor_choice.memory_text,
+                    normalized_position={
+                        "resolution": resolution,
+                        "guild_sole_custody": not challenged,
+                        "public_count": challenged,
+                        "missing_countersignatures": True,
+                        "election_contribution": contribution,
+                    },
+                    confidence=0.98 if challenged else 0.95,
+                    salience=1.0,
+                    source_kind=(
+                        "public_ballot_challenge" if challenged else "public_guild_compact"
+                    ),
+                    source_id=parent_holder_id,
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
+                    parent_holder_id=parent_holder_id,
+                    mutation_note=(
+                        "Each witness carries the demand for an independently "
+                        "observed count and the poll book's missing signatures."
+                        if challenged
+                        else (
+                            "Rhea's network retells the compact as continuity "
+                            "while preserving the guild's sole custody."
+                        )
+                    ),
+                    trust_at_time=0.8 if challenged else 0.65,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id=f"hearsay-rhea-compact-{resolution}-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                )
+            )
+        return MemoryEffects(
+            beliefs=tuple(compact_beliefs),
+            relationships=tuple(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id=resident_id,
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=delta / 100,
+                    affinity_delta=delta / 200,
+                )
+                for resident_id, delta in favor_choice.relationship_deltas.items()
+            ),
+            gossip_tick_number=response.snapshot.world_tick,
+        )
+
     if request.verb == ActionVerb.GIVE_SQUARE_SPEECH:
         text = (
             "The newcomer addressed Greyhaven as a candidate, but Pip thought "

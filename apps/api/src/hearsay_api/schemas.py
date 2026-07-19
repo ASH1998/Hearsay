@@ -53,6 +53,9 @@ class ActionVerb(StrEnum):
     ACCEPT_PIP_FAVOR = "accept_pip_favor"
     VERIFY_PIP_SOURCE = "verify_pip_source"
     EMBELLISH_PIP_RUMOR = "embellish_pip_rumor"
+    ACCEPT_RHEA_COMPACT = "accept_rhea_compact"
+    CHALLENGE_RHEA_BALLOT = "challenge_rhea_ballot"
+    DEAL_WITH_RHEA = "deal_with_rhea"
     GIVE_SQUARE_SPEECH = "give_square_speech"
     SLEEP = "sleep"
 
@@ -121,6 +124,8 @@ class FavorState(BaseModel):
             "covered_up",
             "verified_source",
             "embellished",
+            "challenged",
+            "made_deal",
         ]
         | None
     ) = None

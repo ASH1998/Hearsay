@@ -373,10 +373,28 @@ Completed:
   favor resolution, relationships, traits, endorsement, explicit parent graph,
   ambient echo, vote inputs, events, and final outcome through refresh and
   repository recreation.
+- Rhea's first confrontation is available only after the player declares on Day
+  2. She exposes a prior poll-book page with two overwritten totals and blank
+  clerk-counterseal lines, then offers market support if the player preserves
+  the guild's sole custody of Greyhaven's ballot box.
+- Rejecting the compact posts the page at the guildhouse, derives Reliable and
+  Troublemaker, visibly changes the ballot safeguard to a public count with
+  Elias and Edda witnessing, and carries player→Elias→Edda→Tob→Pip plus
+  witness branches to Marta, Orin, Nessa, Lina, and Kit. It reaches an exact,
+  belief-audited `12–8` Narrow win.
+- Signing the compact derives Influential, visibly leaves sole custody with the
+  guild, and preserves the political bargain through Rhea→Bram→Hettie→Cal,
+  Rhea→Will, Rhea→Kit→Pip, and player→Elias→Edda opposition routes. Rhea still
+  votes for herself, but her market machine produces a politically compromised
+  `14–6` Landslide.
+- Both ballot-custody outcomes preserve the original Rhea→player disclosure,
+  mutually exclusive resolution, resident standing and speech, public event,
+  full source graph, exact vote inputs, and final result through browser refresh
+  and Cockroach repository recreation.
 
 Validated:
 
-- One hundred six local API tests pass. Pure election tests cover all six ending
+- One hundred nine local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -394,8 +412,10 @@ Validated:
   exact `16–4` Landslide/`0–20` Exposed outcomes, both Pip source resolutions,
   their mutually exclusive state, explicit mutation topology, source standing,
   immediate ambient echo, and exact `15–5` Landslide/`8–12` Narrow-loss
-  outcomes.
-- Seventeen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  outcomes, plus both Rhea compact resolutions, candidacy gating, witness/guild
+  graph topology, ballot-custody standing, and exact `12–8` Narrow-win/`14–6`
+  Landslide outcomes.
+- Eighteen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -429,7 +449,11 @@ Validated:
   player→Kit→Pip/Edda and Pip→Tob routes, four additional Pip→ambient edges,
   seven source-linked vote inputs, final Pip/Kit/Edda/Tob trust, and restored
   `15–5` result.
-- Fifteen browser playthroughs pass and collectively reach all six endings. The
+  The Rhea test proves the challenged resolution, public events,
+  player→Elias→Edda→Tob→Pip witness route and all five branches, ten
+  source-linked vote inputs, final trust for every holder, and restored `12–8`
+  result.
+- Seventeen browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -463,19 +487,26 @@ Validated:
   Pip→resident chatter bubble and the matching public traits, reach `15–5` The
   Town Turns or `8–12` The Tied Bell, and show the exact receipt/ballot-stuffing
   memory in the election audit.
+  Two Rhea paths challenge or sign the compact, refresh the durable guildhouse
+  safeguard, render the matching public traits, reach `12–8` By One Voice or
+  `14–6` The Town Turns, and show the exact public-count/sole-custody memory in
+  the election audit.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
 
 Remaining:
 
-- Rhea's principal favor plus the remaining second favors and ambition verbs
-  remain.
+- Second principal favors and the broader social, information, and ambition
+  verb set remain.
 - General autonomous multi-hop rumor ticks beyond authored principal routes
   and Pip's immediate ambient fan-out remain.
+- The remaining three-layer event-deck slices beyond storm and public argument
+  remain.
 
 ## Next implementation slice
 
-1. Add Rhea's first ballot-control confrontation with challenge/deal choices,
-   visible guildhouse consequences, durable evidence lineage, and election
-   effects.
+1. Extend rumor ticks beyond Pip's immediate fan-out so co-located holders can
+   autonomously choose and retell salient beliefs on later ticks, with bounded
+   hop depth, visible pair chatter, immutable parent lineage, and real
+   Cockroach replay proof.

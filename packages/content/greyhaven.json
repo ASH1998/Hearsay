@@ -445,6 +445,14 @@
       "accept_dialogue": "Kit carried sealed replacement tally sheets to Rhea after the polls closed. There is a receipt, which is useful, and a silence around it, which is better. Verify the source—or give me the version Greyhaven will repeat.",
       "complete_dialogue": "A source is where a story begins. A headline is where responsibility usually ends.",
       "correction_text": "Kit Wren delivered sealed replacement tally sheets to Rhea after polls closed; the receipt calls them a clerical correction, but no public notice was posted."
+    },
+    {
+      "id": "rhea_ballot_compact",
+      "giver_id": "rhea",
+      "content": "Decide whether to challenge Rhea's sole custody of the ballot or sign her guild compact in exchange for the market machine.",
+      "accept_dialogue": "The old poll book has two overwritten totals and no clerk countersignatures. Sign my compact and the guild keeps sole custody while its merchants make room for you. Refuse, and demand your public count with whatever witnesses you can hold together.",
+      "complete_dialogue": "A ballot is only paper. Custody is power, and witnesses are the price of taking it away.",
+      "correction_text": "The prior-election poll book shows two overwritten totals beside Rhea's guild seal, but both clerk-counterseal lines are blank; Rhea's proposed compact keeps the guild as sole custodian of Greyhaven's ballot box."
     }
   ],
   "favor_choices": [
@@ -730,6 +738,112 @@
         "kit": "player"
       },
       "traits": ["Influential", "Troublemaker"],
+      "grants_endorsement": false
+    },
+    {
+      "favor_id": "rhea_ballot_compact",
+      "action_verb": "challenge_rhea_ballot",
+      "label": "Demand a public count",
+      "resolution": "challenged",
+      "dialogue": "Then bring Elias, Edda, and every loud witness you can find. The guildhouse doors will be open. Do not mistake that for surrender.",
+      "event_kind": "rhea_ballot_challenged",
+      "event_text": "You reject Rhea's compact and post the unsigned poll-book page at the guildhouse, demanding a public count with independent witnesses.",
+      "memory_text": "The player rejected Rhea's compact, exposed the prior poll book's missing clerk countersignatures, and demanded a witnessed public count.",
+      "resident_speeches": {
+        "rhea": "The count will be public. The keys remain mine until the doors open.",
+        "elias": "I will witness the seal, the box, and every hand that touches either.",
+        "edda": "Two blank countersignatures are not proof of theft. They are proof that no one may ask us for blind trust again.",
+        "pip": "Rhea opened the guildhouse doors because the newcomer nailed her missing signatures beside them."
+      },
+      "relationship_deltas": {
+        "rhea": -35,
+        "elias": 25,
+        "edda": 25,
+        "tob": 20,
+        "pip": 15,
+        "marta": 10,
+        "orin": 10,
+        "nessa": 10,
+        "lina": 10,
+        "kit": 10
+      },
+      "holder_election_contributions": {
+        "rhea": -0.55,
+        "elias": 0.55,
+        "edda": 0.5,
+        "tob": 0.45,
+        "pip": 0.4,
+        "marta": 0.35,
+        "orin": 0.35,
+        "nessa": 0.3,
+        "lina": 0.3,
+        "kit": 0.3
+      },
+      "transmission_parents": {
+        "rhea": "player",
+        "elias": "player",
+        "edda": "elias",
+        "tob": "edda",
+        "pip": "tob",
+        "marta": "tob",
+        "orin": "edda",
+        "nessa": "elias",
+        "lina": "pip",
+        "kit": "pip"
+      },
+      "traits": ["Reliable", "Troublemaker"],
+      "grants_endorsement": false
+    },
+    {
+      "favor_id": "rhea_ballot_compact",
+      "action_verb": "deal_with_rhea",
+      "label": "Sign Rhea's compact",
+      "resolution": "made_deal",
+      "dialogue": "Sensibly done. Bram will call it stability, Hettie will call it trade, and the ballot box will never spend a night outside guild custody.",
+      "event_kind": "rhea_compact_signed",
+      "event_text": "You sign Rhea's compact. The guild keeps sole ballot custody while Rhea's market network begins presenting you as an acceptable successor.",
+      "memory_text": "The player signed Rhea's public compact, preserving sole guild custody of the ballot in exchange for support from her market network.",
+      "resident_speeches": {
+        "rhea": "The compact is posted. The guild keeps the keys; Greyhaven may choose either name.",
+        "bram": "Continuity with a fresh face. At last, a reform the market can price.",
+        "hettie": "Rhea says the newcomer signed for stable custody. Stable tills matter more than dramatic doors.",
+        "kit": "I carried copies of the compact. The missing counterseals were not copied with it.",
+        "pip": "The newcomer challenged Rhea right up to the point where she offered the market."
+      },
+      "relationship_deltas": {
+        "rhea": 35,
+        "bram": 25,
+        "hettie": 25,
+        "cal": 20,
+        "will": 15,
+        "kit": 10,
+        "pip": -10,
+        "elias": -20,
+        "edda": -15
+      },
+      "holder_election_contributions": {
+        "rhea": 0.25,
+        "bram": 0.5,
+        "hettie": 0.55,
+        "cal": 0.45,
+        "will": 0.35,
+        "kit": 0.3,
+        "pip": -0.2,
+        "elias": -0.3,
+        "edda": -0.25
+      },
+      "transmission_parents": {
+        "rhea": "player",
+        "bram": "rhea",
+        "hettie": "bram",
+        "cal": "hettie",
+        "will": "rhea",
+        "kit": "rhea",
+        "pip": "kit",
+        "elias": "player",
+        "edda": "elias"
+      },
+      "traits": ["Influential"],
       "grants_endorsement": false
     }
   ],

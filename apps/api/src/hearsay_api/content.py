@@ -118,6 +118,8 @@ class FavorChoiceContent(BaseModel):
         "covered_up",
         "verified_source",
         "embellished",
+        "challenged",
+        "made_deal",
     ]
     dialogue: str
     event_kind: str
@@ -141,6 +143,8 @@ class FavorChoiceContent(BaseModel):
             "cover_elias_arrest": "covered_up",
             "verify_pip_source": "verified_source",
             "embellish_pip_rumor": "embellished",
+            "challenge_rhea_ballot": "challenged",
+            "deal_with_rhea": "made_deal",
         }.get(self.action_verb)
         if expected_resolution is not None and self.resolution != expected_resolution:
             raise ValueError("Favor action and resolution must agree.")
@@ -307,12 +311,13 @@ class GreyhavenContent(BaseModel):
             "talia_sick_house",
             "elias_wrongful_arrest",
             "pip_ballot_source",
+            "rhea_ballot_compact",
         }
         if not required_favors.issubset(favor_ids):
             raise ValueError(
                 "Nessa's harbor log, Orin's confession, Talia's sick-house "
-                "favor, Elias's wrongful-arrest favor, and Pip's source-tracing "
-                "favor are required."
+                "favor, Elias's wrongful-arrest favor, Pip's source-tracing "
+                "favor, and Rhea's ballot compact are required."
             )
         if any(favor.giver_id not in resident_ids for favor in self.favors):
             raise ValueError("Every favor giver must be a known resident.")
@@ -325,13 +330,15 @@ class GreyhavenContent(BaseModel):
             "cover_elias_arrest",
             "verify_pip_source",
             "embellish_pip_rumor",
+            "challenge_rhea_ballot",
+            "deal_with_rhea",
         }
         favor_choice_verbs = {choice.action_verb for choice in self.favor_choices}
         if favor_choice_verbs != required_favor_choices:
             raise ValueError(
                 "Authored favors require Orin's reveal/conceal and "
                 "Talia's help/gossip, Elias's investigate/cover-up, and "
-                "Pip's verify/embellish choices."
+                "Pip's verify/embellish, and Rhea's challenge/deal choices."
             )
         for favor_choice in self.favor_choices:
             unknown_traits = set(favor_choice.traits) - set(self.public_traits)

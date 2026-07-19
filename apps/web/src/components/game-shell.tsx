@@ -171,6 +171,9 @@ export function GameShell() {
   const activeTownEvent = snapshot.town_events.find(
     (event) => event.status === "active",
   );
+  const rheaCompact = snapshot.favors.find(
+    (favor) => favor.key === "rhea_ballot_compact",
+  );
 
   const move = (locationId: string) => {
     void act("move", locationId);
@@ -316,7 +319,9 @@ export function GameShell() {
                     ? "⚖"
                     : favor.key === "pip_ballot_source"
                       ? "☞"
-                  : "⚓"}
+                      : favor.key === "rhea_ballot_compact"
+                        ? "⌘"
+                        : "⚓"}
             </span>
             <div>
               <strong>
@@ -328,7 +333,9 @@ export function GameShell() {
                       ? "Elias's omitted arrest correction"
                       : favor.key === "pip_ballot_source"
                         ? "Pip's ballot source"
-                    : "Nessa's harbor log"}
+                        : favor.key === "rhea_ballot_compact"
+                          ? "Rhea's ballot compact"
+                          : "Nessa's harbor log"}
               </strong>
               <p>{favor.content}</p>
               <small>
@@ -356,11 +363,17 @@ export function GameShell() {
                           : favor.resolution === "embellished"
                             ? "Embellished publicly · unsupported detail spreading"
                             : "Unresolved · verify the source or sharpen the rumor"
-                    : favor.corrected_publicly
-                      ? "Corrected publicly · endorsement available"
-                      : favor.status === "completed"
-                        ? "Delivered to Elias · correct Pip's story"
-                        : "Active · carry the log to Elias"}
+                        : favor.key === "rhea_ballot_compact"
+                          ? favor.resolution === "challenged"
+                            ? "Public count demanded · independent witnesses posted"
+                            : favor.resolution === "made_deal"
+                              ? "Guild compact signed · sole custody preserved"
+                              : "Unresolved · challenge Rhea or take her deal"
+                          : favor.corrected_publicly
+                            ? "Corrected publicly · endorsement available"
+                            : favor.status === "completed"
+                              ? "Delivered to Elias · correct Pip's story"
+                              : "Active · carry the log to Elias"}
               </small>
             </div>
           </article>
@@ -375,6 +388,18 @@ export function GameShell() {
             ? "Ballot: the newcomer is standing against Rhea"
             : "Ballot: Rhea is currently unopposed"}
         </p>
+        {rheaCompact ? (
+          <p
+            className="muted"
+            data-ballot-custody={rheaCompact.resolution ?? "unresolved"}
+          >
+            {rheaCompact.resolution === "challenged"
+              ? "Guildhouse: public count · Elias and Edda witnessing"
+              : rheaCompact.resolution === "made_deal"
+                ? "Guildhouse: sole guild custody · compact posted"
+                : "Guildhouse: ballot custody under negotiation"}
+          </p>
+        ) : null}
         <button
           className="secondary"
           type="button"
@@ -698,6 +723,42 @@ export function GameShell() {
                 >
                   Declare candidacy for mayor
                 </button>
+              ) : null}
+              {selectedNpc.id === "rhea" &&
+              snapshot.player.candidate &&
+              !snapshot.favors.some(
+                (favor) => favor.key === "rhea_ballot_compact",
+              ) ? (
+                <button
+                  disabled={busy}
+                  type="button"
+                  onClick={() => act("accept_rhea_compact", "rhea")}
+                >
+                  Question Rhea&apos;s ballot custody
+                </button>
+              ) : null}
+              {selectedNpc.id === "rhea" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "rhea_ballot_compact" &&
+                  favor.status === "active",
+              ) ? (
+                <>
+                  <button
+                    disabled={busy}
+                    type="button"
+                    onClick={() => act("challenge_rhea_ballot", "rhea")}
+                  >
+                    Demand a public count
+                  </button>
+                  <button
+                    disabled={busy}
+                    type="button"
+                    onClick={() => act("deal_with_rhea", "rhea")}
+                  >
+                    Sign Rhea&apos;s compact
+                  </button>
+                </>
               ) : null}
               {selectedNpc.id === "nessa" &&
               snapshot.day >= 2 &&

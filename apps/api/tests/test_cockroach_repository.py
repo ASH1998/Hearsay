@@ -1195,6 +1195,143 @@ def test_pip_source_verification_persists_mutation_graph_and_votes(
     assert restored.election == election
 
 
+def test_rhea_ballot_challenge_persists_witness_graph_and_votes(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=173))
+    for verb, target in (
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("accept_rhea_compact", "rhea"),
+        ("challenge_rhea_ballot", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    ):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == 12
+    assert election.ending.key == "narrow_win"
+    assert result.snapshot.favors[0].resolution == "challenged"
+    assert result.snapshot.player.traits == ["Reliable", "Troublemaker"]
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "rhea-ballot-custody",
+    )
+    assert {
+        "rhea",
+        "player",
+        "elias",
+        "edda",
+        "tob",
+        "pip",
+        "marta",
+        "orin",
+        "nessa",
+        "lina",
+        "kit",
+    } <= {version.holder_id for version in lineage.versions}
+    transmission_edges = {(edge.speaker_id, edge.listener_id) for edge in lineage.transmissions}
+    assert {
+        ("rhea", "player"),
+        ("player", "rhea"),
+        ("player", "elias"),
+        ("elias", "edda"),
+        ("edda", "tob"),
+        ("tob", "pip"),
+        ("tob", "marta"),
+        ("edda", "orin"),
+        ("elias", "nessa"),
+        ("pip", "lina"),
+        ("pip", "kit"),
+    } <= transmission_edges
+
+    with repository.session_factory() as session:
+        compact_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "rhea-ballot-custody",
+                )
+            )
+        )
+        trust_by_resident = {
+            resident_id: session.scalar(
+                select(RelationshipModel.trust).where(
+                    RelationshipModel.game_run_id == created.run_id,
+                    RelationshipModel.a_id == resident_id,
+                    RelationshipModel.b_id == "player",
+                )
+            )
+            for resident_id in (
+                "rhea",
+                "elias",
+                "edda",
+                "tob",
+                "pip",
+                "marta",
+                "orin",
+                "nessa",
+                "lina",
+                "kit",
+            )
+        }
+        event_kinds = set(
+            session.scalars(
+                select(EventModel.kind).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind.in_(
+                        (
+                            "rhea_compact_offered",
+                            "rhea_ballot_challenged",
+                            "public_argument_begins",
+                        )
+                    ),
+                )
+            )
+        )
+
+    assert len(compact_inputs) == 10
+    assert {item.input_value for item in compact_inputs} == {"challenged"}
+    assert all(item.belief_id is not None for item in compact_inputs)
+    assert trust_by_resident == {
+        "rhea": pytest.approx(0.15),
+        "elias": pytest.approx(0.75),
+        "edda": pytest.approx(0.75),
+        "tob": pytest.approx(0.7),
+        "pip": pytest.approx(0.65),
+        "marta": pytest.approx(0.6),
+        "orin": pytest.approx(0.6),
+        "nessa": pytest.approx(0.6),
+        "lina": pytest.approx(0.6),
+        "kit": pytest.approx(0.6),
+    }
+    assert event_kinds == {
+        "rhea_compact_offered",
+        "rhea_ballot_challenged",
+        "public_argument_begins",
+    }
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.favors == result.snapshot.favors
+    assert restored.player.traits == ["Reliable", "Troublemaker"]
+    assert restored.election == election
+
+
 def test_square_speech_persists_audited_ten_ten_loss(
     repository: CockroachRunRepository,
 ) -> None:

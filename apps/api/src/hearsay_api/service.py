@@ -99,6 +99,11 @@ PIP_SOURCE_CHOICE_VERBS = {
     ActionVerb.EMBELLISH_PIP_RUMOR,
 }
 
+RHEA_COMPACT_CHOICE_VERBS = {
+    ActionVerb.CHALLENGE_RHEA_BALLOT,
+    ActionVerb.DEAL_WITH_RHEA,
+}
+
 
 class GameService:
     def __init__(
@@ -854,6 +859,63 @@ class GameService:
             snapshot.dialogue = DialogueState(
                 speaker_id="pip",
                 speaker_name="Pip Marr",
+                text=favor_choice.dialogue,
+            )
+            return self._event(favor_choice.event_kind, favor_choice.event_text)
+        if request.verb == ActionVerb.ACCEPT_RHEA_COMPACT:
+            if request.target_id != "rhea":
+                raise InvalidActionError("The ballot compact comes from Rhea.")
+            if not snapshot.player.candidate:
+                raise InvalidActionError("Rhea offers ballot terms only to a declared candidate.")
+            if any(favor.key == "rhea_ballot_compact" for favor in snapshot.favors):
+                raise InvalidActionError("You already answered Rhea's ballot compact.")
+            content = self.content.favors_by_id["rhea_ballot_compact"]
+            snapshot.favors.append(
+                FavorState(
+                    id=uuid4(),
+                    key=content.id,
+                    giver_id=content.giver_id,
+                    content=content.content,
+                )
+            )
+            self._require_npc(snapshot, "kit").speech = (
+                "The old poll book has overwritten totals and blank clerk lines. "
+                "Rhea still keeps both keys."
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="rhea",
+                speaker_name="Rhea Kest",
+                text=content.accept_dialogue,
+            )
+            return self._event(
+                "rhea_compact_offered",
+                "Rhea shows you an unsigned poll-book page and offers the guild's "
+                "market support in return for preserving its sole ballot custody.",
+            )
+        if request.verb in RHEA_COMPACT_CHOICE_VERBS:
+            if request.target_id != "rhea":
+                raise InvalidActionError("Answer Rhea's ballot terms at the guildhouse.")
+            favor = next(
+                (item for item in snapshot.favors if item.key == "rhea_ballot_compact"),
+                None,
+            )
+            if favor is None or favor.status != "active":
+                raise InvalidActionError("There is no unresolved guild ballot compact.")
+            favor_choice = self.content.favor_choices_by_verb[request.verb.value]
+            favor.status = "completed"
+            favor.resolution = favor_choice.resolution
+            for resident_id, delta in favor_choice.relationship_deltas.items():
+                resident = self._require_npc(snapshot, resident_id)
+                resident.relationship = max(
+                    -100,
+                    min(100, resident.relationship + delta),
+                )
+            self._add_traits(snapshot, *favor_choice.traits)
+            for resident_id, speech in favor_choice.resident_speeches.items():
+                self._require_npc(snapshot, resident_id).speech = speech
+            snapshot.dialogue = DialogueState(
+                speaker_id="rhea",
+                speaker_name="Rhea Kest",
                 text=favor_choice.dialogue,
             )
             return self._event(favor_choice.event_kind, favor_choice.event_text)
