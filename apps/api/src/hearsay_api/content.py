@@ -114,6 +114,8 @@ class FavorChoiceContent(BaseModel):
         "concealed",
         "helped_quietly",
         "gossiped_publicly",
+        "investigated",
+        "covered_up",
     ]
     dialogue: str
     event_kind: str
@@ -122,6 +124,7 @@ class FavorChoiceContent(BaseModel):
     resident_speeches: dict[str, str] = Field(default_factory=dict)
     relationship_deltas: dict[str, int]
     holder_election_contributions: dict[str, float]
+    transmission_parents: dict[str, str] = Field(default_factory=dict)
     traits: tuple[str, ...] = ()
     grants_endorsement: bool = False
 
@@ -132,6 +135,8 @@ class FavorChoiceContent(BaseModel):
             "conceal_orin_confession": "concealed",
             "help_oswin_quietly": "helped_quietly",
             "gossip_oswin_illness": "gossiped_publicly",
+            "investigate_elias_arrest": "investigated",
+            "cover_elias_arrest": "covered_up",
         }.get(self.action_verb)
         if expected_resolution is not None and self.resolution != expected_resolution:
             raise ValueError("Favor action and resolution must agree.")
@@ -324,11 +329,12 @@ class GreyhavenContent(BaseModel):
             "nessa_harbor_log",
             "orin_election_confession",
             "talia_sick_house",
+            "elias_wrongful_arrest",
         }
         if not required_favors.issubset(favor_ids):
             raise ValueError(
-                "Nessa's harbor log, Orin's confession, and Talia's "
-                "sick-house favor are required."
+                "Nessa's harbor log, Orin's confession, Talia's sick-house "
+                "favor, and Elias's wrongful-arrest favor are required."
             )
         if any(favor.giver_id not in resident_ids for favor in self.favors):
             raise ValueError("Every favor giver must be a known resident.")
@@ -337,6 +343,8 @@ class GreyhavenContent(BaseModel):
             "conceal_orin_confession",
             "help_oswin_quietly",
             "gossip_oswin_illness",
+            "investigate_elias_arrest",
+            "cover_elias_arrest",
         }
         favor_choice_verbs = {
             choice.action_verb
@@ -345,7 +353,7 @@ class GreyhavenContent(BaseModel):
         if favor_choice_verbs != required_favor_choices:
             raise ValueError(
                 "Authored favors require Orin's reveal/conceal and "
-                "Talia's help/gossip choices."
+                "Talia's help/gossip, and Elias's investigate/cover-up choices."
             )
         for favor_choice in self.favor_choices:
             unknown_traits = set(favor_choice.traits) - set(self.public_traits)
@@ -358,12 +366,36 @@ class GreyhavenContent(BaseModel):
                 - set(resident_ids)
             )
             unknown_speakers = set(favor_choice.resident_speeches) - set(resident_ids)
+            unknown_parent_holders = (
+                set(favor_choice.transmission_parents)
+                - set(favor_choice.holder_election_contributions)
+            )
+            unknown_parents = (
+                set(favor_choice.transmission_parents.values())
+                - set(resident_ids)
+                - {"player"}
+            )
+            missing_parent_routes = (
+                set(favor_choice.holder_election_contributions)
+                - set(favor_choice.transmission_parents)
+            )
+            available_parents = {"player"}
+            invalid_parent_order = False
+            for holder_id in favor_choice.holder_election_contributions:
+                parent_id = favor_choice.transmission_parents.get(holder_id)
+                if parent_id not in available_parents:
+                    invalid_parent_order = True
+                available_parents.add(holder_id)
             if (
                 favor_choice.favor_id not in favor_ids
                 or unknown_traits
                 or unknown_relationships
                 or unknown_holders
                 or unknown_speakers
+                or unknown_parent_holders
+                or unknown_parents
+                or missing_parent_routes
+                or invalid_parent_order
             ):
                 raise ValueError(
                     f"Favor choice {favor_choice.action_verb} has invalid references."

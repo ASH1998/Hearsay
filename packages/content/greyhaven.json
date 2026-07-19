@@ -429,6 +429,14 @@
       "accept_dialogue": "Oswin's fever is ordinary, but fear rarely is. Take this willow draught to him and keep his name out of Pip's mouth—or warn the town, if you believe privacy costs too much.",
       "complete_dialogue": "A sick room reveals whether you value the person inside it or the story outside it.",
       "correction_text": "Oswin Bell has a fever; Talia says it is ordinary and today's bread is safe."
+    },
+    {
+      "id": "elias_wrongful_arrest",
+      "giver_id": "elias",
+      "content": "Decide whether to reopen Tob Rill's wrongful arrest or keep Elias's missing correction out of the constable ledger.",
+      "accept_dialogue": "I jailed Tob for taking the guild seal on Rhea's word. The seal turned up in her desk the next morning. I released him and left the correction out of my ledger. Find the truth fit for record—or help me keep order.",
+      "complete_dialogue": "A constable's mistake can be corrected, concealed, or inherited by everyone who trusts the ledger.",
+      "correction_text": "Elias jailed Tob Rill for stealing the guild seal, but the seal was found in Rhea's desk and the correction never entered the constable ledger."
     }
   ],
   "favor_choices": [
@@ -457,6 +465,13 @@
         "will": -0.15,
         "pip": 0.2
       },
+      "transmission_parents": {
+        "orin": "player",
+        "elias": "player",
+        "edda": "player",
+        "will": "player",
+        "pip": "player"
+      },
       "traits": ["Reliable"],
       "grants_endorsement": false
     },
@@ -478,6 +493,11 @@
         "orin": 0.45,
         "edda": 0.35,
         "will": 0.5
+      },
+      "transmission_parents": {
+        "orin": "player",
+        "edda": "orin",
+        "will": "orin"
       },
       "traits": ["Influential"],
       "grants_endorsement": true
@@ -506,6 +526,12 @@
         "oswin": 0.45,
         "lina": 0.4,
         "marta": 0.25
+      },
+      "transmission_parents": {
+        "talia": "player",
+        "oswin": "talia",
+        "lina": "talia",
+        "marta": "talia"
       },
       "traits": ["Generous", "Reliable"],
       "grants_endorsement": true
@@ -536,7 +562,87 @@
         "lina": -0.35,
         "pip": 0.2
       },
+      "transmission_parents": {
+        "talia": "player",
+        "oswin": "player",
+        "lina": "player",
+        "pip": "player"
+      },
       "traits": ["Influential"],
+      "grants_endorsement": false
+    },
+    {
+      "favor_id": "elias_wrongful_arrest",
+      "action_verb": "investigate_elias_arrest",
+      "label": "Reopen Tob's arrest",
+      "resolution": "investigated",
+      "dialogue": "Put the correction in my ledger. If Greyhaven wants my badge after reading it, at least the next arrest will begin from truth.",
+      "event_kind": "elias_arrest_investigated",
+      "event_text": "You reopen Tob's arrest, recover the omitted correction, and make Elias enter Rhea's guild seal into the public ledger.",
+      "memory_text": "The player reopened Tob Rill's arrest and made Elias record that Rhea's guild seal was recovered from her own desk.",
+      "resident_speeches": {
+        "elias": "The correction is entered. Order without truth was only a quieter mistake.",
+        "tob": "My name is finally in the ledger beside the word cleared.",
+        "pip": "Tob was cleared years late, and Rhea's desk kept the seal all along."
+      },
+      "relationship_deltas": {
+        "elias": 20,
+        "tob": 30,
+        "marta": 15,
+        "edda": 15
+      },
+      "holder_election_contributions": {
+        "elias": 0.5,
+        "tob": 0.45,
+        "marta": 0.3,
+        "edda": 0.3,
+        "pip": 0.2
+      },
+      "transmission_parents": {
+        "elias": "player",
+        "tob": "elias",
+        "marta": "tob",
+        "edda": "elias",
+        "pip": "tob"
+      },
+      "traits": ["Reliable", "Influential"],
+      "grants_endorsement": true
+    },
+    {
+      "favor_id": "elias_wrongful_arrest",
+      "action_verb": "cover_elias_arrest",
+      "label": "Keep the correction buried",
+      "resolution": "covered_up",
+      "dialogue": "The page is gone. Order survives today. Tob saw your hand on the brazier, so do not pretend the story died with the paper.",
+      "event_kind": "elias_arrest_covered",
+      "event_text": "You burn Tob's omitted correction to protect Elias's authority. Tob witnesses the page curl in the brazier.",
+      "memory_text": "The player helped Elias destroy the correction proving Tob Rill was wrongly jailed after Rhea's guild seal appeared in her desk.",
+      "resident_speeches": {
+        "elias": "The old correction is gone. That does not make the old arrest right.",
+        "tob": "I watched you burn the line that cleared my name.",
+        "pip": "A missing ledger page burns just as brightly as a confession."
+      },
+      "relationship_deltas": {
+        "elias": 30,
+        "tob": -30,
+        "marta": -20,
+        "will": 15
+      },
+      "holder_election_contributions": {
+        "elias": 0.45,
+        "tob": -0.5,
+        "marta": -0.35,
+        "pip": -0.25,
+        "will": 0.25
+      },
+      "transmission_parents": {
+        "elias": "player",
+        "tob": "player",
+        "marta": "tob",
+        "pip": "tob",
+        "will": "elias"
+      },
+      "traits": ["Dishonest"],
       "grants_endorsement": false
     }
   ],

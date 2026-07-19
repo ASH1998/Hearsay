@@ -344,10 +344,23 @@ Completed:
 - Both sick-house outcomes update Oswin/Lina/Pip speech as appropriate and
   preserve favor resolution, public traits, endorsement, relationships,
   transmission lineage, events, election inputs, and outcome through refresh.
+- Elias's first favor reveals that he jailed Tob Rill for taking Rhea's guild
+  seal, then omitted the correction when the seal appeared in Rhea's desk.
+  The Ledger forces one resolution: reopen the arrest or destroy the record.
+- Investigation derives Reliable and Influential, stores Elias's legitimacy
+  endorsement, raises Elias/Tob/Marta/Edda standing, corrects visible resident
+  speech, and reaches a belief-backed `16–4` Landslide. Cover-up raises Elias
+  and Will short-term, damages Tob and Marta, derives Dishonest, and reaches a
+  witnessed `0–20` Exposed ending.
+- Favor content now authors every transmission parent explicitly. Elias's
+  correction proves player→Elias→Tob→Marta and Elias→Edda, while Tob tells Pip
+  and Pip fans the account to four proximity listeners. The cover-up instead
+  preserves player→Tob→Marta/Pip witness lineage, so the destroyed page remains
+  reconstructable.
 
 Validated:
 
-- Ninety-nine local API tests pass. Pure election tests cover all six ending
+- One hundred three local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -360,8 +373,10 @@ Validated:
   confession resolutions, their mutually exclusive state, elder standing,
   transmission topology, exact `13–7` belief-audited Narrow wins, both
   sick-house resolutions, private/public transmission routes, mutually
-  exclusive state, family standing, and exact `12–8`/`9–11` outcomes.
-- Fifteen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  exclusive state, family standing, exact `12–8`/`9–11` outcomes, both
+  wrongful-arrest resolutions, authored multi-hop parents, legitimacy standing,
+  and exact `16–4` Landslide/`0–20` Exposed outcomes.
+- Sixteen real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -387,7 +402,11 @@ Validated:
   The Talia test proves the quiet-help resolution, endorsement, both public
   events, five-edge family lineage, four belief-backed votes, final
   `0.90`/`0.75`/`0.70`/`0.60` trust, and restored `12–8` result.
-- Eleven browser playthroughs pass and collectively reach all six endings. The
+  The Elias test proves the investigated resolution, endorsement, both public
+  events, Elias→Tob→Marta and Tob→Pip→ambient transmission routes,
+  belief-backed votes, final `0.80`/`0.80`/`0.65`/`0.65` trust, and restored
+  `16–4` result.
+- Thirteen browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -413,6 +432,10 @@ Validated:
   resolution, render the matching family-confidence state and public traits,
   reach `12–8` By One Voice or `9–11` The Tied Bell, and show the exact
   sick-house memory in the election audit.
+  Two Elias paths correct or burn Tob's arrest record, refresh the durable
+  resolution, render the legitimacy/witness state and public traits, reach
+  `16–4` The Town Turns or `0–20` The Story Unravels, and show the exact
+  wrongful-arrest memory in the election audit.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -420,10 +443,11 @@ Validated:
 Remaining:
 
 - Additional principal favors and information/ambition verbs remain.
-- Broader multi-hop rumor propagation beyond Pip's immediate ambient listeners.
+- General autonomous multi-hop rumor ticks beyond authored principal routes
+  and Pip's immediate ambient fan-out remain.
 
 ## Next implementation slice
 
-1. Add Elias's wrongful-arrest secret and first constable favor with
-   investigate/cover-up information choices, legitimacy-faction trust,
-   durable memory lineage, and election effects.
+1. Add Pip's first source-tracing favor with verify/embellish information
+   choices, visible multi-hop rumor mutation, durable lineage, and election
+   effects.

@@ -47,6 +47,9 @@ class ActionVerb(StrEnum):
     ACCEPT_TALIA_FAVOR = "accept_talia_favor"
     HELP_OSWIN_QUIETLY = "help_oswin_quietly"
     GOSSIP_OSWIN_ILLNESS = "gossip_oswin_illness"
+    ACCEPT_ELIAS_FAVOR = "accept_elias_favor"
+    INVESTIGATE_ELIAS_ARREST = "investigate_elias_arrest"
+    COVER_ELIAS_ARREST = "cover_elias_arrest"
     GIVE_SQUARE_SPEECH = "give_square_speech"
     SLEEP = "sleep"
 
@@ -110,6 +113,8 @@ class FavorState(BaseModel):
         "concealed",
         "helped_quietly",
         "gossiped_publicly",
+        "investigated",
+        "covered_up",
     ] | None = None
 
 

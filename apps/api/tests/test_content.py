@@ -24,6 +24,7 @@ def test_greyhaven_content_references_are_complete() -> None:
         "nessa_harbor_log",
         "orin_election_confession",
         "talia_sick_house",
+        "elias_wrongful_arrest",
     }
     assert {
         choice.action_verb
@@ -33,6 +34,8 @@ def test_greyhaven_content_references_are_complete() -> None:
         "conceal_orin_confession",
         "help_oswin_quietly",
         "gossip_oswin_illness",
+        "investigate_elias_arrest",
+        "cover_elias_arrest",
     }
     assert len(content.schedule_templates) == 17
     assert len(content.public_traits) == 6
@@ -95,4 +98,17 @@ def test_content_requires_all_authored_favor_choices() -> None:
     payload["favor_choices"].pop()
 
     with pytest.raises(ValidationError, match="reveal/conceal"):
+        GreyhavenContent.model_validate(payload)
+
+
+def test_favor_choice_rejects_missing_or_forward_parent_route() -> None:
+    payload = load_content().model_dump(mode="json")
+    choice = next(
+        item
+        for item in payload["favor_choices"]
+        if item["action_verb"] == "investigate_elias_arrest"
+    )
+    choice["transmission_parents"]["tob"] = "marta"
+
+    with pytest.raises(ValidationError, match="invalid references"):
         GreyhavenContent.model_validate(payload)

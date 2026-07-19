@@ -312,6 +312,8 @@ export function GameShell() {
                 ? "✧"
                 : favor.key === "talia_sick_house"
                   ? "✚"
+                  : favor.key === "elias_wrongful_arrest"
+                    ? "⚖"
                   : "⚓"}
             </span>
             <div>
@@ -320,7 +322,9 @@ export function GameShell() {
                   ? "Orin's sealed confession"
                   : favor.key === "talia_sick_house"
                     ? "Talia's sick-house request"
-                  : "Nessa's harbor log"}
+                    : favor.key === "elias_wrongful_arrest"
+                      ? "Elias's omitted arrest correction"
+                    : "Nessa's harbor log"}
               </strong>
               <p>{favor.content}</p>
               <small>
@@ -336,6 +340,12 @@ export function GameShell() {
                       : favor.resolution === "gossiped_publicly"
                         ? "Warned publicly · family confidence broken"
                         : "Unresolved · help quietly or warn publicly"
+                    : favor.key === "elias_wrongful_arrest"
+                      ? favor.resolution === "investigated"
+                        ? "Record corrected · Tob publicly cleared"
+                        : favor.resolution === "covered_up"
+                          ? "Correction destroyed · Tob witnessed it"
+                          : "Unresolved · reopen or bury the old arrest"
                     : favor.corrected_publicly
                       ? "Corrected publicly · endorsement available"
                       : favor.status === "completed"
@@ -705,6 +715,41 @@ export function GameShell() {
                 >
                   Give Elias the harbor log
                 </button>
+              ) : null}
+              {selectedNpc.id === "elias" &&
+              !snapshot.favors.some(
+                (favor) => favor.key === "elias_wrongful_arrest",
+              ) ? (
+                <button
+                  disabled={busy}
+                  onClick={() => act("accept_elias_favor", "elias")}
+                  type="button"
+                >
+                  Ask about Elias&apos;s old arrest
+                </button>
+              ) : null}
+              {selectedNpc.id === "elias" &&
+              snapshot.favors.some(
+                (favor) =>
+                  favor.key === "elias_wrongful_arrest" &&
+                  favor.status === "active",
+              ) ? (
+                <>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("investigate_elias_arrest", "elias")}
+                    type="button"
+                  >
+                    Reopen Tob&apos;s arrest
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => act("cover_elias_arrest", "elias")}
+                    type="button"
+                  >
+                    Keep the correction buried
+                  </button>
+                </>
               ) : null}
               {selectedNpc.id === "pip" &&
               snapshot.favors.some(

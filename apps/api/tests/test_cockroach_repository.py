@@ -1006,6 +1006,121 @@ def test_talia_quiet_help_persists_family_lineage_and_votes(
     assert restored.election == election
 
 
+def test_elias_investigation_persists_multihop_legitimacy_and_votes(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=153))
+    for verb, target in (
+        ("accept_elias_favor", "elias"),
+        ("investigate_elias_arrest", "elias"),
+        ("sleep", None),
+        ("declare_candidacy", "rhea"),
+        ("sleep", None),
+        ("sleep", None),
+    ):
+        result = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target,
+            ),
+        )
+
+    election = result.snapshot.election
+    assert election is not None
+    assert election.player_votes == 16
+    assert election.ending.key == "landslide"
+    assert result.snapshot.favors[0].resolution == "investigated"
+    assert result.snapshot.player.endorsements == ["elias"]
+
+    lineage = repository.list_memory_lineage(
+        created.run_id,
+        "elias-tob-wrongful-arrest",
+    )
+    assert {
+        "elias",
+        "player",
+        "tob",
+        "marta",
+        "edda",
+        "pip",
+    } <= {version.holder_id for version in lineage.versions}
+    transmission_edges = {
+        (edge.speaker_id, edge.listener_id)
+        for edge in lineage.transmissions
+    }
+    assert {
+        ("elias", "player"),
+        ("player", "elias"),
+        ("elias", "tob"),
+        ("tob", "marta"),
+        ("elias", "edda"),
+        ("tob", "pip"),
+    } <= transmission_edges
+    assert any(
+        edge.speaker_id == "pip"
+        for edge in lineage.transmissions
+    )
+
+    with repository.session_factory() as session:
+        arrest_inputs = list(
+            session.scalars(
+                select(VoteInputModel).where(
+                    VoteInputModel.game_run_id == created.run_id,
+                    VoteInputModel.input_key == "elias-tob-wrongful-arrest",
+                )
+            )
+        )
+        trust_by_resident = {
+            resident_id: session.scalar(
+                select(RelationshipModel.trust).where(
+                    RelationshipModel.game_run_id == created.run_id,
+                    RelationshipModel.a_id == resident_id,
+                    RelationshipModel.b_id == "player",
+                )
+            )
+            for resident_id in ("elias", "tob", "marta", "edda")
+        }
+        event_kinds = set(
+            session.scalars(
+                select(EventModel.kind).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind.in_(
+                        (
+                            "elias_wrongful_arrest_entrusted",
+                            "elias_arrest_investigated",
+                        )
+                    ),
+                )
+            )
+        )
+
+    assert len(arrest_inputs) >= 5
+    assert {item.input_value for item in arrest_inputs} == {"investigated"}
+    assert all(item.belief_id is not None for item in arrest_inputs)
+    assert trust_by_resident == {
+        "elias": pytest.approx(0.8),
+        "tob": pytest.approx(0.8),
+        "marta": pytest.approx(0.65),
+        "edda": pytest.approx(0.65),
+    }
+    assert event_kinds == {
+        "elias_wrongful_arrest_entrusted",
+        "elias_arrest_investigated",
+    }
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.favors == result.snapshot.favors
+    assert restored.player.endorsements == ["elias"]
+    assert restored.election == election
+
+
 def test_square_speech_persists_audited_ten_ten_loss(
     repository: CockroachRunRepository,
 ) -> None:

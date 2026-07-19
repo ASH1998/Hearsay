@@ -213,6 +213,27 @@ def resolve_election(
                         "They remember the player turned Talia's private warning "
                         "about Oswin's fever into public gossip."
                     )
+            elif proposition_key == "elias-tob-wrongful-arrest":
+                resolution = memory.normalized_position.get("resolution")
+                value = resolution if isinstance(resolution, str) else None
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution)
+                    if isinstance(raw_contribution, int | float)
+                    else 0.0
+                )
+                if value == "investigated":
+                    explanation = (
+                        "They remember the player reopened Tob's wrongful arrest "
+                        "and made Elias correct the public ledger."
+                    )
+                else:
+                    explanation = (
+                        "They remember the player helped Elias destroy the "
+                        "correction that cleared Tob Rill."
+                    )
             if (
                 contribution
                 and memory.normalized_position.get("echo_hop") == 2

@@ -472,6 +472,9 @@
           "accept_talia_favor",
           "help_oswin_quietly",
           "gossip_oswin_illness",
+          "accept_elias_favor",
+          "investigate_elias_arrest",
+          "cover_elias_arrest",
           "give_square_speech",
           "sleep"
         ],
@@ -959,7 +962,9 @@
                   "revealed",
                   "concealed",
                   "helped_quietly",
-                  "gossiped_publicly"
+                  "gossiped_publicly",
+                  "investigated",
+                  "covered_up"
                 ]
               },
               {

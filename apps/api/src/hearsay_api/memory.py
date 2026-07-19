@@ -890,11 +890,7 @@ def _plan_primary_action_memory(
             confession_choice.holder_election_contributions.items()
         ):
             text_embedding = embeddings.embed(confession_choice.memory_text)
-            parent_holder_id = (
-                "player"
-                if resolution == "revealed" or holder_id == "orin"
-                else "orin"
-            )
+            parent_holder_id = confession_choice.transmission_parents[holder_id]
             confession_beliefs.append(
                 PlannedBelief(
                     proposition_key="orin-rhea-election-confession",
@@ -1061,11 +1057,7 @@ def _plan_primary_action_memory(
             favor_choice.holder_election_contributions.items()
         ):
             text_embedding = embeddings.embed(favor_choice.memory_text)
-            parent_holder_id = (
-                "player"
-                if resolution == "gossiped_publicly" or holder_id == "talia"
-                else "talia"
-            )
+            parent_holder_id = favor_choice.transmission_parents[holder_id]
             sick_house_beliefs.append(
                 PlannedBelief(
                     proposition_key="talia-oswin-sick-house",
@@ -1105,6 +1097,172 @@ def _plan_primary_action_memory(
             )
         return MemoryEffects(
             beliefs=tuple(sick_house_beliefs),
+            relationships=tuple(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id=resident_id,
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=delta / 100,
+                    affinity_delta=delta / 200,
+                )
+                for resident_id, delta in favor_choice.relationship_deltas.items()
+            ),
+            gossip_tick_number=(
+                response.snapshot.world_tick
+                if "pip" in favor_choice.holder_election_contributions
+                else None
+            ),
+        )
+
+    if request.verb == ActionVerb.ACCEPT_ELIAS_FAVOR:
+        fact = content.favors_by_id["elias_wrongful_arrest"].correction_text
+        elias_text = (
+            "Elias entrusted the player with the omitted correction proving "
+            "Tob Rill was jailed on Rhea's unsupported word."
+        )
+        elias_embedding = embeddings.embed(elias_text)
+        player_embedding = embeddings.embed(fact)
+        return MemoryEffects(
+            beliefs=(
+                PlannedBelief(
+                    proposition_key="elias-tob-wrongful-arrest",
+                    subject_kind="favor",
+                    subject_id="elias_wrongful_arrest",
+                    predicate="tob_wrongfully_jailed",
+                    holder_id="elias",
+                    narrative_text=elias_text,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "tob_wrongfully_jailed": True,
+                        "seal_found_in_rhea_desk": True,
+                    },
+                    confidence=1.0,
+                    salience=1.0,
+                    source_kind="official_record",
+                    source_id="elias",
+                    embedding=elias_embedding.vector,
+                    embedding_model_id=elias_embedding.model_id,
+                ),
+                PlannedBelief(
+                    proposition_key="elias-tob-wrongful-arrest",
+                    subject_kind="favor",
+                    subject_id="elias_wrongful_arrest",
+                    predicate="tob_wrongfully_jailed",
+                    holder_id="player",
+                    narrative_text=fact,
+                    normalized_position={
+                        "resolution": "entrusted",
+                        "tob_wrongfully_jailed": True,
+                        "seal_found_in_rhea_desk": True,
+                    },
+                    confidence=1.0,
+                    salience=1.0,
+                    source_kind="official_record",
+                    source_id="elias",
+                    embedding=player_embedding.vector,
+                    embedding_model_id=player_embedding.model_id,
+                    parent_holder_id="elias",
+                    mutation_note="Elias gives the omitted correction to the player intact.",
+                    trust_at_time=0.9,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id="hearsay-official-record-transfer-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                ),
+            ),
+            relationships=(
+                PlannedRelationship(
+                    a_kind="npc",
+                    a_id="elias",
+                    b_kind="player",
+                    b_id="player",
+                    trust_delta=0.1,
+                ),
+            ),
+        )
+
+    if request.verb in {
+        ActionVerb.INVESTIGATE_ELIAS_ARREST,
+        ActionVerb.COVER_ELIAS_ARREST,
+    }:
+        favor_choice = content.favor_choices_by_verb[request.verb.value]
+        resolution = favor_choice.resolution
+        player_text = (
+            "The player reopened Tob Rill's arrest and made Elias enter the "
+            "missing correction into the public constable ledger."
+            if resolution == "investigated"
+            else (
+                "The player helped Elias burn the omitted correction while "
+                "Tob Rill watched from the constable-post doorway."
+            )
+        )
+        player_embedding = embeddings.embed(player_text)
+        arrest_beliefs: list[PlannedBelief] = [
+            PlannedBelief(
+                proposition_key="elias-tob-wrongful-arrest",
+                subject_kind="favor",
+                subject_id="elias_wrongful_arrest",
+                predicate="tob_wrongfully_jailed",
+                holder_id="player",
+                narrative_text=player_text,
+                normalized_position={
+                    "resolution": resolution,
+                    "tob_wrongfully_jailed": True,
+                    "seal_found_in_rhea_desk": True,
+                },
+                confidence=1.0,
+                salience=1.0,
+                source_kind="player_decision",
+                source_id="player",
+                embedding=player_embedding.vector,
+                embedding_model_id=player_embedding.model_id,
+            )
+        ]
+        for holder_id, contribution in (
+            favor_choice.holder_election_contributions.items()
+        ):
+            text_embedding = embeddings.embed(favor_choice.memory_text)
+            parent_holder_id = favor_choice.transmission_parents[holder_id]
+            arrest_beliefs.append(
+                PlannedBelief(
+                    proposition_key="elias-tob-wrongful-arrest",
+                    subject_kind="favor",
+                    subject_id="elias_wrongful_arrest",
+                    predicate="tob_wrongfully_jailed",
+                    holder_id=holder_id,
+                    narrative_text=favor_choice.memory_text,
+                    normalized_position={
+                        "resolution": resolution,
+                        "tob_wrongfully_jailed": True,
+                        "seal_found_in_rhea_desk": True,
+                        "election_contribution": contribution,
+                    },
+                    confidence=1.0 if holder_id in {"elias", "tob"} else 0.94,
+                    salience=1.0,
+                    source_kind=(
+                        "corrected_public_record"
+                        if resolution == "investigated"
+                        else "witnessed_cover_up"
+                    ),
+                    source_id=parent_holder_id,
+                    embedding=text_embedding.vector,
+                    embedding_model_id=text_embedding.model_id,
+                    parent_holder_id=parent_holder_id,
+                    mutation_note=(
+                        "The correction moves through the residents who verify it."
+                        if resolution == "investigated"
+                        else "Tob carries the witnessed destruction beyond the post."
+                    ),
+                    trust_at_time=0.85,
+                    retelling_provider_id="deterministic",
+                    retelling_model_id=f"hearsay-wrongful-arrest-{resolution}-v1",
+                    inference_attempts=0,
+                    inference_latency_ms=0,
+                )
+            )
+        return MemoryEffects(
+            beliefs=tuple(arrest_beliefs),
             relationships=tuple(
                 PlannedRelationship(
                     a_kind="npc",

@@ -89,6 +89,11 @@ TALIA_SICK_HOUSE_CHOICE_VERBS = {
     ActionVerb.GOSSIP_OSWIN_ILLNESS,
 }
 
+ELIAS_WRONGFUL_ARREST_CHOICE_VERBS = {
+    ActionVerb.INVESTIGATE_ELIAS_ARREST,
+    ActionVerb.COVER_ELIAS_ARREST,
+}
+
 
 class GameService:
     def __init__(
@@ -777,6 +782,68 @@ class GameService:
             snapshot.dialogue = DialogueState(
                 speaker_id="talia",
                 speaker_name="Talia Fen",
+                text=favor_choice.dialogue,
+            )
+            return self._event(favor_choice.event_kind, favor_choice.event_text)
+        if request.verb == ActionVerb.ACCEPT_ELIAS_FAVOR:
+            if request.target_id != "elias":
+                raise InvalidActionError("The wrongful-arrest favor comes from Elias.")
+            if any(
+                favor.key == "elias_wrongful_arrest"
+                for favor in snapshot.favors
+            ):
+                raise InvalidActionError("You already answered Elias's old-arrest request.")
+            content = self.content.favors_by_id["elias_wrongful_arrest"]
+            snapshot.favors.append(
+                FavorState(
+                    id=uuid4(),
+                    key=content.id,
+                    giver_id=content.giver_id,
+                    content=content.content,
+                )
+            )
+            self._require_npc(snapshot, "tob").speech = (
+                "Elias released me. He never wrote why the guild seal proved me innocent."
+            )
+            snapshot.dialogue = DialogueState(
+                speaker_id="elias",
+                speaker_name="Elias Ward",
+                text=content.accept_dialogue,
+            )
+            return self._event(
+                "elias_wrongful_arrest_entrusted",
+                "Elias gives you the omitted correction from Tob Rill's old arrest.",
+            )
+        if request.verb in ELIAS_WRONGFUL_ARREST_CHOICE_VERBS:
+            if request.target_id != "elias":
+                raise InvalidActionError("Resolve the old arrest with Elias present.")
+            favor = next(
+                (
+                    item
+                    for item in snapshot.favors
+                    if item.key == "elias_wrongful_arrest"
+                ),
+                None,
+            )
+            if favor is None or favor.status != "active":
+                raise InvalidActionError("There is no unresolved wrongful-arrest record.")
+            favor_choice = self.content.favor_choices_by_verb[request.verb.value]
+            favor.status = "completed"
+            favor.resolution = favor_choice.resolution
+            for resident_id, delta in favor_choice.relationship_deltas.items():
+                resident = self._require_npc(snapshot, resident_id)
+                resident.relationship = max(
+                    -100,
+                    min(100, resident.relationship + delta),
+                )
+            self._add_traits(snapshot, *favor_choice.traits)
+            if favor_choice.grants_endorsement:
+                snapshot.player.endorsements.append("elias")
+            for resident_id, speech in favor_choice.resident_speeches.items():
+                self._require_npc(snapshot, resident_id).speech = speech
+            snapshot.dialogue = DialogueState(
+                speaker_id="elias",
+                speaker_name="Elias Ward",
                 text=favor_choice.dialogue,
             )
             return self._event(favor_choice.event_kind, favor_choice.event_text)
