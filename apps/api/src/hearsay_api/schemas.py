@@ -164,17 +164,23 @@ class WorldEvent(BaseModel):
     kind: str
     text: str
     visible: bool = True
+    payload: dict[str, object] = Field(default_factory=dict)
 
 
 class TownEventState(BaseModel):
     id: UUID
     key: str
     title: str
-    status: Literal["active", "resolved"]
+    status: Literal["active", "resolved", "skipped"]
     started_day: int = Field(ge=1, le=3)
     started_phase: Phase
     resolved_day: int | None = Field(default=None, ge=1, le=3)
     resolved_phase: Phase | None = None
+    draw_seed: int = Field(default=0, ge=0)
+    draw_roll: int = Field(default=0, ge=0)
+    effects: list[str] = Field(default_factory=list)
+    affected_resident_ids: list[str] = Field(default_factory=list)
+    busy_resident_ids: list[str] = Field(default_factory=list)
 
 
 class PlayerState(BaseModel):

@@ -123,7 +123,7 @@ class CockroachRunRepository:
                     day=snapshot.day,
                     phase=snapshot.phase,
                     world_tick=snapshot.world_tick,
-                    payload={},
+                    payload=arrival.payload,
                 )
             )
             return snapshot.model_copy(deep=True)
@@ -593,7 +593,7 @@ class CockroachRunRepository:
                         day=snapshot.day,
                         phase=snapshot.phase,
                         world_tick=snapshot.world_tick,
-                        payload={},
+                        payload=event.payload,
                     )
                 )
             self._apply_memory_effects(session, run_id, memory_effects)

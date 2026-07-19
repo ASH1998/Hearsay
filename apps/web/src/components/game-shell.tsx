@@ -53,6 +53,69 @@ function playThunder() {
   });
 }
 
+function playMarketAmbience() {
+  const AudioContextClass =
+    window.AudioContext ??
+    (
+      window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }
+    ).webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  const context = new AudioContextClass();
+  const duration = 3.2;
+  const buffer = context.createBuffer(
+    1,
+    Math.floor(context.sampleRate * duration),
+    context.sampleRate,
+  );
+  const samples = buffer.getChannelData(0);
+  let seed = 1729;
+  for (let index = 0; index < samples.length; index += 1) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    samples[index] = (seed / 0xffffffff) * 2 - 1;
+  }
+
+  const murmur = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const murmurGain = context.createGain();
+  murmur.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.value = 360;
+  filter.Q.value = 0.7;
+  murmurGain.gain.setValueAtTime(0.0001, context.currentTime);
+  murmurGain.gain.exponentialRampToValueAtTime(
+    0.026,
+    context.currentTime + 0.18,
+  );
+  murmurGain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    context.currentTime + duration,
+  );
+  murmur.connect(filter).connect(murmurGain).connect(context.destination);
+
+  const bell = context.createOscillator();
+  const bellGain = context.createGain();
+  bell.type = "triangle";
+  bell.frequency.setValueAtTime(740, context.currentTime + 0.12);
+  bell.frequency.exponentialRampToValueAtTime(
+    510,
+    context.currentTime + 0.8,
+  );
+  bellGain.gain.setValueAtTime(0.0001, context.currentTime);
+  bellGain.gain.exponentialRampToValueAtTime(0.06, context.currentTime + 0.13);
+  bellGain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 1.1);
+  bell.connect(bellGain).connect(context.destination);
+
+  void context.resume().catch(() => void context.close());
+  murmur.start();
+  bell.start(context.currentTime + 0.12);
+  murmur.stop(context.currentTime + duration);
+  bell.stop(context.currentTime + 1.1);
+  murmur.addEventListener("ended", () => void context.close(), { once: true });
+}
+
 export function GameShell() {
   const [snapshot, setSnapshot] = useState<RunSnapshot | null>(null);
   const [selectedNpc, setSelectedNpc] = useState<NpcState | null>(null);
@@ -60,6 +123,10 @@ export function GameShell() {
   const [historianOpen, setHistorianOpen] = useState(false);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const marketDayActive =
+    snapshot?.town_events.some(
+      (event) => event.key === "market_day" && event.status === "active",
+    ) ?? false;
 
   useEffect(() => {
     const runId = window.localStorage.getItem(RUN_STORAGE_KEY);
@@ -72,6 +139,13 @@ export function GameShell() {
       .catch(() => window.localStorage.removeItem(RUN_STORAGE_KEY))
       .finally(() => setBusy(false));
   }, []);
+
+  useEffect(() => {
+    if (!marketDayActive) return;
+    const playOnce = () => playMarketAmbience();
+    window.addEventListener("pointerdown", playOnce, { once: true });
+    return () => window.removeEventListener("pointerdown", playOnce);
+  }, [marketDayActive]);
 
   const begin = useCallback(async () => {
     setBusy(true);
@@ -98,6 +172,16 @@ export function GameShell() {
         playConfirmation();
         if (snapshot.weather !== "rain" && next.weather === "rain") {
           playThunder();
+        }
+        if (
+          !snapshot.town_events.some(
+            (event) => event.key === "market_day" && event.status === "active",
+          ) &&
+          next.town_events.some(
+            (event) => event.key === "market_day" && event.status === "active",
+          )
+        ) {
+          playMarketAmbience();
         }
         setSelectedNpc((current) =>
           current
@@ -171,6 +255,10 @@ export function GameShell() {
   const activeTownEvent = snapshot.town_events.find(
     (event) => event.status === "active",
   );
+  const selectedNpcOutOfReach =
+    selectedNpc !== null &&
+    activeTownEvent?.busy_resident_ids?.includes(selectedNpc.id) === true &&
+    snapshot.player.location_id !== selectedNpc.location_id;
   const rheaCompact = snapshot.favors.find(
     (favor) => favor.key === "rhea_ballot_compact",
   );
@@ -184,6 +272,7 @@ export function GameShell() {
       className="game"
       data-weather={snapshot.weather}
       data-town-event={activeTownEvent?.key ?? "none"}
+      data-market-audio={marketDayActive ? "active" : "inactive"}
       data-conversation={selectedNpc ? "open" : "closed"}
       data-historian={historianOpen ? "open" : "closed"}
     >
@@ -208,6 +297,8 @@ export function GameShell() {
             <strong className="storm-status">
               {activeTownEvent?.title ?? "Storm over Greyhaven"}
             </strong>
+          ) : activeTownEvent ? (
+            <strong className="event-status">{activeTownEvent.title}</strong>
           ) : null}
           <small>{18 - snapshot.action_count} consequential actions remain</small>
         </div>
@@ -246,14 +337,20 @@ export function GameShell() {
             data-town-event-key={activeTownEvent.key}
           >
             <span className="promise__mark">
-              {activeTownEvent.key === "storm" ? "☂" : "!"}
+              {activeTownEvent.key === "storm"
+                ? "☂"
+                : activeTownEvent.key === "market_day"
+                  ? "♜"
+                  : "!"}
             </span>
             <div>
               <strong>{activeTownEvent.title}</strong>
               <p>
                 {activeTownEvent.key === "storm"
                   ? "The docks are empty. Greyhaven has crowded into the inn."
-                  : "Bram and Nessa are shouting. Greyhaven has formed a ring in the square."}
+                  : activeTownEvent.key === "market_day"
+                    ? "Two visiting stalls are open. Ambients crowd Market Row, and Bram is hard to reach."
+                    : "Bram and Nessa are shouting. Greyhaven has formed a ring in the square."}
               </p>
               <small>Active · behavior and routes changed</small>
               {activeTownEvent.key === "public_argument" &&
@@ -487,11 +584,15 @@ export function GameShell() {
         )}>
           Find Bram
           <small>
-            {snapshot.locations.find(
-              (location) =>
-                location.id ===
-                snapshot.npcs.find((npc) => npc.id === "bram")?.location_id,
-            )?.name ?? "Greyhaven"}
+            {activeTownEvent?.busy_resident_ids?.includes("bram") &&
+            snapshot.player.location_id !==
+              snapshot.npcs.find((npc) => npc.id === "bram")?.location_id
+              ? "Busy at Market row · walk there"
+              : (snapshot.locations.find(
+                  (location) =>
+                    location.id ===
+                    snapshot.npcs.find((npc) => npc.id === "bram")?.location_id,
+                )?.name ?? "Greyhaven")}
           </small>
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
@@ -630,7 +731,16 @@ export function GameShell() {
             snapshot.dialogue.treatment_cue ? (
               <p>{snapshot.dialogue.treatment_cue}</p>
             ) : null}
-            <div className="conversation__choices">
+            {selectedNpcOutOfReach ? (
+              <p className="conversation__busy">
+                Market Day has Bram buried in customers. Walk to Market Row to
+                get his attention.
+              </p>
+            ) : null}
+            <fieldset
+              className="conversation__choices"
+              disabled={busy || selectedNpcOutOfReach}
+            >
               <button
                 disabled={busy}
                 type="button"
@@ -957,7 +1067,7 @@ export function GameShell() {
                   </button>
                 </>
               ) : null}
-            </div>
+            </fieldset>
           </div>
         </section>
       ) : null}
@@ -1033,14 +1143,17 @@ export function GameShell() {
       <section className="event-strip" aria-live="polite">
         <span className="event-strip__icon">◉</span>
         <ol aria-label="Recent town events">
-          {snapshot.recent_events.slice(0, 3).map((event) => (
+          {snapshot.recent_events
+            .filter((event) => event.visible)
+            .slice(0, 3)
+            .map((event) => (
             <li
               data-event-kind={event.kind}
               key={event.id}
             >
               {event.text}
             </li>
-          ))}
+            ))}
         </ol>
       </section>
 

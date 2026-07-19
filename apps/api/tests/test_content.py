@@ -17,6 +17,7 @@ def test_greyhaven_content_references_are_complete() -> None:
     assert len(content.bram_approaches) == 4
     assert {event.id for event in content.town_events} == {
         "storm",
+        "market_day",
         "public_argument",
     }
     assert len(content.argument_choices) == 3
@@ -99,6 +100,33 @@ def test_content_requires_never_cut_storm() -> None:
     payload["town_events"] = [event for event in payload["town_events"] if event["id"] != "storm"]
 
     with pytest.raises(ValidationError, match="never-cut storm"):
+        GreyhavenContent.model_validate(payload)
+
+
+def test_market_day_authors_a_bounded_draw_and_subset_schedule_override() -> None:
+    content = load_content()
+    market_day = content.town_events_by_id["market_day"]
+
+    assert market_day.draw_modulus == 2
+    assert market_day.draw_values == (0,)
+    assert market_day.schedule_location_override == "market"
+    assert set(market_day.schedule_override_residents or ()) == set(content.ambients_by_id)
+    assert market_day.busy_residents == ("bram",)
+    assert {
+        "three_market_stalls",
+        "double_market_crowd",
+        "ambient_market_cluster",
+        "bram_busy",
+        "market_audio",
+    } <= set(market_day.effects)
+
+
+def test_content_rejects_invalid_event_draw_value() -> None:
+    payload = load_content().model_dump(mode="json")
+    market_day = next(event for event in payload["town_events"] if event["id"] == "market_day")
+    market_day["draw_values"] = [market_day["draw_modulus"]]
+
+    with pytest.raises(ValidationError, match="invalid draw values"):
         GreyhavenContent.model_validate(payload)
 
 

@@ -275,6 +275,19 @@ Completed:
   and public lifecycle events are server-authoritative. Refresh renders the
   restored Cockroach snapshot, and storm clearing reapplies the authored Day 2
   schedules instead of leaving stale crowd positions.
+- Day 2 Market Day is now a real seeded event-deck draw. Its authoritative
+  state records the deterministic seed/roll, five named effects, all twelve
+  affected ambient schedules, and Bram's busy status; a non-selected run stores
+  a private skipped draw instead of silently pretending no draw occurred.
+- A selected draw clusters all twelve ambients at Market Row while principals
+  keep their own schedules. The scene adds two stalls to the permanent one,
+  eight animated market visitors, a wider resident ring, a visible event
+  banner, and synthesized crowd-and-bell audio.
+- Bram cannot be addressed remotely while the market is active. The UI explains
+  why, disables his conversation choices from afar, and free movement through
+  the square to Market Row makes him reachable again. Twelve authored active
+  awareness lines, six resolved lines, refresh restoration, and the clean
+  afternoon handoff satisfy all three GDD event layers.
 - Day 2 afternoon now starts the Bram–Nessa public argument. Its schedule
   override stages all 20 residents in a square ring, a visible scene banner
   identifies the confrontation, and Bram/Nessa/Pip receive active and resolved
@@ -409,7 +422,7 @@ Completed:
 
 Validated:
 
-- One hundred fourteen local API tests pass. Pure election tests cover all six ending
+- One hundred eighteen local API tests pass. Pure election tests cover all six ending
   classes, the 10–10 Rhea tie, deterministic replay IDs, candidacy timing,
   exact promise-version inputs, the 11–9 win, save/restore, content schedule
   shape/reference validation, all-resident phase movement, refresh safety, all
@@ -432,8 +445,10 @@ Validated:
   Landslide outcomes. Autonomous tests additionally prove deterministic
   holder-to-holder continuation, text mutation, co-location, exact parent
   versions, hop-four termination, duplicate suppression, private-fact
-  exclusion, restoration, and hop-three election attenuation.
-- Nineteen real Cockroach Cloud tests pass against `hearsay_test`. The election
+  exclusion, restoration, and hop-three election attenuation. Market tests
+  cover selected/skipped draws, payloads, subset schedule overrides, busy
+  reachability, awareness, lifecycle handoff, and refresh restoration.
+- Twenty real Cockroach Cloud tests pass against `hearsay_test`. The election
   test verifies one election row, exactly 20 vote rows, normalized decision
   inputs, Pip's live promise-belief foreign key, and restored final state.
   The schedule test independently recreates the repository, restores every
@@ -442,6 +457,10 @@ Validated:
   then recreates the repository and restores the Run out of town result.
   The storm test queries its public event row, recreates the repository, and
   proves weather, active-event state, and all 20 overridden positions survive.
+  The Market Day test queries the exact event JSON payload—seed `2788`, roll
+  `0`, five effects, twelve ambient IDs, and Bram—then proves the clustered
+  positions, awareness, event state, and busy flag survive repository
+  recreation.
   The argument test additionally proves both directional trust rows reach
   `0.15`, all lifecycle/action events exist, three belief-backed vote inputs
   persist, and repository recreation restores the same election.
@@ -476,7 +495,7 @@ Validated:
   public continuation events, exact Fen→Orin/Rhea parent versions, Orin's
   `-0.0125` hop-three vote input, and a non-Pip restored bubble after repository
   recreation.
-- Eighteen browser playthroughs pass and collectively reach all six endings. The
+- Nineteen browser playthroughs pass and collectively reach all six endings. The
   first plays arrival → promise → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
@@ -496,8 +515,10 @@ Validated:
   Exposed (`The Story Unravels`), and renders the exact lie belief in the audit.
   Two Orin paths then reveal or conceal the confession, refresh the durable
   resolution, render the matching Reliable/Influential trait and public event,
-  reach `13–7` By One Voice, and show the exact disclosure/blessing memory in
-  the election audit.
+  and show the exact disclosure/blessing memory in the election audit. The
+  selected Market Day lets the concealed blessing travel farther and turns
+  that default path from the isolated `13–7` baseline into an audited `14–6`
+  Landslide.
   Two Talia paths quietly deliver care or warn through Pip, refresh the durable
   resolution, render the matching family-confidence state and public traits,
   reach `12–8` By One Voice or `9–11` The Tied Bell, and show the exact
@@ -514,7 +535,10 @@ Validated:
   the election audit.
   The autonomous path visibly creates two Hettie Voss→resident hop-three
   bubbles, survives reload with both routes intact, and reaches the expected
-  belief-backed `11–9` result.
+  belief-backed `12–8` result once Market Day changes the later crowd.
+  The Market Day path renders three stalls and eight extra visitors, exposes
+  its audio state, blocks Bram from afar, enables him after two free waypoint
+  moves, survives reload, and visibly clears into the public argument.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
   build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
   and real Modal structured-output probe pass.
@@ -523,12 +547,14 @@ Remaining:
 
 - Second principal favors and the broader social, information, and ambition
   verb set remain.
-- The remaining three-layer event-deck slices beyond storm and public argument
+- The remaining three-layer event-deck slices beyond storm, Market Day, and
+  public argument
   remain.
 
 ## Next implementation slice
 
-1. Add Market Day as the next complete three-layer event: extra stalls, denser
-   market crowds and audio; deterministic ambient clustering and Bram
-   availability changes; authored resident awareness; durable draw/effect
-   state; refresh-safe rendering; and real Cockroach replay proof.
+1. Add Festival Night as the fourth complete three-layer event: lanterns,
+   square gathering and music; an everyone-reachable schedule override;
+   a small, explicit trust benefit for conversations; authored resident
+   awareness; durable draw/effect state; refresh-safe rendering; and real
+   Cockroach replay proof.

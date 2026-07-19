@@ -26,7 +26,7 @@ def act(
 def test_storm_has_render_state_schedule_override_awareness_and_refresh() -> None:
     repository = InMemoryRunRepository()
     service = GameService(repository=repository)
-    created = service.create_run(CreateRunRequest(display_name="Ada", seed=91))
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=90))
 
     for target in ("marta", "bram", "pip", "rhea"):
         storm = act(service, created.run_id, "talk", target)

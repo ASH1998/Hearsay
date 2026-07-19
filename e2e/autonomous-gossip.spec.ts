@@ -57,5 +57,5 @@ test("a resident carries Pip's rumor onward on a later tick", async ({
   await expect(
     page.getByRole("heading", { name: "By One Voice" }),
   ).toBeVisible();
-  await expect(page.getByText("Newcomer 11–9 Rhea")).toBeVisible();
+  await expect(page.getByText("Newcomer 12–8 Rhea")).toBeVisible();
 });

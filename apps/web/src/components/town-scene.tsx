@@ -271,6 +271,97 @@ function StormFlash() {
   );
 }
 
+function MarketVisitor({
+  color,
+  index,
+  position,
+}: {
+  color: string;
+  index: number;
+  position: [number, number, number];
+}) {
+  const group = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (!group.current) return;
+    group.current.position.y =
+      position[1] + Math.sin(state.clock.elapsedTime * 1.4 + index) * 0.035;
+  });
+  return (
+    <group ref={group} position={position} rotation={[0, index * 0.72, 0]}>
+      <mesh castShadow position={[0, 0.72, 0]}>
+        <cylinderGeometry args={[0.18, 0.24, 0.76, 8]} />
+        <meshStandardMaterial color={color} roughness={0.92} />
+      </mesh>
+      <mesh castShadow position={[0, 1.22, 0]}>
+        <sphereGeometry args={[0.17, 12, 8]} />
+        <meshStandardMaterial color="#b98562" roughness={0.95} />
+      </mesh>
+    </group>
+  );
+}
+
+function MarketDaySet() {
+  const visitors = [
+    [-2.2, 0, -0.4],
+    [-1.8, 0, 1.5],
+    [-0.7, 0, -1.8],
+    [0.6, 0, 2.1],
+    [1.8, 0, -1.2],
+    [2.3, 0, 0.8],
+    [0.2, 0, -2.4],
+    [-2.4, 0, 0.7],
+  ] as [number, number, number][];
+  const colors = [
+    "#7d4b3a",
+    "#3f6f68",
+    "#987437",
+    "#5e557a",
+    "#865764",
+    "#47647d",
+    "#6f7542",
+    "#8a553e",
+  ];
+
+  return (
+    <>
+      <SceneAsset
+        path={ASSETS.stall}
+        position={[4.4, 0, -0.6]}
+        rotation={[0, 0.45, 0]}
+        scale={0.5}
+      />
+      <SceneAsset
+        path={ASSETS.stall}
+        position={[7.8, 0, 2.6]}
+        rotation={[0, -2.65, 0]}
+        scale={0.5}
+      />
+      <group position={[6, 0, 1]}>
+        {visitors.map((position, index) => (
+          <MarketVisitor
+            color={colors[index]}
+            index={index}
+            key={index}
+            position={position}
+          />
+        ))}
+      </group>
+      <Html center position={[6, 3.25, 1]}>
+        <div
+          className="market-banner"
+          data-market-audio="murmur-and-bell"
+          data-market-crowd="8"
+          data-market-stalls="3"
+          data-scene-event="market_day"
+        >
+          <strong>Market Day</strong>
+          <span>Three stalls · half the coast</span>
+        </div>
+      </Html>
+    </>
+  );
+}
+
 function ProxyTown() {
   return (
     <group>
@@ -293,7 +384,7 @@ function ProxyTown() {
   );
 }
 
-function WorldAssets() {
+function WorldAssets({ marketDay }: { marketDay: boolean }) {
   return (
     <>
       <SceneAsset
@@ -322,6 +413,7 @@ function WorldAssets() {
         rotation={[0, -0.35, 0]}
         scale={0.54}
       />
+      {marketDay ? <MarketDaySet /> : null}
       <SceneAsset
         path={ASSETS.wagon}
         position={[3.8, 0, 3.1]}
@@ -414,6 +506,9 @@ function Scene({
   const publicArgument = snapshot.town_events.some(
     (event) =>
       event.key === "public_argument" && event.status === "active",
+  );
+  const marketDay = snapshot.town_events.some(
+    (event) => event.key === "market_day" && event.status === "active",
   );
   const selectedNpc = snapshot.npcs.find((npc) => npc.id === selectedNpcId);
   const focusLocation = selectedNpc
@@ -535,7 +630,7 @@ function Scene({
       </mesh>
 
       <Suspense fallback={<ProxyTown />}>
-        <WorldAssets />
+        <WorldAssets marketDay={marketDay} />
         {publicArgument ? (
           <Html center position={[0, 3.1, 0]}>
             <div
@@ -555,7 +650,12 @@ function Scene({
           );
           const peerIndex = peers.findIndex((resident) => resident.id === npc.id);
           const angle = (peerIndex / Math.max(peers.length, 1)) * Math.PI * 2;
-          const radius = peers.length > 1 ? 0.65 : 0;
+          const radius =
+            marketDay && location.id === "market"
+              ? 1.55 + (peerIndex % 2) * 0.42
+              : peers.length > 1
+                ? 0.65
+                : 0;
           return (
             <AnimatedResident
               key={npc.id}

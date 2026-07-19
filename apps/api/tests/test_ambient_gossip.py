@@ -108,7 +108,7 @@ def test_later_tick_continues_a_rumor_from_an_ambient_holder() -> None:
 
 def test_autonomous_rumors_stop_at_hop_four_without_duplicate_holders() -> None:
     service = GameService(repository=InMemoryRunRepository())
-    created = service.create_run(CreateRunRequest(display_name="Ada", seed=19))
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=20))
     sequence = [
         ("promise_help", "marta"),
         ("negotiate_bram", "bram"),

@@ -70,7 +70,12 @@ class TownEventContent(BaseModel):
     start_phase: str
     end_day: int = Field(ge=1, le=3)
     end_phase: str
+    draw_modulus: int = Field(default=1, ge=1, le=100)
+    draw_values: tuple[int, ...] = (0,)
     schedule_location_override: str | None = None
+    schedule_override_residents: tuple[str, ...] | None = None
+    busy_residents: tuple[str, ...] = ()
+    effects: tuple[str, ...] = ()
     start_text: str
     end_text: str
     active_awareness: dict[str, str]
@@ -299,16 +304,31 @@ class GreyhavenContent(BaseModel):
             if {event.start_phase, event.end_phase} - known_phases:
                 raise ValueError(f"Town event {event.id} uses an unknown phase.")
             if (
+                not event.draw_values
+                or len(event.draw_values) != len(set(event.draw_values))
+                or any(value < 0 or value >= event.draw_modulus for value in event.draw_values)
+            ):
+                raise ValueError(f"Town event {event.id} has invalid draw values.")
+            if (
                 event.schedule_location_override is not None
                 and event.schedule_location_override not in known_locations
             ):
                 raise ValueError(f"Town event {event.id} has an unknown schedule override.")
-            unknown_residents = (set(event.active_awareness) | set(event.resolved_awareness)) - set(
-                resident_ids
+            if (
+                event.schedule_override_residents is not None
+                and event.schedule_location_override is None
+            ):
+                raise ValueError(f"Town event {event.id} has residents but no schedule override.")
+            event_residents = (
+                set(event.active_awareness)
+                | set(event.resolved_awareness)
+                | set(event.schedule_override_residents or ())
+                | set(event.busy_residents)
             )
+            unknown_residents = event_residents - set(resident_ids)
             if unknown_residents:
                 raise ValueError(
-                    f"Town event {event.id} has unknown aware residents: "
+                    f"Town event {event.id} has unknown resident references: "
                     f"{sorted(unknown_residents)}."
                 )
         required_argument_choices = {

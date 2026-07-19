@@ -527,11 +527,23 @@ button:disabled {
 .conversation__choices {
   display: flex;
   flex-wrap: wrap;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
   gap: 0.4rem;
 }
 
 .conversation__choices button {
   background: rgb(232 223 198 / 8%);
+}
+
+.conversation__busy {
+  margin: 0.55rem 0;
+  border-left: 2px solid var(--gold);
+  padding-left: 0.65rem;
+  color: #e6c98f;
+  font-size: 0.78rem;
 }
 
 .town-event__choices {
@@ -565,6 +577,23 @@ button:disabled {
 
 .argument-banner span {
   color: rgb(232 223 198 / 72%);
+  font-size: 0.66rem;
+}
+
+.market-banner {
+  display: grid;
+  width: 11rem;
+  border: 1px solid rgb(244 210 135 / 72%);
+  padding: 0.55rem 0.7rem;
+  background: rgb(78 53 24 / 94%);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 34%);
+  color: #fff0c3;
+  font-family: var(--font-display);
+  text-align: center;
+}
+
+.market-banner span {
+  color: rgb(255 240 195 / 72%);
   font-size: 0.66rem;
 }
 
@@ -610,6 +639,13 @@ button:disabled {
 
 .storm-status {
   color: #c9e4ed;
+  font-size: 0.65rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.event-status {
+  color: #f2cf83;
   font-size: 0.65rem;
   letter-spacing: 0.09em;
   text-transform: uppercase;

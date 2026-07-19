@@ -399,6 +399,18 @@ class GameService:
         return treatment
 
     def _apply_action(self, snapshot: RunSnapshot, request: ActionRequest) -> WorldEvent:
+        if (
+            request.target_id is not None
+            and request.target_id in self.content.residents_by_id
+            and self._resident_is_busy(snapshot, request.target_id)
+        ):
+            resident = self._require_npc(snapshot, request.target_id)
+            if snapshot.player.location_id != resident.location_id:
+                location = self.content.locations_by_id[resident.location_id]
+                raise InvalidActionError(
+                    f"{resident.name} is buried in the Market Day crowd. "
+                    f"Walk to {location.name} to reach them."
+                )
         if request.verb == ActionVerb.MOVE:
             return self._move(snapshot, request.target_id)
         if request.verb == ActionVerb.OBSERVE:
@@ -1034,12 +1046,26 @@ class GameService:
             if event_state.status != "active":
                 continue
             event = self.content.town_events_by_id[event_state.key]
-            if event.schedule_location_override is not None:
+            applies_to_resident = (
+                event.schedule_override_residents is None
+                or resident_id in event_state.affected_resident_ids
+            )
+            if event.schedule_location_override is not None and applies_to_resident:
                 return event.schedule_location_override
         return self.content.scheduled_location(
             resident_id,
             snapshot.day,
             snapshot.phase,
+        )
+
+    @staticmethod
+    def _resident_is_busy(
+        snapshot: RunSnapshot,
+        resident_id: str,
+    ) -> bool:
+        return any(
+            event.status == "active" and resident_id in event.busy_resident_ids
+            for event in snapshot.town_events
         )
 
     def _update_town_events(
@@ -1062,28 +1088,64 @@ class GameService:
                 None,
             )
             if state is None and current_time >= start_time:
+                draw_seed = self._event_draw_seed(
+                    snapshot.seed,
+                    event_content.id,
+                    event_content.start_day,
+                )
+                draw_roll = draw_seed % event_content.draw_modulus
+                affected_resident_ids = (
+                    [resident.id for resident in self.content.residents]
+                    if event_content.schedule_location_override is not None
+                    and event_content.schedule_override_residents is None
+                    else list(event_content.schedule_override_residents or ())
+                )
+                payload: dict[str, object] = {
+                    "draw_seed": draw_seed,
+                    "draw_roll": draw_roll,
+                    "effects": list(event_content.effects),
+                    "affected_resident_ids": affected_resident_ids,
+                    "busy_resident_ids": list(event_content.busy_residents),
+                }
+                selected = draw_roll in event_content.draw_values
                 state = TownEventState(
                     id=uuid4(),
                     key=event_content.id,
                     title=event_content.title,
-                    status="active",
+                    status="active" if selected else "skipped",
                     started_day=event_content.start_day,
                     started_phase=cast(
                         Literal["morning", "afternoon", "evening", "night"],
                         event_content.start_phase,
                     ),
+                    draw_seed=draw_seed,
+                    draw_roll=draw_roll,
+                    effects=list(event_content.effects),
+                    affected_resident_ids=affected_resident_ids,
+                    busy_resident_ids=list(event_content.busy_residents),
                 )
                 snapshot.town_events.append(state)
-                self._apply_event_awareness(
-                    snapshot,
-                    event_content.active_awareness,
-                )
-                events.append(
-                    self._event(
-                        f"{event_content.id}_begins",
-                        event_content.start_text,
+                if selected:
+                    self._apply_event_awareness(
+                        snapshot,
+                        event_content.active_awareness,
                     )
-                )
+                    events.append(
+                        self._event(
+                            f"{event_content.id}_begins",
+                            event_content.start_text,
+                            payload=payload,
+                        )
+                    )
+                else:
+                    events.append(
+                        self._event(
+                            f"{event_content.id}_skipped",
+                            f"{event_content.title} was not drawn for this run.",
+                            visible=False,
+                            payload=payload,
+                        )
+                    )
             if state is not None and state.status == "active" and current_time >= end_time:
                 state.status = "resolved"
                 state.resolved_day = event_content.end_day
@@ -1099,6 +1161,13 @@ class GameService:
                     self._event(
                         f"{event_content.id}_clears",
                         event_content.end_text,
+                        payload={
+                            "draw_seed": state.draw_seed,
+                            "draw_roll": state.draw_roll,
+                            "effects": state.effects,
+                            "affected_resident_ids": state.affected_resident_ids,
+                            "busy_resident_ids": state.busy_resident_ids,
+                        },
                     )
                 )
 
@@ -1109,7 +1178,16 @@ class GameService:
             )
             else "clear"
         )
-        return events
+        return sorted(
+            events,
+            key=lambda event: (
+                0 if event.kind.endswith("_begins") else 1 if event.kind.endswith("_clears") else 2
+            ),
+        )
+
+    @staticmethod
+    def _event_draw_seed(run_seed: int, event_id: str, start_day: int) -> int:
+        return run_seed + start_day + sum(ord(character) for character in event_id)
 
     @staticmethod
     def _apply_event_awareness(
@@ -1255,5 +1333,17 @@ class GameService:
         return snapshot
 
     @staticmethod
-    def _event(kind: str, text: str) -> WorldEvent:
-        return WorldEvent(id=uuid4(), kind=kind, text=text)
+    def _event(
+        kind: str,
+        text: str,
+        *,
+        visible: bool = True,
+        payload: dict[str, object] | None = None,
+    ) -> WorldEvent:
+        return WorldEvent(
+            id=uuid4(),
+            kind=kind,
+            text=text,
+            visible=visible,
+            payload=payload or {},
+        )

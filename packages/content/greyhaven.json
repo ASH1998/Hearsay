@@ -325,6 +325,11 @@
       "end_day": 2,
       "end_phase": "morning",
       "schedule_location_override": "inn",
+      "effects": [
+        "rain_and_lightning",
+        "all_residents_to_inn",
+        "storm_dialogue_awareness"
+      ],
       "start_text": "A harbor storm breaks over Greyhaven. The docks empty and the town crowds into the inn.",
       "end_text": "The storm spends itself before dawn. Greyhaven steps back into its ordinary routes.",
       "active_awareness": {
@@ -339,6 +344,63 @@
       }
     },
     {
+      "id": "market_day",
+      "title": "Market Day at the row",
+      "start_day": 2,
+      "start_phase": "morning",
+      "end_day": 2,
+      "end_phase": "afternoon",
+      "draw_modulus": 2,
+      "draw_values": [0],
+      "schedule_location_override": "market",
+      "schedule_override_residents": [
+        "jonas",
+        "mae",
+        "oswin",
+        "del",
+        "hettie",
+        "cal",
+        "edda",
+        "will",
+        "fen",
+        "lina",
+        "tob",
+        "kit"
+      ],
+      "busy_residents": ["bram"],
+      "effects": [
+        "three_market_stalls",
+        "double_market_crowd",
+        "ambient_market_cluster",
+        "bram_busy",
+        "market_audio"
+      ],
+      "start_text": "Market Day opens with two extra stalls and half the coast pressing into Market Row.",
+      "end_text": "The visiting stalls fold away as the market crowd spills back into Greyhaven.",
+      "active_awareness": {
+        "marta": "Half the coast is here today. Good day to be seen, poor day to hear yourself think.",
+        "elias": "Market Day doubles the hands and halves the certainty of every witness.",
+        "orin": "A crowded market reveals what people value when they believe nobody is counting.",
+        "nessa": "Three stalls, twenty prices, and not one merchant admitting the tide carried the goods here.",
+        "bram": "If you need me, stand in Market Row and wait your turn. Half the coast is buying.",
+        "talia": "Crowds make small ailments louder. I am watching who needs a quiet way out.",
+        "pip": "Half the coast is here today. Good day to be seen—and a better day for a story to vanish.",
+        "rhea": "A market is an election with coins. Watch who gathers a queue.",
+        "jonas": "Dock work can wait an hour. Every stall claims its rope came straight off a royal ship.",
+        "mae": "I came for salt and have heard four versions of why it costs twice as much.",
+        "hettie": "A full market is useful. People confess their budgets before their loyalties.",
+        "kit": "Bram has three ledgers open and still insists the crowd is orderly."
+      },
+      "resolved_awareness": {
+        "marta": "The coast has gone home. Greyhaven kept the prices and the stories.",
+        "bram": "The stalls are folded. Accounts still require settling.",
+        "pip": "The crowd thinned. Every story it traded stayed behind.",
+        "jonas": "Back to the docks. Market talk weighs less than a wet rope.",
+        "mae": "The salt is dearer and somehow I know three strangers' business.",
+        "hettie": "Market Day ended. Its debts did not."
+      }
+    },
+    {
       "id": "public_argument",
       "title": "Bram and Nessa in the square",
       "start_day": 2,
@@ -346,6 +408,12 @@
       "end_day": 2,
       "end_phase": "evening",
       "schedule_location_override": "square",
+      "effects": [
+        "square_argument_ring",
+        "all_residents_to_square",
+        "bram_nessa_faction_damage",
+        "argument_dialogue_awareness"
+      ],
       "start_text": "Bram and Nessa erupt over storm losses. Greyhaven forms a ring around them in the square.",
       "end_text": "The square breaks into factions as Bram and Nessa carry their grievance away.",
       "active_awareness": {

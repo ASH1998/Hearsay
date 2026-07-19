@@ -10,7 +10,11 @@ async function acceptConfession(page: import("@playwright/test").Page) {
   await expect(page.getByText("Orin's sealed confession")).toBeVisible();
 }
 
-async function finishElection(page: import("@playwright/test").Page) {
+async function finishElection(
+  page: import("@playwright/test").Page,
+  ending = "By One Voice",
+  margin = "13–7",
+) {
   await page.getByRole("button", { name: "Sleep until morning" }).click();
   await page.getByRole("button", { name: /Find Rhea/ }).click();
   await page
@@ -19,8 +23,8 @@ async function finishElection(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Close conversation" }).click();
   await page.getByRole("button", { name: "Sleep until morning" }).click();
   await page.getByRole("button", { name: "Sleep until morning" }).click();
-  await expect(page.getByRole("heading", { name: "By One Voice" })).toBeVisible();
-  await expect(page.getByText("Newcomer 13–7 Rhea")).toBeVisible();
+  await expect(page.getByRole("heading", { name: ending })).toBeVisible();
+  await expect(page.getByText(`Newcomer ${margin} Rhea`)).toBeVisible();
 }
 
 test("revealing Orin's confession becomes visible election evidence", async ({
@@ -70,7 +74,7 @@ test("concealing Orin's confession earns his durable elder blessing", async ({
   await expect(
     page.getByText("Kept sealed · Orin's blessing earned"),
   ).toBeVisible();
-  await finishElection(page);
+  await finishElection(page, "The Town Turns", "14–6");
   await expect(
     page
       .locator(".historian small")

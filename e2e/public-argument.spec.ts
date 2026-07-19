@@ -16,7 +16,9 @@ test("calming Bram and Nessa becomes durable election evidence", async ({
   await page.getByRole("button", { name: "Talk", exact: true }).click();
 
   await expect(
-    page.getByText("Bram and Nessa in the square"),
+    page
+      .getByRole("region", { name: "Town ledger" })
+      .getByText("Bram and Nessa in the square"),
   ).toBeVisible();
   await expect(
     page.locator('[data-scene-event="public_argument"]'),

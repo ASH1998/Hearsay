@@ -1853,7 +1853,8 @@
             "type": "string",
             "enum": [
               "active",
-              "resolved"
+              "resolved",
+              "skipped"
             ],
             "title": "Status"
           },
@@ -1902,6 +1903,39 @@
               }
             ],
             "title": "Resolved Phase"
+          },
+          "draw_seed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Draw Seed",
+            "default": 0
+          },
+          "draw_roll": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Draw Roll",
+            "default": 0
+          },
+          "effects": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Effects"
+          },
+          "affected_resident_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Affected Resident Ids"
+          },
+          "busy_resident_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Busy Resident Ids"
           }
         },
         "type": "object",
@@ -2281,6 +2315,11 @@
             "type": "boolean",
             "title": "Visible",
             "default": true
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
           }
         },
         "type": "object",

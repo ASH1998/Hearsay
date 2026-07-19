@@ -701,6 +701,65 @@ def test_storm_state_event_and_evacuated_routes_survive_repository_recreation(
     assert restored.npcs == result.snapshot.npcs
 
 
+def test_market_day_draw_payload_crowd_and_busy_state_survive_repository_recreation(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=1729))
+    result = service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="sleep",
+        ),
+    )
+
+    market_day = next(event for event in result.snapshot.town_events if event.key == "market_day")
+    assert market_day.status == "active"
+    assert market_day.draw_seed == 2788
+    assert market_day.draw_roll == 0
+    assert set(market_day.affected_resident_ids) == set(service.content.ambients_by_id)
+    assert market_day.busy_resident_ids == ["bram"]
+    assert {
+        npc.location_id for npc in result.snapshot.npcs if npc.id in service.content.ambients_by_id
+    } == {"market"}
+
+    with repository.session_factory() as session:
+        market_events = list(
+            session.scalars(
+                select(EventModel).where(
+                    EventModel.game_run_id == created.run_id,
+                    EventModel.kind == "market_day_begins",
+                )
+            )
+        )
+    assert len(market_events) == 1
+    assert market_events[0].day == 2
+    assert market_events[0].phase == "morning"
+    assert market_events[0].visibility == "public"
+    assert market_events[0].payload == {
+        "draw_seed": 2788,
+        "draw_roll": 0,
+        "effects": [
+            "three_market_stalls",
+            "double_market_crowd",
+            "ambient_market_cluster",
+            "bram_busy",
+            "market_audio",
+        ],
+        "affected_resident_ids": list(market_day.affected_resident_ids),
+        "busy_resident_ids": ["bram"],
+    }
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        restored = replacement.get(created.run_id)
+    finally:
+        replacement.dispose()
+    assert restored.town_events == result.snapshot.town_events
+    assert restored.npcs == result.snapshot.npcs
+
+
 def test_public_argument_persists_faction_damage_choice_and_vote_inputs(
     repository: CockroachRunRepository,
 ) -> None:

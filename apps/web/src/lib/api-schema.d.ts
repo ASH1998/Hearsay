@@ -733,7 +733,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "active" | "resolved";
+            status: "active" | "resolved" | "skipped";
             /** Started Day */
             started_day: number;
             /**
@@ -745,6 +745,22 @@ export interface components {
             resolved_day?: number | null;
             /** Resolved Phase */
             resolved_phase?: ("morning" | "afternoon" | "evening" | "night") | null;
+            /**
+             * Draw Seed
+             * @default 0
+             */
+            draw_seed: number;
+            /**
+             * Draw Roll
+             * @default 0
+             */
+            draw_roll: number;
+            /** Effects */
+            effects?: string[];
+            /** Affected Resident Ids */
+            affected_resident_ids?: string[];
+            /** Busy Resident Ids */
+            busy_resident_ids?: string[];
         };
         /** TransmissionState */
         TransmissionState: {
@@ -879,6 +895,10 @@ export interface components {
              * @default true
              */
             visible: boolean;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            };
         };
     };
     responses: never;
