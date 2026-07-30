@@ -12,4 +12,4 @@ export UV_TOOL_DIR="$repo/tools/uv-tools"
 tools/uv/uv run uvicorn hearsay_api.main:app --app-dir apps/api/src --reload --port 8000 &
 api_pid=$!
 trap 'kill "$api_pid" 2>/dev/null || true' EXIT INT TERM
-pnpm --filter @hearsay/web dev
+corepack pnpm@11.9.0 --filter @hearsay/web dev

@@ -1,9 +1,11 @@
 # Hearsay — Game Design Document
-## The 3D Living Town: Design, Content, and Production Contract
+## The 2D Living Town: Design, Content, and Production Contract
 
 > **Companion document.** The Hearsay Hackathon Blueprint (FINAL v2) remains the technical and submission contract: schema, transactions, benchmark, Director's Room, MCP Historian, compliance. THIS document is the game: what the player sees, does, and feels. Where the two conflict on game design, this document wins. Where they conflict on database proofs or submission requirements, the Blueprint wins.
 
-> **The one-line game:** You arrive a stranger in a living 3D town of twenty people who talk to each other about you — and in three days, they elect a mayor.
+> **Hackathon release-scope amendment — 2026-07-30.** The user approved a smaller playable release. `IMPLEMENTATION_PLAN.md` now governs the release roster, critical path, asset requirements, and milestone order. The larger town described below remains the long-term design and may continue to exist in the simulation, but 20 fully presented residents, a complete tileset, additional events, second favors, and bespoke animation for every character are not hackathon-release blockers. The core pillars, memory consequences, autonomous behavior, election payoff, and CockroachDB/AWS proof remain mandatory.
+
+> **The one-line game:** You arrive a stranger in a living 2D town of twenty people who talk to each other about you — and in three days, they elect a mayor.
 
 ---
 
@@ -11,7 +13,7 @@
 
 1. **The town is alive and it shows.** Nothing happens off-screen that matters. **No event without a render** — if we can't afford to show it, it doesn't exist.
 2. **Memory is the gameplay.** Favors, promises, rumors, grudges. The player wins or loses the election because of what the town remembers — and can find out exactly why.
-3. **3D is a skin over the simulation.** Every truth (positions, schedules, conversations, rumors, promises, events) lives in CockroachDB. The renderer displays state; it never owns it. If the renderer dies, the game state survives — that is both an engineering rule and the sponsor story.
+3. **2D is a skin over the simulation.** Every truth (positions, schedules, conversations, rumors, promises, events) lives in CockroachDB. The renderer displays state; it never owns it. If the renderer dies, the game state survives — that is both an engineering rule and the sponsor story.
 4. **Alive but auditable.** Randomness makes the town feel real; every random draw is logged as an event row. The world can always explain itself.
 5. **Polish = juice, not fidelity.** Lighting, sound, motion, and reactivity — never custom models, lip sync, or cutscenes.
 
@@ -43,7 +45,7 @@ Win, lose — then ask the Historian WHY
 
 ---
 
-# 3. The Town: Greyhaven in 3D
+# 3. The Town: Greyhaven in 2D
 
 ## 3.1 One scene, twelve places
 
@@ -68,11 +70,11 @@ Named waypoint locations (~15 nodes on a hand-authored graph):
 
 ## 3.2 Presentation stack
 
-- **Three.js via React Three Fiber** inside the existing Next.js app. One deploy, judges open a URL.
-- **Assets:** Kenney town/village kits (buildings, props, nature), Quaternius rigged low-poly characters (20 distinct via mesh + palette + accessory swaps), Mixamo animations (idle, walk, talk-gesture, sit, cheer, argue). Zero custom modeling.
-- **Movement:** waypoint graph + lerp, server-authoritative schedules. No physics engine, no navmesh.
-- **Camera:** third-person follow with orbit; auto-frame on conversation start (simple dolly, not a cutscene).
-- **Interaction:** approach + click NPC → conversation overlay (portrait, name, relationship glyph, text stream, action chips). Walk in 3D, talk in UI.
+- **2D renderer** inside the existing Next.js app. One deploy, judges open a URL.
+- **Assets:** original three-quarter/top-down pixel-art tiles, modular buildings, props, effects, portraits, and directional character sprites commissioned to the specification in `Hearsay_2D_Art_Asset_Commission_Brief.md`.
+- **Movement:** waypoint graph with short sprite transitions, server-authoritative schedules. No physics engine or navmesh.
+- **Camera:** readable fixed town view with restrained pan/follow where needed; conversations remain overlays.
+- **Interaction:** click a reachable location or NPC → conversation overlay (portrait, name, relationship glyph, text, action chips). Move on the map, talk in UI.
 
 ## 3.3 Day cycle
 
@@ -223,7 +225,7 @@ Ten minutes in, a judge has: made a promise, seen a rumor about themselves trave
 
 ```
 Browser
-  ├── R3F scene (town, characters, weather, bubbles)  ← renders state
+  ├── 2D scene (town, characters, weather, bubbles)   ← renders state
   └── UI overlay (conversation, ledger, notice board, clock)
         │ WebSocket (state deltas) / REST (actions)
         ▼
@@ -249,17 +251,17 @@ Premium model: player↔T1 conversations + T1 decisions (~12 actions × 3 days +
 
 Claude Code + Codex compress code-writing ~10x. They do NOT compress: asset curation, feel-tuning, cluster benchmark runs, provisioning, human playtests, video recording. Plan accordingly.
 
-**Days 1–3 — Proof spine.** Schema+migrations, event log, promises, rumor objects with hops, relationship math, vector recall, precise concurrency race, ugly-3D town (capsules on waypoints), conversation overlay with intent parsing. *Gate: promise → break → rumor born → hop → treatment change, all in DB, visible as capsule chatter.*
+**Days 1–3 — Proof spine.** Schema+migrations, event log, promises, rumor objects with hops, relationship math, vector recall, precise concurrency race, greybox 2D town (markers on waypoints), conversation overlay with intent parsing. *Gate: promise → break → rumor born → hop → treatment change, all in DB, visibly represented on the map.*
 **Days 4–6 — Agents + election.** 8 principals (voice cards, secrets, favors), tick engine, election math + Historian "why I lost" query, Director's Room worker-kill audit wired. *Gate: full 3-day arc playable ugly, election explains itself.*
 **Days 7–9 — Benchmark + Tier 2.** Three-arm benchmark run on real cluster, frozen to S3. 12 ambients (schedules, echo behavior, micro-favors). Drift ticks. Town Ledger. *Gate: all Blueprint proofs DONE. Nothing after this day may touch them.*
-**Days 10–14 — The real town.** Kenney/Quaternius/Mixamo pass, 20 characters dressed, day cycle, event deck ×4 events with all three layers (storm first), audio pass, juice checklist. *Gate: first-10-minutes flow feels like a game to someone who isn't you.*
+**Days 10–14 — The real town.** Professional 2D asset pass, 20 readable characters, day cycle, event deck ×4 events with all three layers (storm first), audio pass, juice checklist. *Gate: first-10-minutes flow feels like a game to someone who isn't you.*
 **Days 15–17 — Playtest + tune.** 3 human playtesters minimum (not optional, not AI-simulatable). Fix comprehension, pacing, dead spots. Cost telemetry check.
 **Days 18–20 — Ship.** Video per Blueprint storyboard + 30s of storm/vibes, README, replay bundles, judge-flow rehearsal ×3 from clean browser. Submit early.
-**Buffer: ~10 days** before Aug 18 — because 3D + game-feel always eats more than planned, and this schedule's honesty is what makes it real.
+**Buffer: ~10 days** before Aug 18 — because asset integration and game feel always eat more time than planned.
 
 ## 12.1 Scope-cut order (game side)
 
-Event deck 4→2 (storm survives anything) → ambients 12→8 → festival ending scenes → notice-board diegesis (plain UI panel fallback) → orbit camera (fixed follow) → audio variety. **Never cut:** first-10-minutes flow, storm, speech-bubble rumor travel, election explanation, anything in the Blueprint's never-cut list.
+Event deck 4→2 (storm survives anything) → ambients 12→8 → festival ending scenes → notice-board diegesis (plain UI panel fallback) → decorative map motion → audio variety. **Never cut:** first-10-minutes flow, storm, speech-bubble rumor travel, election explanation, anything in the Blueprint's never-cut list.
 
 ---
 

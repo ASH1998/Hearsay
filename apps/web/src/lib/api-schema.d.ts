@@ -239,6 +239,12 @@ export interface components {
              * @default 1729
              */
             seed: number;
+            /**
+             * Release Profile
+             * @default full
+             * @enum {string}
+             */
+            release_profile: "full" | "hackathon_small";
         };
         /** CreateRunResponse */
         CreateRunResponse: {
@@ -296,6 +302,10 @@ export interface components {
             fallback_used: boolean;
             /** Fallback Reason */
             fallback_reason?: string | null;
+            /** Inference Input Tokens */
+            inference_input_tokens?: number | null;
+            /** Inference Output Tokens */
+            inference_output_tokens?: number | null;
             /** Treatment Cue */
             treatment_cue?: string | null;
             /** Available Choices */
@@ -665,6 +675,17 @@ export interface components {
             /** Seed */
             seed: number;
             /**
+             * Release Profile
+             * @default full
+             * @enum {string}
+             */
+            release_profile: "full" | "hackathon_small";
+            /**
+             * Action Budget
+             * @default 18
+             */
+            action_budget: number;
+            /**
              * Revision
              * @default 0
              */
@@ -815,6 +836,10 @@ export interface components {
             inference_attempts: number;
             /** Inference Latency Ms */
             inference_latency_ms?: number | null;
+            /** Inference Input Tokens */
+            inference_input_tokens?: number | null;
+            /** Inference Output Tokens */
+            inference_output_tokens?: number | null;
             /** Created At */
             created_at?: string | null;
         };

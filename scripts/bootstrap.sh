@@ -28,6 +28,5 @@ python_bin="$repo/tools/python/cpython-3.12.13-linux-x86_64-gnu/bin/python3"
 "$uv_bin" sync --all-groups --python "$python_bin"
 corepack pnpm@11.9.0 install --frozen-lockfile
 corepack pnpm@11.9.0 exec playwright install chromium
-"$uv_bin" run python scripts/build_assets.py
 
-printf '%s\n' "Bootstrap complete. Run 'pnpm doctor', then 'pnpm dev'."
+printf '%s\n' "Bootstrap complete. Run 'corepack pnpm@11.9.0 doctor', then 'corepack pnpm@11.9.0 dev'."

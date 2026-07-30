@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { TownScene } from "@/components/town-scene";
+import { TownMap } from "@/components/town-map";
 import {
   clockLabel,
   createRun,
@@ -14,16 +14,31 @@ import {
   type NpcState,
   type RunSnapshot,
 } from "@/lib/api";
+import {
+  isAutonomousEvent,
+  releaseTierForNpc,
+} from "@/lib/release-profile";
 
 const RUN_STORAGE_KEY = "hearsay.run-id";
 
-function playConfirmation() {
-  const audio = new Audio("/assets/audio/ui-confirm.ogg");
-  audio.volume = 0.24;
-  void audio.play().catch(() => undefined);
+function agentDecisionProvenance(
+  event: RunSnapshot["recent_events"][number],
+) {
+  const payload = event.payload;
+  if (
+    event.kind !== "agent_decision" ||
+    payload == null ||
+    typeof payload.provider_id !== "string" ||
+    typeof payload.model_id !== "string"
+  ) {
+    return null;
+  }
+  return `${payload.provider_id}/${payload.model_id}${
+    payload.fallback_used === true ? " · safe fallback" : ""
+  }`;
 }
 
-function playThunder() {
+function createAudioContext() {
   const AudioContextClass =
     window.AudioContext ??
     (
@@ -31,9 +46,28 @@ function playThunder() {
         webkitAudioContext?: typeof AudioContext;
       }
     ).webkitAudioContext;
-  if (!AudioContextClass) return;
+  return AudioContextClass ? new AudioContextClass() : null;
+}
 
-  const context = new AudioContextClass();
+function playConfirmation() {
+  const context = createAudioContext();
+  if (!context) return;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(620, context.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(860, context.currentTime + 0.1);
+  gain.gain.setValueAtTime(0.05, context.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.14);
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start();
+  oscillator.stop(context.currentTime + 0.14);
+  oscillator.addEventListener("ended", () => void context.close(), { once: true });
+}
+
+function playThunder() {
+  const context = createAudioContext();
+  if (!context) return;
   const oscillator = context.createOscillator();
   const gain = context.createGain();
   oscillator.type = "sawtooth";
@@ -54,16 +88,8 @@ function playThunder() {
 }
 
 function playMarketAmbience() {
-  const AudioContextClass =
-    window.AudioContext ??
-    (
-      window as typeof window & {
-        webkitAudioContext?: typeof AudioContext;
-      }
-    ).webkitAudioContext;
-  if (!AudioContextClass) return;
-
-  const context = new AudioContextClass();
+  const context = createAudioContext();
+  if (!context) return;
   const duration = 3.2;
   const buffer = context.createBuffer(
     1,
@@ -226,6 +252,7 @@ export function GameShell() {
         <div className="arrival__mist" />
         <section className="arrival__card">
           <p className="eyebrow">A living town remembers</p>
+          <span className="arrival__sprite" aria-hidden="true" />
           <h1>Hearsay</h1>
           <p className="tagline">The truth is what survives the telling.</p>
           <p className="arrival__copy">
@@ -270,14 +297,15 @@ export function GameShell() {
   return (
     <main
       className="game"
+      data-release-profile={snapshot.release_profile}
       data-weather={snapshot.weather}
       data-town-event={activeTownEvent?.key ?? "none"}
       data-market-audio={marketDayActive ? "active" : "inactive"}
       data-conversation={selectedNpc ? "open" : "closed"}
       data-historian={historianOpen ? "open" : "closed"}
     >
-      <div className="scene" aria-label="A miniature view of Greyhaven">
-        <TownScene
+      <div className="town-stage">
+        <TownMap
           snapshot={snapshot}
           selectedNpcId={selectedNpc?.id ?? null}
           movementDisabled={busy}
@@ -288,7 +316,7 @@ export function GameShell() {
 
       <header className="topbar">
         <div>
-          <p className="eyebrow">Greyhaven</p>
+          <p className="eyebrow">Greyhaven · five lives in focus</p>
           <h1>Hearsay</h1>
         </div>
         <div className="clock" aria-label="Game clock">
@@ -300,7 +328,9 @@ export function GameShell() {
           ) : activeTownEvent ? (
             <strong className="event-status">{activeTownEvent.title}</strong>
           ) : null}
-          <small>{18 - snapshot.action_count} consequential actions remain</small>
+          <small>
+            {snapshot.action_budget - snapshot.action_count} consequential actions remain
+          </small>
         </div>
       </header>
 
@@ -569,7 +599,7 @@ export function GameShell() {
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "marta") ?? null,
-        )}>
+        )} data-release-tier={releaseTierForNpc("marta")}>
           Find Marta
           <small>
             {snapshot.locations.find(
@@ -581,7 +611,7 @@ export function GameShell() {
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "bram") ?? null,
-        )}>
+        )} data-release-tier={releaseTierForNpc("bram")}>
           Find Bram
           <small>
             {activeTownEvent?.busy_resident_ids?.includes("bram") &&
@@ -597,7 +627,7 @@ export function GameShell() {
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "pip") ?? null,
-        )}>
+        )} data-release-tier={releaseTierForNpc("pip")}>
           Find Pip
           <small>
             {snapshot.locations.find(
@@ -609,7 +639,7 @@ export function GameShell() {
         </button>
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "rhea") ?? null,
-        )}>
+        )} data-release-tier={releaseTierForNpc("rhea")}>
           Find Rhea
           <small>
             {snapshot.locations.find(
@@ -619,45 +649,49 @@ export function GameShell() {
             )?.name ?? "Greyhaven"}
           </small>
         </button>
-        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
-          snapshot.npcs.find((npc) => npc.id === "nessa") ?? null,
-        )}>
-          Find Nessa
-          <small>
-            {snapshot.locations.find(
-              (location) =>
-                location.id ===
-                snapshot.npcs.find((npc) => npc.id === "nessa")?.location_id,
-            )?.name ?? "Greyhaven"}
-          </small>
-        </button>
-        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
-          snapshot.npcs.find((npc) => npc.id === "elias") ?? null,
-        )}>
-          Find Elias
-          <small>
-            {snapshot.locations.find(
-              (location) =>
-                location.id ===
-                snapshot.npcs.find((npc) => npc.id === "elias")?.location_id,
-            )?.name ?? "Greyhaven"}
-          </small>
-        </button>
-        <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
-          snapshot.npcs.find((npc) => npc.id === "orin") ?? null,
-        )}>
-          Find Orin
-          <small>
-            {snapshot.locations.find(
-              (location) =>
-                location.id ===
-                snapshot.npcs.find((npc) => npc.id === "orin")?.location_id,
-            )?.name ?? "Greyhaven"}
-          </small>
-        </button>
+        {snapshot.release_profile === "full" ? (
+          <>
+            <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+              snapshot.npcs.find((npc) => npc.id === "nessa") ?? null,
+            )} data-release-tier={releaseTierForNpc("nessa")}>
+              Find Nessa
+              <small>
+                {snapshot.locations.find(
+                  (location) =>
+                    location.id ===
+                    snapshot.npcs.find((npc) => npc.id === "nessa")?.location_id,
+                )?.name ?? "Greyhaven"}
+              </small>
+            </button>
+            <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+              snapshot.npcs.find((npc) => npc.id === "elias") ?? null,
+            )} data-release-tier={releaseTierForNpc("elias")}>
+              Find Elias
+              <small>
+                {snapshot.locations.find(
+                  (location) =>
+                    location.id ===
+                    snapshot.npcs.find((npc) => npc.id === "elias")?.location_id,
+                )?.name ?? "Greyhaven"}
+              </small>
+            </button>
+            <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
+              snapshot.npcs.find((npc) => npc.id === "orin") ?? null,
+            )} data-release-tier={releaseTierForNpc("orin")}>
+              Find Orin
+              <small>
+                {snapshot.locations.find(
+                  (location) =>
+                    location.id ===
+                    snapshot.npcs.find((npc) => npc.id === "orin")?.location_id,
+                )?.name ?? "Greyhaven"}
+              </small>
+            </button>
+          </>
+        ) : null}
         <button type="button" disabled={busy || gameOver} onClick={() => setSelectedNpc(
           snapshot.npcs.find((npc) => npc.id === "talia") ?? null,
-        )}>
+        )} data-release-tier={releaseTierForNpc("talia")}>
           Find Talia
           <small>
             {snapshot.locations.find(
@@ -700,12 +734,15 @@ export function GameShell() {
           </button>
           <div
             className="portrait"
+            data-npc-id={selectedNpc.id}
             style={{ "--portrait-color": selectedNpc.color } as React.CSSProperties}
           >
-            {selectedNpc.name
-              .split(" ")
-              .map((part) => part[0])
-              .join("")}
+            {selectedNpc.id === "talia"
+              ? null
+              : selectedNpc.name
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")}
           </div>
           <div className="conversation__body">
             <p className="eyebrow">{selectedNpc.role}</p>
@@ -721,11 +758,30 @@ export function GameShell() {
             </blockquote>
             {snapshot.dialogue?.speaker_id === selectedNpc.id &&
             (snapshot.dialogue.recalled_memories?.length ?? 0) > 0 ? (
-              <small>
-                Memory-informed · {snapshot.dialogue.recalled_memories?.length ?? 0} recalled ·{" "}
-                {snapshot.dialogue.provider_id}/{snapshot.dialogue.model_id}
-                {snapshot.dialogue.fallback_used ? " · safe fallback" : ""}
-              </small>
+              <div className="memory-proof" aria-label="Long-term memories recalled">
+                <div className="memory-proof__heading">
+                  <span>Long-term memory recalled</span>
+                  <small>
+                    {snapshot.dialogue.provider_id}/{snapshot.dialogue.model_id}
+                    {snapshot.dialogue.fallback_used ? " · safe fallback" : ""}
+                    {snapshot.dialogue.inference_input_tokens != null &&
+                    snapshot.dialogue.inference_output_tokens != null
+                      ? ` · ${snapshot.dialogue.inference_input_tokens} in / ${snapshot.dialogue.inference_output_tokens} out`
+                      : ""}
+                  </small>
+                </div>
+                <ul>
+                  {snapshot.dialogue.recalled_memories?.map((memory) => (
+                    <li key={`${memory.belief_id}-${memory.version}`}>
+                      <strong>{memory.proposition_key.replaceAll("_", " ")}</strong>
+                      <code>
+                        belief {memory.belief_id.slice(0, 8)} · v{memory.version}
+                      </code>
+                      {memory.contested ? <em>contested</em> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
             {snapshot.dialogue?.speaker_id === selectedNpc.id &&
             snapshot.dialogue.treatment_cue ? (
@@ -1142,18 +1198,34 @@ export function GameShell() {
 
       <section className="event-strip" aria-live="polite">
         <span className="event-strip__icon">◉</span>
+        <div className="event-strip__label">
+          <strong>Town activity</strong>
+          <small>Autonomous actions persist in CockroachDB</small>
+        </div>
         <ol aria-label="Recent town events">
           {snapshot.recent_events
             .filter((event) => event.visible)
             .slice(0, 3)
-            .map((event) => (
-            <li
-              data-event-kind={event.kind}
-              key={event.id}
-            >
-              {event.text}
-            </li>
-            ))}
+            .map((event) => {
+              const provenance = agentDecisionProvenance(event);
+              return (
+                <li
+                  data-autonomous={isAutonomousEvent(event.kind)}
+                  data-event-kind={event.kind}
+                  key={event.id}
+                >
+                  {isAutonomousEvent(event.kind) ? (
+                    <span className="event-strip__agent-tag">Agent</span>
+                  ) : null}
+                  {event.text}
+                  {provenance ? (
+                    <small className="event-strip__provenance">
+                      {provenance}
+                    </small>
+                  ) : null}
+                </li>
+              );
+            })}
         </ol>
       </section>
 

@@ -61,13 +61,11 @@ foreach ($name in $requiredNames) {
     }
 }
 
-$archiveCount = (Get-ChildItem -LiteralPath "assets/downloads" -File -ErrorAction SilentlyContinue).Count
-Write-Host "[info] Raw asset candidates present: $archiveCount"
-
-& "tools/uv/uv.exe" run python scripts/build_assets.py --validate-only
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[failed] Runtime asset validation"
+if (-not (Test-Path -LiteralPath "apps/web/public/sprites/player/newcomer-idle-south.png")) {
+    Write-Host "[failed] Accepted 2D player runtime sprite is missing"
     $failed = $true
+} else {
+    Write-Host "[ok] Accepted 2D player runtime sprite is present"
 }
 
 & "tools/uv/uv.exe" run python scripts/check_database.py
@@ -95,7 +93,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 if ($failed) {
-    throw "Doctor found blocking local setup issues. Run 'pnpm bootstrap' and retry."
+    throw "Doctor found blocking local setup issues. Run 'corepack pnpm@11.9.0 bootstrap' and retry."
 }
 
 Write-Host "Doctor passed."

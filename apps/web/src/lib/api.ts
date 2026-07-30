@@ -1,4 +1,5 @@
 import type { components } from "./api-schema";
+import { RELEASE_PROFILE_ID } from "./release-profile";
 
 type Schemas = components["schemas"];
 type GeneratedSnapshot = Schemas["RunSnapshot"];
@@ -57,7 +58,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export async function createRun(displayName: string): Promise<RunSnapshot> {
   const body = await request<{ snapshot: RunSnapshot }>("/v1/runs", {
     method: "POST",
-    body: JSON.stringify({ display_name: displayName, seed: 1729 }),
+    body: JSON.stringify({
+      display_name: displayName,
+      seed: 1729,
+      release_profile: RELEASE_PROFILE_ID,
+    }),
   });
   return body.snapshot;
 }

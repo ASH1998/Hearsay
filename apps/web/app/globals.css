@@ -84,6 +84,16 @@ button:focus-visible {
   text-align: center;
 }
 
+.arrival__sprite {
+  display: block;
+  width: 8rem;
+  height: 6rem;
+  margin: -0.5rem auto -0.3rem;
+  background: url("/sprites/player/newcomer-idle-south.png") center / 8rem 8rem
+    no-repeat;
+  image-rendering: pixelated;
+}
+
 .arrival__card h1,
 .topbar h1,
 .conversation h2 {
@@ -142,9 +152,256 @@ button:focus-visible {
   background: #1a282b;
 }
 
-.scene {
+.town-stage {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  background: #405f4c;
+}
+
+.town-stage::after {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 46%, transparent 48%, rgb(8 15 14 / 28%) 100%),
+    linear-gradient(180deg, rgb(10 18 18 / 8%), transparent 25% 76%, rgb(9 14 11 / 18%));
+  content: "";
+  pointer-events: none;
+}
+
+.town-map {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 55% 62%, rgb(165 150 101 / 28%) 0 6%, transparent 7%),
+    linear-gradient(135deg, transparent 46%, rgb(36 71 47 / 24%) 47% 51%, transparent 52%)
+      0 0 / 8rem 8rem,
+    #668457;
+}
+
+.town-map__water {
+  position: absolute;
+  z-index: -3;
+  inset: 0 0 78%;
+  background:
+    repeating-linear-gradient(
+      -8deg,
+      transparent 0 0.9rem,
+      rgb(213 231 216 / 14%) 1rem 1.15rem
+    ),
+    #5e8991;
+}
+
+.town-map__shore {
+  position: absolute;
+  z-index: -2;
+  top: 17%;
+  right: -5%;
+  left: -5%;
+  height: 10%;
+  background: #ad9569;
+  clip-path: polygon(0 28%, 11% 41%, 24% 18%, 39% 42%, 55% 20%, 72% 48%, 87% 19%, 100% 40%, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0.35rem 0 rgb(65 73 50 / 22%));
+}
+
+.town-map__routes {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.town-map__routes line {
+  stroke: #aa8b5c;
+  stroke-linecap: round;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.town-map__location {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  min-width: 7.6rem;
+  justify-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--paper);
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 70%));
+  transform: translate(-50%, -50%);
+}
+
+.town-map__location:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.town-map__location[data-reachable="true"] {
+  cursor: pointer;
+}
+
+.town-map__location[data-reachable="true"]:hover .town-map__location-mark {
+  border-color: var(--gold);
+  transform: rotate(45deg) scale(1.25);
+}
+
+.town-map__location-mark {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 3px solid #e5d6ad;
+  background: #2d4937;
+  box-shadow: 0 0 0 3px rgb(18 30 24 / 40%);
+  transform: rotate(45deg);
+  transition: 120ms ease;
+}
+
+.town-map__location[data-current="true"] .town-map__location-mark {
+  border-color: var(--gold);
+  background: var(--rust);
+}
+
+.town-map__location strong {
+  margin-top: 0.45rem;
+  padding: 0.15rem 0.35rem;
+  background: rgb(18 28 23 / 76%);
+  font-family: var(--font-display);
+  font-size: 0.77rem;
+  white-space: nowrap;
+}
+
+.town-map__location small {
+  margin-top: 0.18rem;
+  padding: 0.12rem 0.3rem;
+  background: rgb(125 52 36 / 88%);
+  color: #fff1d0;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.town-map__resident {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border: 2px solid #efe2be;
+  border-radius: 50%;
+  background: var(--npc-color);
+  box-shadow: 0 3px 0 rgb(17 25 20 / 55%);
+  color: white;
+  cursor: pointer;
+  font-size: 0.55rem;
+  font-weight: 900;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 55%);
+  transition:
+    filter 160ms ease,
+    opacity 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.town-map__resident[data-release-tier="featured"] {
+  z-index: 4;
+  width: 2.15rem;
+  height: 2.15rem;
+  box-shadow:
+    0 0 0 3px rgb(232 223 198 / 13%),
+    0 4px 0 rgb(17 25 20 / 55%);
+}
+
+.town-map__resident[data-release-tier="supporting"] {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-width: 1px;
+  opacity: 0.72;
+  font-size: 0.48rem;
+}
+
+.town-map__resident[data-release-tier="background"] {
+  z-index: 2;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-width: 1px;
+  opacity: 0.38;
+  font-size: 0;
+}
+
+.town-map__resident[data-npc-id="talia"] {
+  width: 4rem;
+  height: 4rem;
+  border: 0;
+  border-radius: 0;
+  background: url("/sprites/npcs/talia/idle-south-00.png") center / 4rem 4rem
+    no-repeat;
+  box-shadow: none;
+  filter: drop-shadow(0 4px 2px rgb(0 0 0 / 36%));
+  image-rendering: pixelated;
+}
+
+.town-map__resident:hover:not(:disabled),
+.town-map__resident[data-selected="true"] {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px rgb(217 174 98 / 28%), 0 3px 0 rgb(17 25 20 / 55%);
+}
+
+.town-map__resident[data-npc-id="talia"]:hover:not(:disabled),
+.town-map__resident[data-npc-id="talia"][data-selected="true"] {
+  border: 0;
+  box-shadow: none;
+  filter:
+    drop-shadow(0 0 5px rgb(217 174 98 / 80%))
+    drop-shadow(0 4px 2px rgb(0 0 0 / 36%));
+}
+
+.town-map__resident[data-speaking="true"]::after {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.35rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  content: "";
+}
+
+.town-map__player {
+  position: absolute;
+  z-index: 2;
+  width: 8rem;
+  height: 8rem;
+  background: url("/sprites/player/newcomer-idle-south.png") center / 8rem 8rem
+    no-repeat;
+  filter: drop-shadow(0 5px 2px rgb(0 0 0 / 28%));
+  image-rendering: pixelated;
+  transform: translate(-50%, -84%);
+}
+
+.town-map__rain {
+  position: absolute;
+  z-index: 4;
+  inset: -20%;
+  background: repeating-linear-gradient(
+    105deg,
+    transparent 0 1.35rem,
+    rgb(220 240 244 / 28%) 1.4rem 1.48rem,
+    transparent 1.53rem 2.8rem
+  );
+  pointer-events: none;
+  animation: map-rain 0.5s linear infinite;
+}
+
+@keyframes map-rain {
+  to {
+    transform: translate(-2.8rem, 3rem);
+  }
 }
 
 .topbar,
@@ -237,14 +494,14 @@ button:focus-visible {
   left: 0;
   align-items: center;
   justify-content: space-between;
-  padding: 1.35rem 1.7rem;
+  padding: 1rem 1.4rem 2.6rem;
   color: var(--paper);
   pointer-events: none;
   background: linear-gradient(180deg, rgb(10 18 20 / 82%), transparent);
 }
 
 .topbar h1 {
-  font-size: 2.35rem;
+  font-size: 2.05rem;
   font-weight: 600;
   line-height: 0.95;
 }
@@ -271,13 +528,14 @@ button:focus-visible {
 }
 
 .where {
-  top: 6.5rem;
-  left: 1.5rem;
+  top: 5.5rem;
+  left: 1.25rem;
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.7rem 0.9rem;
-  background: rgb(23 27 24 / 79%);
+  border: 1px solid rgb(232 223 198 / 15%);
+  padding: 0.62rem 0.78rem;
+  background: rgb(17 25 23 / 86%);
   color: var(--paper);
   backdrop-filter: blur(10px);
 }
@@ -300,10 +558,10 @@ button:focus-visible {
 .waypoints {
   position: absolute;
   z-index: 3;
-  top: 10.4rem;
-  left: 1.5rem;
+  top: 9.2rem;
+  left: 1.25rem;
   display: grid;
-  width: 9rem;
+  width: 9.5rem;
   gap: 0.35rem;
 }
 
@@ -322,7 +580,7 @@ button:focus-visible {
 .conversation__choices button {
   border: 1px solid rgb(232 223 198 / 24%);
   padding: 0.68rem 0.8rem;
-  background: rgb(23 27 24 / 78%);
+  background: rgb(17 25 23 / 86%);
   color: var(--paper);
   cursor: pointer;
   text-align: left;
@@ -343,16 +601,17 @@ button:disabled {
 
 .ledger {
   z-index: 3;
-  top: 6.5rem;
-  right: 1.5rem;
-  width: min(21rem, calc(100vw - 3rem));
-  max-height: calc(100vh - 12rem);
+  top: 5.5rem;
+  right: 1.25rem;
+  width: min(19rem, calc(100vw - 2.5rem));
+  max-height: min(44vh, 31rem);
   overflow: auto;
-  padding: 1.1rem;
+  padding: 0.95rem;
   border-top: 4px solid var(--rust);
   background:
-    linear-gradient(rgb(232 223 198 / 92%), rgb(232 223 198 / 92%)),
-    url("/assets/ui/ledger-panel.svg") center / cover;
+    linear-gradient(90deg, rgb(84 54 34 / 7%) 1px, transparent 1px) 0 0 / 1.8rem
+      100%,
+    linear-gradient(#eee3c7, #dbcca8);
   box-shadow: 0 18px 55px rgb(0 0 0 / 28%);
 }
 
@@ -402,23 +661,37 @@ button:disabled {
 }
 
 .actions {
-  right: 1.5rem;
-  bottom: 5rem;
+  right: auto;
+  bottom: 4.4rem;
+  left: 50%;
   display: grid;
-  width: min(34rem, calc(100vw - 3rem));
-  grid-template-columns: repeat(3, 1fr);
+  width: min(52rem, calc(100vw - 31rem));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.4rem;
-}
-
-@media (min-width: 1000px) {
-  .actions {
-    right: 23.5rem;
-  }
+  transform: translateX(-50%);
 }
 
 .actions button {
-  min-height: 4.5rem;
+  min-height: 3.8rem;
+  padding: 0.58rem 0.68rem;
   font-weight: 800;
+}
+
+.actions button[data-release-tier="featured"] {
+  order: 0;
+  border-color: rgb(217 174 98 / 45%);
+  background: rgb(232 223 198 / 12%);
+}
+
+.actions button[data-release-tier="supporting"] {
+  order: 2;
+  min-height: 2.8rem;
+  opacity: 0.52;
+  font-size: 0.68rem;
+}
+
+.actions button[data-release-tier="supporting"]:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .actions small {
@@ -444,6 +717,26 @@ button:disabled {
   font-family: var(--font-display);
 }
 
+.event-strip__label {
+  display: grid;
+  min-width: 10rem;
+  line-height: 1.05;
+}
+
+.event-strip__label strong {
+  color: var(--gold);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.event-strip__label small {
+  margin-top: 0.2rem;
+  color: rgb(232 223 198 / 48%);
+  font-family: var(--font-sans);
+  font-size: 0.56rem;
+}
+
 .event-strip ol {
   display: grid;
   max-width: min(72rem, calc(100vw - 4rem));
@@ -456,7 +749,7 @@ button:disabled {
 .event-strip li {
   margin: 0;
   color: rgb(232 223 198 / 62%);
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   font-size: 0.68rem;
 }
 
@@ -464,6 +757,33 @@ button:disabled {
   color: var(--paper);
   font-family: var(--font-display);
   font-size: 0.86rem;
+}
+
+.event-strip li[data-autonomous="true"] {
+  color: #f1dba5;
+}
+
+.event-strip__agent-tag {
+  display: inline-block;
+  margin-right: 0.42rem;
+  border: 1px solid rgb(217 174 98 / 48%);
+  border-radius: 999px;
+  padding: 0.08rem 0.35rem;
+  color: var(--gold);
+  font-family: var(--font-sans);
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.event-strip__provenance {
+  display: block;
+  margin-top: 0.12rem;
+  color: rgba(223, 208, 164, 0.62);
+  font-family: var(--font-sans);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
 }
 
 .event-strip__icon {
@@ -511,6 +831,14 @@ button:disabled {
   font-size: 2rem;
 }
 
+.portrait[data-npc-id="talia"] {
+  background:
+    radial-gradient(circle at 50% 42%, rgb(255 255 255 / 9%), transparent 58%),
+    url("/portraits/talia-neutral.png") center bottom / contain no-repeat,
+    var(--portrait-color);
+  image-rendering: pixelated;
+}
+
 .conversation h2 {
   margin-top: 0.15rem;
   font-size: 2rem;
@@ -546,6 +874,69 @@ button:disabled {
   font-size: 0.78rem;
 }
 
+.memory-proof {
+  margin: 0 0 0.85rem;
+  border: 1px solid rgb(217 174 98 / 28%);
+  border-left: 3px solid var(--gold);
+  padding: 0.65rem 0.75rem;
+  background: rgb(232 223 198 / 5%);
+}
+
+.memory-proof__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.memory-proof__heading > span {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+}
+
+.memory-proof__heading small {
+  color: rgb(232 223 198 / 48%);
+  font-size: 0.58rem;
+}
+
+.memory-proof ul {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 0;
+  gap: 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-proof li {
+  display: grid;
+  min-width: 9rem;
+  border: 1px solid rgb(232 223 198 / 12%);
+  padding: 0.4rem 0.5rem;
+  background: rgb(0 0 0 / 12%);
+}
+
+.memory-proof strong {
+  font-size: 0.62rem;
+  text-transform: capitalize;
+}
+
+.memory-proof code {
+  margin-top: 0.16rem;
+  color: rgb(232 223 198 / 52%);
+  font-size: 0.52rem;
+}
+
+.memory-proof em {
+  margin-top: 0.18rem;
+  color: #e8a688;
+  font-size: 0.54rem;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .town-event__choices {
   display: grid;
   margin-top: 0.55rem;
@@ -561,80 +952,6 @@ button:disabled {
   font-size: 0.68rem;
   font-weight: 800;
   text-align: left;
-}
-
-.argument-banner {
-  display: grid;
-  width: 12rem;
-  border: 1px solid rgb(232 223 198 / 52%);
-  padding: 0.55rem 0.7rem;
-  background: rgb(77 31 24 / 92%);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 38%);
-  color: var(--paper);
-  font-family: var(--font-display);
-  text-align: center;
-}
-
-.argument-banner span {
-  color: rgb(232 223 198 / 72%);
-  font-size: 0.66rem;
-}
-
-.market-banner {
-  display: grid;
-  width: 11rem;
-  border: 1px solid rgb(244 210 135 / 72%);
-  padding: 0.55rem 0.7rem;
-  background: rgb(78 53 24 / 94%);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 34%);
-  color: #fff0c3;
-  font-family: var(--font-display);
-  text-align: center;
-}
-
-.market-banner span {
-  color: rgb(255 240 195 / 72%);
-  font-size: 0.66rem;
-}
-
-.speech-bubble {
-  width: 13rem;
-  border: 0;
-  border-radius: 0.2rem;
-  padding: 0.65rem 0.8rem;
-  background: rgb(245 238 218 / 95%);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 28%);
-  color: var(--ink);
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  line-height: 1.3;
-}
-
-.speech-bubble small {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: var(--rust);
-  font-family: var(--font-body);
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.resident-name {
-  display: block;
-  border: 1px solid rgb(232 223 198 / 18%);
-  border-radius: 999px;
-  padding: 0.16rem 0.42rem;
-  background: rgb(12 20 22 / 78%);
-  box-shadow: 0 3px 10px rgb(0 0 0 / 24%);
-  color: var(--paper);
-  font-family: var(--font-display);
-  font-size: 0.58rem;
-  font-weight: 700;
-  pointer-events: none;
-  white-space: nowrap;
 }
 
 .storm-status {
@@ -671,7 +988,25 @@ button:disabled {
   color: #9c2f24;
 }
 
+@media (min-width: 761px) and (max-width: 1199px) {
+  .actions {
+    right: auto;
+    left: 1.25rem;
+    width: calc(100vw - 23rem);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    transform: none;
+  }
+}
+
 @media (max-width: 760px) {
+  .town-map {
+    inset: 0 -20%;
+  }
+
+  .town-map__location strong {
+    font-size: 0.65rem;
+  }
+
   .topbar {
     padding: 0.8rem 1rem;
   }
@@ -702,8 +1037,10 @@ button:disabled {
   .actions {
     right: 0.7rem;
     bottom: 4.2rem;
+    left: auto;
     width: calc(100vw - 9.2rem);
     grid-template-columns: repeat(2, 1fr);
+    transform: none;
   }
 
   .conversation {

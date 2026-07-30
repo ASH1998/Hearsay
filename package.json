@@ -12,17 +12,15 @@
     "doctor": "powershell -ExecutionPolicy Bypass -File scripts/doctor.ps1",
     "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev.ps1",
     "test": "powershell -ExecutionPolicy Bypass -File scripts/test.ps1",
-    "assets": "powershell -ExecutionPolicy Bypass -File scripts/assets.ps1",
     "db:migrate": "powershell -ExecutionPolicy Bypass -File scripts/migrate.ps1",
     "db:test": "powershell -ExecutionPolicy Bypass -File scripts/test-database.ps1",
     "api:export": "tools/uv/uv.exe --cache-dir .cache/uv run --python tools/python/cpython-3.12.13-windows-x86_64-none/python.exe python scripts/export_openapi.py",
-    "api:generate": "pnpm api:export && pnpm --filter @hearsay/web generate:api",
-    "typecheck": "pnpm --filter @hearsay/web typecheck",
-    "lint": "pnpm --filter @hearsay/web lint",
+    "api:generate": "corepack pnpm@11.9.0 api:export && corepack pnpm@11.9.0 --filter @hearsay/web generate:api",
+    "typecheck": "corepack pnpm@11.9.0 --filter @hearsay/web typecheck",
+    "lint": "corepack pnpm@11.9.0 --filter @hearsay/web lint",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@gltf-transform/cli": "4.4.1",
     "@playwright/test": "1.61.1"
   }
 }

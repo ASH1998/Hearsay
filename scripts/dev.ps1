@@ -9,7 +9,7 @@ $env:UV_CACHE_DIR = Join-Path $repo ".cache/uv"
 $env:UV_TOOL_DIR = Join-Path $repo "tools/uv-tools"
 
 if (-not (Test-Path -LiteralPath "tools/uv/uv.exe")) {
-    throw "Local uv is missing. Run 'pnpm bootstrap' first."
+    throw "Local uv is missing. Run 'corepack pnpm@11.9.0 bootstrap' first."
 }
 
 $api = Start-Process -FilePath "tools/uv/uv.exe" `
@@ -19,7 +19,7 @@ $api = Start-Process -FilePath "tools/uv/uv.exe" `
     -PassThru
 
 try {
-    pnpm --filter @hearsay/web dev
+    corepack pnpm@11.9.0 --filter @hearsay/web dev
 } finally {
     if (-not $api.HasExited) {
         Stop-Process -Id $api.Id

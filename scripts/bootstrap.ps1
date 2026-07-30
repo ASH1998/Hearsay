@@ -58,9 +58,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Playwright Chromium installation failed."
 }
 
-& $uvExe run python scripts/build_assets.py
-if ($LASTEXITCODE -ne 0) {
-    throw "Runtime asset preparation failed."
-}
-
-Write-Host "Bootstrap complete. Run 'pnpm doctor', then 'pnpm dev'."
+Write-Host "Bootstrap complete. Run 'corepack pnpm@11.9.0 doctor', then 'corepack pnpm@11.9.0 dev'."

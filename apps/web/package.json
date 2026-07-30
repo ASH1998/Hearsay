@@ -12,13 +12,10 @@
     "generate:api": "openapi-typescript ../../openapi.json -o src/lib/api-schema.d.ts"
   },
   "dependencies": {
-    "@react-three/drei": "10.7.6",
-    "@react-three/fiber": "9.3.0",
     "@tanstack/react-query": "5.90.2",
     "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "three": "0.180.0",
     "zod": "4.1.12",
     "zustand": "5.0.8"
   },
@@ -26,7 +23,6 @@
     "@types/node": "22.20.1",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@types/three": "0.180.0",
     "eslint": "9.39.3",
     "eslint-config-next": "16.2.10",
     "openapi-typescript": "7.10.1",

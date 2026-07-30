@@ -57,18 +57,15 @@ tools/blender/
 tools/ccloud/
 tools/bin/
 
-# Raw and intermediate assets
-assets/downloads/
-assets/source/
-assets/work/
-assets/tmp/
-assets/render-cache/
-assets/processed/debug/
-apps/web/public/assets/
-
 # Runtime scratch data
 logs/
 *.log
+.qa/
+
+# Local art intake archives and extracted source packs. Runtime-ready selections
+# live under apps/web/public.
+assets/*.zip
+assets/hearsay_newcomer_asset_pack v2/
 tmp/
 .temp/
 data/local/
