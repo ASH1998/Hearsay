@@ -1,373 +1,461 @@
-# Hearsay — End-to-End Implementation Plan
+# Hearsay — Playable Hackathon Release Plan
 
-## Goal Contract
+**Revised:** 2026-07-30
 
-Build a complete, locally runnable browser game for the CockroachDB AI Hackathon: a polished 20–30 minute social-memory mystery set in Greyhaven during a mayoral election. The deliverable must demonstrate durable, evolving NPC memory in CockroachDB, vector retrieval, and a managed MCP integration, while remaining ready for the user to deploy manually to AWS later.
+**Target deadline:** 2026-08-18 at 5:00 PM EDT
 
-Continue autonomously until all local acceptance tests pass and the local deployment/submission handoff is complete. Make reasonable implementation decisions consistent with this document and the controlling project docs. If an optional capability is unavailable, implement and test a safe local fallback rather than stopping; only external credentials, account actions, or missing user-supplied assets may remain as documented manual work.
+**Release principle:** ship a short, attractive, fully playable agent-memory game; do not wait for a full-town art production.
 
-This plan does **not** authorize cloud provisioning, production deployment, GitHub push, or Devpost submission. All code, assets, generated artifacts, caches, and documentation remain inside this repository. Preserve existing user files, never inspect or print secret values, and make local milestone commits only after their gates pass. Completion excludes AWS deployment, public video upload, human playtesting, GitHub publication, and Devpost submission.
+## 1. Goal Contract
 
-## Source-of-Truth Order
+Build and deploy a public browser game that a new player can understand and finish in approximately 12–20 minutes.
 
-1. `docs/Hearsay_Game_Design_Document.md` governs the game, player experience, content, scope, and presentation.
-2. `docs/Hearsay_Hackathon_Blueprint_FINAL_v2.md` governs hackathon requirements, CockroachDB/AWS architecture, memory proof, MCP, and benchmarks.
-3. For a conflict about the game, the game-design document wins. For a sponsor, technical, or compliance conflict, the blueprint and official hackathon rules win.
-4. `AGENTS.md` and `PROJECT_MEMORY.md` record these decisions for future agents.
+The release must make three things unmistakable:
 
-## Product Scope
+1. Greyhaven's featured residents act without waiting for the player, remember different versions of events, and change future behavior because of those memories.
+2. CockroachDB is the canonical system of record for game state, agent memory, vector recall, rumor provenance, and final decisions.
+3. AWS is part of the running product: Amazon Bedrock Claude powers production interaction and agent language, the application is deployed on AWS, and Amazon S3 stores immutable replay and benchmark artifacts.
 
-- One browser-based 3D game: **Hearsay**.
-- Three game days, six consequential actions per day, plus free movement and eavesdropping.
-- Eight principal NPCs and twelve ambient NPCs.
-- Twelve Greyhaven locations.
-- Two dynamic town events: a storm and a public argument.
-- Promises, favors, rumor mutation/lineage, per-person relationships, six public traits, speech bubbles, notice board, Town Ledger, day/night cycle, persistent returns, and memory-driven dialogue.
-- A 20-vote mayoral election against Rhea, with a 10–10 tie resolving in Rhea’s favor.
-- Six meaningful endings.
-- A compressed but complete game, not an open-ended simulation. Movement, observation, and reading the notice board are free actions.
+This is a scope reduction, not a rewrite. Existing migrations, memory proofs, election logic, tests, content, and completed side stories must be preserved. Out-of-scope systems may remain available in development, but they are not release blockers and should not crowd the default player path.
 
-## Architecture
+This plan does **not** by itself authorize cloud provisioning, production deployment, GitHub publication, or Devpost submission. Those actions require the user's approval and credentials. It does authorize local code, documentation, tests, deployment templates, asset integration, and release-profile changes inside this repository.
+
+### North-star demonstration: long-term NPC memory
+
+Hearsay exists to demonstrate that autonomous game agents can have durable,
+individual long-term memory, and that CockroachDB makes that memory reliable,
+retrievable, revisable, and auditable.
+
+For this project, “long-term memory” means that an NPC memory:
+
+- lives outside the model context and is canonical in CockroachDB;
+- survives browser refresh, player absence, API restart, and application
+  redeployment;
+- remains scoped to the correct run and NPC;
+- can be retrieved semantically after other events and conversations occur;
+- changes a later autonomous choice, relationship, dialogue, or vote;
+- can be contradicted or revised without erasing its earlier versions;
+- retains exact source and transmission lineage; and
+- can be independently reconstructed through the Managed MCP Historian.
+
+The release-critical proof is:
+
+1. The player makes a promise and confronts Bram.
+2. Bram stores a firsthand belief in CockroachDB.
+3. Pip autonomously recalls and retells it, creating a new immutable version
+   and transmission edge.
+4. The player closes or refreshes the game; the API may also be restarted.
+5. Pip or Marta later retrieves their own memory through the CockroachDB vector
+   index and behaves differently because of it.
+6. That remembered consequence affects the final vote.
+7. The Town Historian independently traces the decisive memory through the
+   Managed MCP Server.
+
+Bedrock Claude is treated as stateless inference. Every production prompt is
+rehydrated from CockroachDB memory, and every accepted agent result is written
+back with provenance. S3 stores replay evidence only. Neither Bedrock, browser
+state, process memory, nor S3 is allowed to become the authoritative NPC memory
+layer.
+
+## 2. Source of Truth
+
+1. This plan governs the narrowed 2026 hackathon release scope and milestone order.
+2. `docs/Hearsay_Game_Design_Document.md` governs the core fantasy, social-memory design, presentation principles, and player-facing tone.
+3. `docs/Hearsay_Hackathon_Blueprint_FINAL_v2.md` governs CockroachDB correctness proofs, persistent-memory architecture, Managed MCP, benchmarks, AWS responsibilities, and submission evidence.
+4. The current official hackathon rules override all project documents for eligibility and submission compliance.
+5. `docs/IMPLEMENTATION_STATUS.md` records what is already working and identifies the next executable slice.
+
+## 3. Verified Hackathon Requirements
+
+Verified against the official Devpost overview and rules on 2026-07-30:
+
+- Build an agentic application that uses CockroachDB as its persistent memory layer.
+- Deploy the functional application on AWS.
+- Meaningfully integrate at least two listed CockroachDB tools.
+- Meaningfully integrate at least one AWS service.
+- Provide a public open-source repository with a visible license, dependencies, example configuration, and complete setup/run instructions.
+- Provide a functional demo URL.
+- Provide a public YouTube or Vimeo demonstration shorter than three minutes that visibly shows the CockroachDB memory layer at work.
+- Identify exactly how each claimed CockroachDB tool and AWS service is used.
+- Disclose relevant pre-existing work and ensure the submitted work was created during the submission period.
+- Keep the demo available through the judging period.
+
+Official references:
+
+- Overview: <https://cockroachdb-ai.devpost.com/>
+- Rules: <https://cockroachdb-ai.devpost.com/rules>
+
+### Required sponsor path
+
+Hearsay will use these two CockroachDB tools:
+
+1. **CockroachDB Distributed Vector Indexing** — production NPC recall over holder-scoped active memories.
+2. **CockroachDB Cloud Managed MCP Server** — an independently authenticated, read-only Town Historian that reconstructs live rumor lineage and decisive memories.
+
+Hearsay will use these AWS services:
+
+1. **Amazon Bedrock** — Anthropic Claude interaction, dialogue, rumor retelling, and bounded agent decisions through a structured provider contract.
+2. **Amazon S3** — immutable redacted replay bundles, benchmark reports, and demo evidence. S3 is not game memory and never replaces CockroachDB.
+3. **AWS compute for the public demo** — one small, maintainable application deployment. Prefer the existing native EC2 plan unless a simpler approved AWS runtime is selected during deployment.
+
+## 4. Small Release Scope
+
+### 4.1 Featured cast
+
+The default release presents five featured autonomous residents:
+
+| Resident | Release purpose |
+|---|---|
+| Marta Vale | Gives the opening promise and demonstrates remembered trust |
+| Bram Kett | Creates the confrontation and firsthand account |
+| Pip Rook | Mutates and carries the signature rumor |
+| Talia Fen | Provides the optional privacy-versus-influence dilemma and uses the complete production sprite pack |
+| Rhea Morn | Converts the town's memories into the final election consequence |
+
+The player is the Newcomer.
+
+Existing Elias, Orin, Nessa, and ambient-resident systems remain in the repository. They may appear as background tokens, witnesses, or optional development content, but they do not require new animation packs and are not part of the release-critical path.
+
+### 4.2 Play space
+
+Use a compact release map centered on:
+
+- The Gull & Anchor
+- Market Row
+- Town Square and notice board
+- Midwife's Cottage
+- Guildhouse
+
+The existing twelve-location graph may remain authoritative internally. The release UI should emphasize only the locations needed by the featured story and avoid presenting unused waypoints as obligations.
+
+### 4.3 Playable story
+
+The default run is one compressed election arc:
+
+1. Arrive in Greyhaven and meet Marta.
+2. Promise to help with the blocked shipment, or refuse.
+3. Confront Bram by threatening, flattering, negotiating, or lying.
+4. The autonomous town tick runs. Pip hears and retells a changed version.
+5. Talk to a resident after the tick and see recalled memory alter tone and available choices.
+6. Resolve or break Marta's promise.
+7. Optionally handle Talia's sick-house request privately or turn it into public warning.
+8. Make one final public/election choice.
+9. Finish with an explainable vote and one of three headline outcomes:
+   - trusted win;
+   - narrow loss;
+   - public disgrace/exposure.
+10. Open the Town Historian to trace the decisive rumor from source to outcome.
+
+Existing additional endings may still be selected by the authoritative classifier, but the release only promises and rehearses these three outcome families.
+
+### 4.4 Time and action budget
+
+- Target 12–20 minutes for a first run.
+- Use at most 10 consequential player actions in the critical path.
+- Movement, observation, reading, and opening the Historian remain free.
+- Run an autonomous town tick after every two consequential player actions and at authored story boundaries.
+- Avoid a tutorial wall. The opening promise and first visible gossip hop teach the game.
+
+## 5. Autonomous Agent Contract
+
+The agents must look alive, but their autonomy must remain bounded, auditable, and affordable.
+
+For each autonomous tick, every eligible featured agent follows:
 
 ```text
-Next.js / React Three Fiber browser client
+PERCEIVE
+  current location + nearby agents + active event + relationship state
         |
-        | REST + WebSocket
-        v
-FastAPI game API ---- background worker / supervisor
-        |                     |
-        |                     +-- Modal LLM adapter during development
-        |                     +-- Amazon Bedrock adapter for later production
-        v
-CockroachDB
-  - durable game state
-  - immutable memory provenance
-  - active-memory vector index
-  - retrieval/evaluation traces
-  - benchmark evidence
+RECALL
+  holder-scoped vector search in CockroachDB, then relational reranking
         |
-        +-- narrowly allowlisted Managed MCP operations
+DECIDE
+  choose one allowed action from structured Bedrock Claude output
+        |
+VALIDATE
+  reject unknown targets/actions and fall back deterministically if needed
+        |
+ACT
+  move, speak, share a rumor, react, or wait
+        |
+COMMIT
+  action + immutable memory version + transmission + active projection
+  + relationship consequence in one bounded serializable transaction
+        |
+RENDER
+  movement, paired speech bubble, memory cue, and activity-feed entry
 ```
 
-### Frontend
+### Allowed release actions
 
-- Next.js application in `apps/web`.
-- TypeScript, React Three Fiber, Drei, Three.js, Zustand, TanStack Query, Zod, and generated/OpenAPI client types.
-- Lazy-loaded GLB environments, compressed textures, responsive UI, keyboard/mouse controls, subtitle and accessibility settings.
-- Use a pnpm workspace and Next.js App Router. Generate the TypeScript client from FastAPI OpenAPI rather than duplicating contracts; Zustand is only for transient rendering/UI state while server snapshots remain authoritative.
-- The client renders game state; it does not decide lore, memory, voting, or authoritative outcomes.
+- Move to an adjacent authored location.
+- Talk to a co-located resident.
+- Share one salient public rumor.
+- React to a remembered promise or contradiction.
+- Wait.
 
-### Backend
+Agents cannot invent game entities, directly change votes, write arbitrary database state, or perform external tool calls. The model proposes language and a bounded intent; deterministic code owns validation and game consequences.
 
-- FastAPI application in `apps/api` using Python 3.12.
-- SQLAlchemy, Alembic, psycopg 3, pgvector, Pydantic Settings, structured logging, and an explicit domain/service layer.
-- LLM provider interface with:
-  - Modal/OpenAI-compatible provider using the existing repository adapter and `thinkingmachines/Inkling-NVFP4` for development.
-  - Amazon Bedrock Converse structured-output adapter for future deployment, configured for a Claude principal model and Nova Lite ambient work.
-- BGE-small-en-v1.5 embeddings (384 dimensions), cached locally during development and stored per memory record.
-- Dialogue, intent extraction, rumor retelling, contradiction analysis, and decision explanation use this provider interface.
-- LLM and embedding calls occur outside database transactions; strict-schema validated results are committed afterward. Invalid, unavailable, or timed-out model work uses deterministic content-safe fallbacks and logs the reason.
+### Visible autonomy requirements
 
-### Project CockroachDB Instance
+After each autonomous tick the player must be able to see at least two of:
 
-- **Canonical database:** this project uses the user's existing Cockroach Cloud
-  instance—the one whose connection details are already present in the
-  repository's ignored `.env`. It is the database for Hearsay development,
-  runtime persistence, migrations, and sponsor-specific integration proof; no
-  Docker-hosted or second local CockroachDB instance is part of the supported
-  workflow.
-- Hearsay uses the user-managed Cockroach Cloud instance configured in the
-  repository's ignored `.env` through `command_to_create_cert`,
-  `command_to_connect`, `username`, and `password` (or an explicit
-  `DATABASE_URL`).
-- The application database on that instance is `hearsay`. Destructive
-  integration tests are restricted to the separate `hearsay_test` database.
-- `pnpm db:migrate` creates/migrates `hearsay`; `pnpm db:test` creates/migrates
-  and validates only `hearsay_test`. Both commands support the supplied
-  `command_to_create_cert` and `command_to_connect` Cockroach Cloud flow from
-  Windows PowerShell.
-- Do not add Dockerfiles, Compose manifests, or a local CockroachDB Docker
-  container for the application or database workflow. Keep credentials in
-  `.env` only and never copy them into source, generated artifacts, logs, or
-  documentation.
+- an NPC moving between waypoints;
+- a named speaker → listener bubble;
+- a changed rumor sentence;
+- a short “Town activity” entry;
+- a memory-conditioned greeting or relationship cue;
+- the Historian lineage gaining a new hop.
 
-### Memory Model
+Do not add an opaque multi-agent framework merely to claim autonomy. The existing service, scheduler, provider interface, and CockroachDB transaction boundary are the agent runtime.
 
-The game will store facts as provenance-preserving records and maintain a retrieval-efficient active projection.
+## 6. CockroachDB Memory Contract
 
-- `game_runs`, `players`, `characters`, `locations`, `schedules`, `events`, `messages`, `npc_profiles`, `relationships`, and `traits`.
-- `beliefs` and immutable `belief_versions` for source, confidence, and change history.
-- `active_memories` contains the currently active representation for each holder and is the vector-search target.
-- `active_memories` includes `game_run_id`, `holder_id`, state, text, embedding `VECTOR(384)`, belief/version references, confidence, and timestamps.
-- Its vector index uses equality-prefix fields such as run and holder so CockroachDB can perform appropriately scoped retrieval.
-- `actions`, `conversations`, `propositions`, `promises`, `favors`, `transmissions`, `rumor_spread`, `votes`, `vote_inputs`, `vote_intentions`, `tick_jobs`, `decisions`, `telemetry`, `town_ledger_entries`, `retrieval_traces`, `llm_traces`, and `benchmark_runs` provide the full game and proof trail.
-- Update active memory, belief pointers, transmissions, relationship consequences, and decision inputs together in a serializable transaction with bounded SQLSTATE `40001` retries.
-- Every transmission has source lineage, every active memory points to an immutable version, and every decisive vote retains explainable inputs.
+CockroachDB remains the only canonical operational store.
 
-## Repository Bootstrap and Local Tooling
+If CockroachDB is unavailable, the deployed game must fail visibly or enter an
+explicitly labeled read-only/degraded state. It must never fabricate continuity
+from browser state, an LLM transcript, a process cache, or an S3 replay. Removing
+CockroachDB must remove the agents' ability to remember and explain prior
+events; that dependency is intentional and central to the submission.
 
-Before the first commit, replace the existing one-line `.gitignore` and create `.gitattributes`, `.env.example`, MIT `LICENSE`, `THIRD_PARTY_ASSETS.md`, root `package.json`, `pnpm-lock.yaml`, `.npmrc`, `pyproject.toml`, and `uv.lock`.
+Required persisted state includes:
 
-1. Create the monorepo directories: `apps/web`, `apps/api`, `packages`, `infra`, `scripts`, `tests`, `assets`, `docs`, and `tools`.
-2. Install a standalone pinned `uv` executable under `tools/uv`; record its version and checksum in project documentation.
-3. Configure repository-local tool paths so no build output is written to a user profile:
+- runs, players, agents, locations, schedules, actions, and events;
+- conversations and structured claims;
+- propositions, holder-specific beliefs, and immutable belief versions;
+- active memories with `VECTOR(384)` embeddings;
+- rumor transmissions with exact parent and child versions;
+- relationships, promises, public traits, and election inputs;
+- retrieval traces, model provenance, retries, latency, and fallback status;
+- final votes and the exact memories that influenced them;
+- S3 artifact keys, hashes, and version metadata, but not the artifact as canonical game state.
 
-   ```text
-   UV_PROJECT_ENVIRONMENT=.venv
-   UV_PYTHON_INSTALL_DIR=tools/python
-   UV_CACHE_DIR=.cache/uv
-   UV_TOOL_DIR=tools/uv-tools
-   HF_HOME=.cache/huggingface
-   TORCH_HOME=.cache/torch
-   PLAYWRIGHT_BROWSERS_PATH=.cache/ms-playwright
-   ```
+### Production recall
 
-4. Use `tools/uv/uv.exe python install 3.12`, then create `.venv` with Python 3.12. The installed system Python 3.13 is not the project runtime.
-5. Define Python dependencies in `pyproject.toml` and synchronize them using `tools/uv/uv.exe sync --all-groups`.
-6. Pin Node 22 and `pnpm@11.9.0` via `packageManager`. Use pnpm for the frontend; add `.npmrc` with a repository-local `.pnpm-store` and keep `node_modules` inside the repository.
-7. Add portable, optional tools under `tools/` only when needed: Blender for asset conversion and `ccloud` for later Cockroach Cloud administration. Verify downloaded tools by checksum.
-8. Add idempotent PowerShell and POSIX `bootstrap`, `doctor`, `dev`, `test`, and `assets` scripts. Bootstrap installs tools, Python, `.venv`, dependencies, and Playwright then validates assets. Doctor checks tool versions, non-secret environment-variable names, the configured Cockroach Cloud connectivity/vector support, Modal structured output, assets, and ports. Test runs unit, integration, browser, benchmark-smoke, formatting/type, and secret checks. Assets extracts, curates, optimizes, validates, and reports runtime sizes.
-9. Use the user-provided Cockroach Cloud instance for development and sponsor-specific integration tests. Maintain separate `hearsay` and `hearsay_test` databases and do not require Docker for the application or database workflow.
+1. Constrain by run, holder, and active status.
+2. Use the CockroachDB distributed vector index to retrieve semantic candidates.
+3. Rerank with confidence, salience, recency, relationship, and source trust.
+4. Pass only a small validated set to Bedrock.
+5. Record the candidates and selections in a retrieval trace.
+6. Display a concise memory cue in the conversation UI.
 
-### Planned Dependencies
+Every memory-conditioned interaction must expose enough evidence for the player
+or judge to verify that recall was real: holder, memory summary, belief/version
+reference, retrieval reason, and visible behavioral consequence. Raw embeddings
+and internal prompts remain hidden.
 
-Python: FastAPI, Uvicorn, Pydantic Settings, SQLAlchemy, Alembic, psycopg, pgvector, boto3, OpenAI, sentence-transformers, HTTPX, MCP client support, structlog, pytest, pytest-asyncio, Hypothesis, Ruff, mypy, and coverage tooling.
+### Transaction boundary
 
-Node: Next.js, React, TypeScript, React Three Fiber, Drei, Three.js, Zustand, TanStack Query, Zod, OpenAPI tooling, glTF Transform, Vitest, Playwright, ESLint, and formatting/type-check tooling.
+Model inference and embedding work occurs outside database transactions. Validated outcomes are committed using bounded serializable retries. A gossip action must atomically persist its event, source version, child version, transmission edge, active-memory update, relationship effect, and model provenance.
 
-## Version-Control Hygiene
+## 7. Amazon Bedrock Claude Contract
 
-Create a comprehensive `.gitignore` that ignores:
+Add a production `BedrockInferenceProvider` behind the existing inference interface.
 
-- Secrets and certificates: `.env`, `.env.*`, `*.pem`, `*.key`, certificates, and local credential files, while retaining `!.env.example`.
-- Python environments and artifacts: `.venv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, coverage data, `dist`, `build`, and `*.egg-info`.
-- Node artifacts: `node_modules`, `.pnpm-store`, `.next`, `out`, `.turbo`, package-manager logs, and generated reports.
-- Test results: Playwright output, screenshots, videos, and temporary snapshots.
-- Repository-local caches and downloaded tool binaries: `.cache`, `tools/uv`, `tools/python`, and `tools/uv-tools`.
-- Raw/intermediate asset locations: `assets/downloads`, `assets/source`, `assets/work`, `assets/tmp`, `assets/render-cache`, and `assets/processed/debug`.
-- Runtime state: logs, temporary data, replay scratch files, generated benchmark output, and local database volumes.
-- Infrastructure state: Terraform state, plan output, CDK output, and local deployment overrides.
-- OS and editor noise.
+Use the Bedrock Converse API with a configured Anthropic Claude model or inference profile. The model identifier must be configuration, not hard-coded, because regional availability and model access can change.
 
-Do **not** ignore migrations, source assets selected for runtime, asset manifests/licenses, processed production assets, content data, test fixtures, frozen benchmark fixtures, documentation, or future AWS deployment templates.
+Bedrock is load-bearing for:
 
-Add `.gitattributes` to place runtime binary assets such as `*.glb`, `*.ktx2`, large `*.webp`, and `*.ogg` files in Git LFS once the repository is ready to track them.
+- player-to-NPC dialogue grounded in recalled memory;
+- concise rumor retelling that preserves the underlying proposition;
+- contradiction classification/explanation within a closed schema;
+- selecting one action from the release allowlist for autonomous ticks.
 
-The actual `.gitignore` must include this complete baseline, not merely broad patterns:
+Every response must:
 
-```gitignore
-# Secrets and certificates
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-*.crt
-*.cer
-*.p12
-*.pfx
-credentials/
-secrets/
-certs/
+- validate against a strict Pydantic schema;
+- record provider, model/inference profile, operation, latency, token usage when available, attempts, and fallback status;
+- exclude secrets and raw credentials from logs or rows;
+- time out and fall back without corrupting state;
+- never be called from inside a CockroachDB transaction.
 
-# Python
-.venv/
-__pycache__/
-*.py[cod]
-*.pyd
-*.so
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-build/
-dist/
-*.egg-info/
+For local/offline tests, retain the deterministic provider. Modal may remain as a development adapter, but the deployed demo and recorded submission path must visibly use Bedrock.
 
-# Node and Next.js
-node_modules/
-.pnpm-store/
-.next/
-out/
-.turbo/
-.eslintcache
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+## 8. Amazon S3 Contract
 
-# Tests, local tools, and caches
-coverage/
-playwright-report/
-test-results/
-blob-report/
-.cache/
-tools/uv/
-tools/python/
-tools/uv-tools/
-tools/blender/
-tools/ccloud/
-tools/bin/
+Use a private, versioned bucket with least-privilege access from the AWS application role.
 
-# Raw and intermediate assets
-assets/downloads/
-assets/source/
-assets/work/
-assets/tmp/
-assets/render-cache/
-assets/processed/debug/
+At game completion, generate a redacted replay bundle containing:
 
-# Runtime scratch data
-logs/
-*.log
-tmp/
-.temp/
-data/local/
-replays/tmp/
-benchmarks/tmp/
-reports/generated/
+- run seed and release-profile version;
+- ordered public actions and autonomous ticks;
+- rumor lineage IDs and mutation summaries;
+- final result and decisive memory references;
+- provider/model/fallback provenance;
+- no database credentials, service keys, private prompts, or unrelated player data.
 
-# Infrastructure state
-**/.terraform/
-*.tfstate
-*.tfstate.*
-crash.log
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
-cdk.out/
+Upload the JSON bundle to an immutable run-specific key. Store the bucket-independent object key, content SHA-256, ETag/version ID when available, size, and creation time in CockroachDB. The game may provide a short-lived presigned download URL.
 
-# Editors and operating systems
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-Desktop.ini
+Also upload frozen benchmark reports and demo-proof manifests. CockroachDB remains the live memory system; S3 is evidence and replay storage only.
+
+## 9. Presentation and Asset Plan
+
+The release uses a deliberate illustrated-board aesthetic rather than pretending to be a fully commissioned town.
+
+- Use the accepted Newcomer sprite pack for the player.
+- Integrate the complete Talia production pack for visible idle/walk/talk states.
+- Represent other featured residents with consistent colored tokens, role symbols, names, and strong dialogue cards.
+- Static portrait crops may be used only when their backgrounds and licenses are acceptable. Elias and Orin concept sheets are not required.
+- Preserve the existing CSS/SVG waypoint town, then improve hierarchy, lighting, weather treatment, movement tweening, bubbles, and selection states.
+- Do not build new tilesets, interiors, cutscenes, lip sync, or bespoke animation packs.
+- Do not let missing character art block playability, memory proof, AWS integration, or submission.
+
+## 10. Architecture
+
+```text
+Browser
+  Next.js game UI
+  - compact town board
+  - dialogue and memory cues
+  - autonomous activity feed
+  - election result and Historian
+          |
+          | HTTPS REST
+          v
+AWS application runtime
+  FastAPI authoritative game service
+  - action validation
+  - autonomous tick scheduler
+  - Bedrock Claude provider
+  - S3 replay exporter
+          |
+          +-----------------------> Amazon Bedrock
+          |                         structured language and bounded decisions
+          |
+          +-----------------------> Amazon S3
+          |                         replay and benchmark evidence
+          |
+          v
+CockroachDB Cloud
+  - canonical world state
+  - immutable agent memories and lineage
+  - distributed vector recall
+  - model/retrieval/audit traces
+          |
+          v
+CockroachDB Cloud Managed MCP Server
+  read-only Town Historian over live state
 ```
 
-Keep raw ZIPs and portable tools locally inside the repository but untracked. Commit curated runtime assets, source URLs, checksums, licenses, and reproducible processing scripts. Run a secret scan before the initial commit and after every milestone, without reading or emitting secret values.
+The browser never receives CockroachDB, MCP, Bedrock, or S3 credentials.
 
-## Asset Pipeline
+## 11. Implementation Milestones
 
-1. Inventory every asset in `assets/downloads`; retain source/license metadata in an asset manifest.
-2. Extract raw downloads into ignored `assets/source` and create only selected, optimized runtime assets in tracked `assets/processed`.
-3. Use Quaternius Medieval Village, Stylized Nature, Fantasy Props, Universal Base Characters, Character Outfits, and Universal Animation Library as the visual foundation.
-4. Use only selected Pirate Kit glTF props for the dock area: dock pieces, anchor, barrels, bottles, bucket, fish, and related neutral set dressing. Exclude pirate characters, ships, cannons, skeletons, tropical scenery, treasure, and other out-of-place assets.
-5. Use Kenney UI Adventure and UI Audio under their CC0 terms for interface and feedback audio.
-6. Build reproducible Blender/glTF Transform scripts for twenty shared-rig character variants, selected animations, portraits, consistent GLB conversion, removal of unused materials/animations, LODs as appropriate, meshopt/draco compression, and KTX2/Basis texture compression.
-7. Produce a manifest with source, license, use, processed output, size, and checksum for every runtime asset.
-8. Enforce initial-load and full-session budgets: initial scene at or below 25 MB, full session at or below 60 MB, roughly 300 draw calls or fewer, and playable 30 FPS on an integrated GPU.
+### Milestone A — Scope lock and release profile
 
-## Game Implementation Order
+- Add a `hackathon_small` release profile without deleting full-scope content.
+- Select five featured agents and the compact location set.
+- Limit the default critical path and action budget.
+- Hide unfinished or distracting actions from the default UI.
+- Update onboarding and test fixtures for the short run.
 
-### Milestone 1 — Playable Foundation
+**Gate:** a new run reaches an ending in 12–20 minutes without developer controls.
 
-- Scaffold frontend, backend, tests, Cockroach Cloud configuration, and developer scripts.
-- Build an optimized inn, square, and docks scene with a controllable player, collision, camera, three animated NPCs, interaction prompts, speech bubbles, dialogue panel, day/evening lighting, rain, and save/load run creation.
-- Prove the browser client can create a run, take an action, and receive authoritative state from the API.
-- Add the asset manifest and attribution page.
-- Gate: a clean bootstrap succeeds and the browser asset proof produces a size/asset validation report.
+### Milestone B — Playability and visible autonomy
 
-### Milestone 2 — Memory Proof Spine
+- Integrate Talia's runtime sprite exports.
+- Improve town-board visual hierarchy and movement feedback.
+- Add a compact autonomous-activity feed and named gossip bubbles.
+- Make memory-conditioned greetings, tone, and choices immediately visible.
+- Ensure every two player actions produce an understandable autonomous tick.
 
-- Create all CockroachDB migrations and seed data.
-- Implement action processing, immutable memory versions, active-memory projection, embeddings, scoped vector retrieval, and retrieval traces.
-- Implement structured LLM outputs with schema validation, graceful fallback dialogue, and deterministic test-provider fixtures.
-- Build the signature loop: promise Marta help, confront Bram, Pip mutates the story, treatment changes, and the Historian reconstructs the chain.
-- Add representative tests for a rumor being learned, contradicted, revised, retrieved by the right NPC, and affecting a future response.
-- Add a Historian view that explains why an NPC believes a specific claim.
-- Gate: real Modal inference and a real Cockroach vector query with `EXPLAIN` when configured; deterministic fixtures provide equivalent local coverage otherwise. Refresh-safe restoration and complete lineage are mandatory.
+**Gate:** a player can point to who moved, who spoke, what changed, and what an NPC remembered.
 
-### Milestone 3 — Full Compressed Game
+### Milestone C — Bedrock Claude production path
 
-- Implement all twelve locations, three daily schedules, eight principal NPC arcs, twelve ambient NPC behaviors, and free movement/eavesdropping. The schedule checkpoint now defines all 20 residents across three days and four daily phases, applies movements in the authoritative action transition, persists public movement events and the resulting snapshot in the configured Cockroach Cloud database, and renders restored positions directly from that state. Ambient behavior now adds authored carrier styles, deterministic 2–4 listener proximity hops, shallow last-three echo/recall/vote projections, visible Pip→resident chatter, and immutable parent-version/transmission lineage on the real cluster. Later gossip ticks can now select a salient public belief from any co-located holder, retell it in one or two listeners' authored voices, and persist the exact version-to-version chain through a bounded fourth hop. Existing holders and private facts are excluded; named speaker→listener hop bubbles survive refresh, and hop/style attenuation remains visible in the election audit on the configured Cockroach Cloud instance.
-- Add the 18 consequential actions, promises, favors, rumor propagation, relationship changes, trait effects, storm, public argument, and election calculation. The opening Bram choice now implements threaten/flatter/negotiate/lie as distinct content-driven actions, memories, Pip mutations, relationship/trait consequences, and belief-backed vote inputs; seeded normal-play paths reach both Exposed and Run out of town. The never-cut storm now ships with durable begin/clear state, rain/lightning/thunder/warm-window rendering, a full-inn schedule override, event-aware dialogue, refresh restoration, and real Cockroach event-row proof. Seed-selected Market Day now records its draw seed, roll, effects, twelve affected schedules, and Bram's busy state; renders three stalls, a doubled crowd, and synthesized market audio; clusters every ambient at Market Row; requires the player to walk there to reach Bram; restores across refresh; and hands off cleanly to the afternoon argument. The Day 2 public argument now adds square crowd staging, mutual faction damage, three one-shot interventions, holder-specific immutable memories, and audited downstream vote effects. Nessa's first favor now carries documentary evidence through Elias and Pip into a harbor endorsement, five audited voters, and a seeded normal-play Landslide. Orin's first favor now gives the player a dying clerk's account of Rhea altering the prior tally: reveal and conceal are mutually exclusive information actions with different Orin/Elias/elder standing, public traits, immutable Orin→player→town lineage, and exact belief-backed election effects. Talia's first favor now presents a private-health dilemma around Oswin: quiet help earns family trust and a `12–8` Narrow win, while a public warning travels through Pip, breaks sick-house confidence, and produces an audited `9–11` Narrow loss. Elias's first favor now exposes Tob's wrongful arrest: investigating corrects the public record, earns constable legitimacy, and reaches a `16–4` Landslide; destroying the correction leaves Tob as a witness, derives Dishonest, and reaches Exposed. Pip's first favor now makes the player trace Kit's after-hours tally-sheet receipt or deliberately turn it into an unsupported ballot-stuffing accusation. Verification visibly follows player→Kit→Pip/Edda and Pip→Tob, earns Pip's endorsement, and reaches a `15–5` Landslide; embellishment visibly travels through Pip, Tob, Hettie, Cal, Del, and ambient listeners, derives Troublemaker, and reaches an audited `8–12` Narrow loss. Rhea's first confrontation now exposes a prior poll book with overwritten totals and missing clerk countersignatures: demanding a witnessed public count preserves player→Elias→Edda→Tob→Pip evidence and reaches a `12–8` Narrow win, while signing her public compact preserves sole guild ballot custody, travels through Rhea→Bram→market and Rhea→Kit→Pip, and reaches a politically compromised `14–6` Landslide. Reusable content-authored parent routes preserve every source and mutation on the configured Cockroach Cloud instance.
-- Write content as data rather than embedded code; include validation that every referenced NPC, location, action, memory, and ending exists.
-- Implement the six endings and replay-safe save/resume behavior. Seeded
-  browser paths now cover Landslide, Narrow win, Narrow loss (`10–10`, Rhea
-  tie), Humiliation, Exposed, and Run out of town. All six classifiers and all
-  six normal-action browser endings now have automated coverage.
-- Gate: seeded full win and loss playthroughs complete without manual database repair or developer-console intervention.
+- Implement and test the Bedrock provider.
+- Use one configured Claude model/inference profile for the five featured agents.
+- Add structured autonomous-action selection.
+- Record truthful model provenance and cost/latency fields.
+- Keep deterministic fallbacks for failure safety, clearly labeled in proof views.
 
-### Milestone 4 — Hackathon Evidence
+**Gate:** a real configured Bedrock request drives dialogue and one autonomous rumor retelling, while malformed and unavailable responses fail safely.
 
-- Implement a read-only, server-side MCP integration with a narrow allowlist and audit log. Never expose Cockroach credentials to the browser.
-- Add a Director/Historian interface for inspecting turns, memories, sources, confidence, retrieval context, revisions, and downstream outcomes.
-- Build benchmark fixtures for memory retrieval, contradiction handling, latency, and deterministic replay.
-- Capture query plans and evidence demonstrating the vector index and scoped retrieval are used correctly.
-- Add rumor graph/mutation diffs, vote explanations, a concurrent-update race proof, cost telemetry, replay bundles, and a three-arm benchmark.
-- Build a narrow supervisor that can restart only the gossip child process, then automatically audit partial state.
-- Create a concise architecture diagram, demo walkthrough, and judging-evidence checklist.
-- Gate: zero orphan transmissions, zero unlinked belief versions, zero stale active memories, and Historian explanations for decisive votes.
+### Milestone D — CockroachDB sponsor proof
 
-### Milestone 5 — Quality and Handoff
+- Keep distributed vector retrieval in the production dialogue path.
+- Capture `EXPLAIN` evidence for the prefixed vector index.
+- Finish an independently authenticated, read-only Managed MCP Historian success over live run state.
+- Preserve the concurrent-conflict and immutable-lineage tests.
+- Make the Historian reconstruct the rumor that affected the final result.
+- Prove the same NPC memory survives browser refresh, API restart, and
+  repository/service recreation, then changes a later autonomous action or
+  vote.
+- Demonstrate that Bedrock receives selected CockroachDB memory references
+  rather than relying on an accumulated model transcript.
 
-- Run formatting, linting, type checks, unit tests, integration tests, browser tests, asset-budget checks, content validation, and benchmark tests.
-- Run seeded automated win, loss, and rumor-driven playthroughs; human playtesting remains a post-Goal manual task.
-- Produce deployment-ready but unapplied native EC2 service, S3/CloudFront, IAM, parameter/secret, and Bedrock configuration templates sized for the user’s 2 vCPU / 4 GB EC2 instance.
-- Finalize README, setup instructions, `.env.example`, architecture notes, licensing/attribution, operations runbook, benchmark report, feedback template, Devpost draft copy, and under-three-minute demo-video storyboard/script.
+**Gate:** the deployed proof shows durable long-term NPC memory changing
+behavior after a restart, and both required CockroachDB tools doing load-bearing
+work; direct database fallback is visibly marked `not MCP proof`.
 
-## APIs and Runtime Contracts
+### Milestone E — S3 evidence and AWS deployment
 
-- `POST /v1/runs` creates a new game run.
-- `GET /v1/runs/{id}/snapshot` returns the authoritative state needed by the client.
-- `POST /v1/runs/{id}/actions` validates and resolves player actions.
-- `GET /v1/runs/{id}/memories` returns immutable belief versions and
-  provenance-linked rumor transmissions for the gameplay Historian view.
-- `POST /v1/runs/{id}/memories/recall` performs holder-scoped vector retrieval,
-  relational reranking, and records a retrieval trace.
-- `POST /v1/runs/{id}/historian/trace` reconstructs one allowlisted proposition
-  through the official CockroachDB Cloud Managed MCP `select_query` tool when
-  independently authenticated. Its response includes a durable audit envelope;
-  `sponsor_proof=true` is impossible on a direct-database or in-memory fallback.
-- `GET /v1/runs/{id}/election` returns the resolved 20-vote tally, ending,
-  per-voter score, every deterministic input, top-three decisive inputs, and
-  exact belief/version references. Before midnight it returns a conflict rather
-  than predicting or fabricating a result.
-- WebSocket stream delivers state transitions, NPC reactions, and dialogue events.
-- Historian endpoints expose redacted, explainable memory provenance and retrieval traces.
-- Director endpoints are token-protected, provide test/demo controls only when explicitly enabled in development, and are never exposed as a public gameplay surface.
-- The Historian uses the official Managed MCP Server at
-  `https://cockroachlabs.cloud/mcp` through a server-side allowlist. The first
-  implemented operation invokes only `select_query`; future schema and plan
-  operations may add only the documented read tools. Discovered write tools are
-  never callable through the Historian. The independently supplied cluster ID
-  and API key never reach the browser, logs, query text, or audit rows.
-- `HEARSAY_HISTORIAN_PROVIDER=managed_mcp` fails closed when independent MCP
-  credentials or the read tool are unavailable. `auto` may retain a playable
-  direct-Cockroach fallback, but both the API and browser label it
-  `not MCP proof`, store the reason, and set `sponsor_proof=false`.
+- Implement redacted replay-bundle generation and checksum validation.
+- Upload replay and benchmark artifacts to a private versioned S3 bucket.
+- Persist object metadata in CockroachDB and expose a short-lived download action.
+- Finalize the least-privilege IAM policy and native AWS application deployment.
+- Deploy the functional demo on AWS with health checks and restart behavior.
 
-## Quality Gates
+**Gate:** a judge can finish a run, refresh it from CockroachDB, download its S3 replay evidence, and continue using the public AWS URL.
 
-- Unit tests for election mathematics, promise/favor resolution, traits, rumor constraints, schedules, idempotency, seed data, memory revision, relationship deltas, retrieval ranking, and content validation.
-- Integration tests use the isolated `hearsay_test` database on the configured Cockroach Cloud instance; deterministic unit and browser fixtures may use the in-memory repository, but no disposable container database is introduced. Cockroach-specific coverage includes migrations, vector-index use, retries, concurrent updates, MCP allowlisting, worker recovery, Town Ledger isolation, provider contracts, and replay determinism.
-- Property tests for state-machine invariants and replay stability.
-- Playwright tests for onboarding, broken-promise propagation, rumor travel, storm refresh, reconnect, full election, ending classes, two isolated runs, Director’s Room, and one full game path.
-- Benchmark tests that write reproducible evidence rather than relying on a one-off demonstration.
-- A failure mode never silently changes game state: invalid model output, unavailable embedding model, unavailable LLM, or retrieval failure falls back safely and is logged.
-- Clean-machine acceptance consists of the documented bootstrap command followed by `doctor`, `test`, and `dev`, without a global Python dependency.
+### Milestone F — Submission and rehearsal
 
-## Manual Deployment Handoff (Not Executed by This Goal)
+- Run local, Cockroach Cloud, Bedrock, S3, production-build, and browser tests.
+- Perform three clean-browser judge-path rehearsals.
+- Update README setup, architecture, tool-usage, AWS-usage, security, disclosure, and fallback sections.
+- Produce the architecture diagram.
+- Record a public video under three minutes showing:
+  1. player action;
+  2. autonomous rumor hop;
+  3. memory-conditioned response;
+  4. CockroachDB vector/MCP proof;
+  5. Bedrock provenance;
+  6. S3 replay evidence;
+  7. final consequence.
+- Submit early and keep the demo healthy through judging.
 
-1. User keeps using the existing Cockroach Cloud instance configured in `.env` and provisions only the remaining EC2, S3/CloudFront, IAM, and Bedrock resources.
-2. User supplies deployment secrets through the documented environment/parameter mechanism.
-3. User deploys the prepared native EC2 services and static assets using the provided runbook; Hearsay does not require Docker for its database or application workflow.
-4. User verifies a public demo, records the demo video, pushes the public repository, and submits before the hackathon deadline.
-5. Keep the demo available through the judging period.
+**Gate:** every service and tool claimed on Devpost is visible in the running product or its recorded proof.
 
-## Definition of Done
+## 12. Quality Gates
 
-- A new contributor can run one bootstrap command, create `.venv`, install dependencies, and start the browser game locally.
-- The full 20–30 minute Greyhaven election story is playable and saves/resumes correctly.
-- NPC behavior visibly changes because of stored, retrieved, revised, and explainable memories.
-- The repository contains automated proof for CockroachDB persistence/vector retrieval, the MCP integration, AWS-ready deployment, assets, licensing, tests, benchmark evidence, and hackathon submission materials.
-- No secrets, local caches, raw asset downloads, or generated development artifacts are committed.
+- Frontend typecheck, lint, unit tests, production build, and critical Playwright paths pass.
+- API unit tests and isolated Cockroach Cloud integration tests pass.
+- Bedrock contract tests cover schema validation, timeout, throttling, invalid output, and deterministic fallback.
+- S3 tests cover redaction, checksum, idempotent keying, version metadata, least-privilege failure, and presigned-download expiry.
+- Refresh restores the same world, memories, relationships, and election state.
+- API restart and application redeployment restore the same run from
+  CockroachDB without replaying a model transcript.
+- Autonomous ticks are idempotent and cannot double-apply on retry.
+- No orphan belief version, missing transmission parent, stale active-memory pointer, or unexplained decisive vote is allowed.
+- A model or network failure never silently changes authoritative state.
+- Secrets never reach browser bundles, replay files, logs, test output, or documentation.
+
+## 13. Definition of Done
+
+The release is done when:
+
+- a judge can open the public AWS URL and finish a coherent game without instructions from the developer;
+- the default run spotlights five memorable residents and requires no new character asset packs;
+- autonomous agents visibly move, talk, share a changed rumor, and react to stored memory;
+- CockroachDB persists and retrieves the long-term NPC memory that survives a
+  restart and changes a later interaction, autonomous decision, and final vote;
+- Distributed Vector Indexing is used in the production recall path;
+- the Managed MCP Historian independently reconstructs live lineage;
+- Bedrock Claude is visibly and truthfully used in the deployed interaction path;
+- S3 contains a validated replay/benchmark artifact whose metadata is linked from CockroachDB;
+- the optimized build, automated tests, clean-browser rehearsal, README, public repository, demo URL, and under-three-minute video are ready;
+- no out-of-scope art, event, side quest, or full-town feature remains a release blocker.
+
+## 14. Explicit Non-Goals
+
+- New animated packs for every NPC.
+- A bespoke full-town tileset.
+- More than five release-critical residents.
+- More than the compact critical path and three outcome families.
+- Festival Night or additional event-deck content.
+- Second favors or a broad verb sandbox.
+- Multiplayer.
+- Interiors as separate scenes.
+- Bedrock Agents, Lambda, EKS, SageMaker, or other services that are not actually needed.
+- Moving operational memory or vector search out of CockroachDB.

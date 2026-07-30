@@ -1,6 +1,6 @@
 # Hearsay implementation status
 
-Last validated: 2026-07-19
+Last validated: 2026-07-30
 
 This is a progress ledger for `IMPLEMENTATION_PLAN.md`; it does not override the
 Game Design Document or Hackathon Blueprint.
@@ -15,19 +15,21 @@ Completed:
   license, environment template, attribution ledger, and local tool records.
 - Pinned repository-local `uv` 0.11.15 and CPython 3.12.13 bootstrap.
 - pnpm 11.9 workspace with a locked Next.js 16 / React 19 frontend.
+- Windows, POSIX, and nested package scripts invoke pnpm through
+  `corepack pnpm@11.9.0`, so an older global pnpm cannot silently take over;
+  the README includes both one-time Corepack activation and a no-install
+  pinned-launch fallback.
 - FastAPI create-run, snapshot, action, and WebSocket contracts.
 - Idempotent authoritative actions with a deterministic development repository.
 - Twelve Greyhaven locations and all eight principal NPCs stored as validated
   content data.
 - Playable Marta promise → Bram confrontation → Pip rumor tick.
-- Optimized React Three Fiber Greyhaven scene using curated GLBs for the inn,
-  houses, market, docks, foliage, props, player, and animated residents.
-- Graph-constrained waypoint movement through buttons or WASD/arrow keys,
-  player interpolation, conversation camera easing, interaction prompts,
-  responsive dialogue, day/evening lighting, rain, lightning, and thunder.
+- Lightweight 2D Greyhaven map driven directly by authoritative locations,
+  schedules, residents, weather, and town events.
+- Graph-constrained waypoint movement through map buttons or WASD/arrow keys,
+  responsive dialogue, interaction markers, rain, and synthesized feedback
+  audio.
 - OpenAPI export and generated TypeScript contracts.
-- Reproducible asset extraction/optimization pipeline, CC0 attribution ledger,
-  checksummed manifest, public-runtime sync, and tracked validation report.
 - SQLAlchemy/Alembic persistence with players, versioned run snapshots,
   idempotent actions, and immutable event records.
 - Bounded CockroachDB serializable transaction retries and optimistic run
@@ -45,8 +47,6 @@ Validated:
 - Two real CockroachDB integration tests pass against `hearsay_test`, proving
   durable repository recreation, idempotent action replay, concurrent commits,
   monotonic revisions, and complete event history.
-- Asset validation passes with 16 runtime assets, 7.84 MB initial load, 7.85 MB
-  full session, and 44 source draw calls—within every Milestone 1 budget.
 - ESLint, strict TypeScript, Vitest, and the Next.js production build pass.
 - Next.js production build emits the App Router `/` route and standalone server.
 - Tracked Playwright coverage completes create → promise → confrontation → Pip
@@ -221,7 +221,7 @@ Completed:
 
 - Greyhaven content now defines all eight principals and twelve named ambient
   residents with roles, locations, openings, colors, and authored voter biases.
-  The authoritative opening snapshot contains all 20, and the 3D renderer
+  The authoritative opening snapshot contains all 20, and the 2D renderer
   spaces co-located residents around their waypoint instead of stacking them.
 - The content file defines all six GDD endings—Landslide, Narrow win, Narrow
   loss, Humiliation, Exposed, and Run out of town—and validation rejects a
@@ -249,7 +249,7 @@ Completed:
   roster maintainable while principal residents retain individual routines.
 - The authoritative action clock applies each phase transition to all 20 NPC
   locations. Every actual movement wave emits one public `schedule_shift`
-  event, and the saved snapshot is the single source used by both the 3D scene
+  event, and the saved snapshot is the single source used by both the 2D scene
   and restored browser sessions.
 - The action bar reports each principal's current location instead of a fixed
   opening location. The event strip exposes the three newest immutable events,
@@ -267,10 +267,10 @@ Completed:
 - The GDD's never-cut storm now has a durable lifecycle: it begins at Day 1
   evening, remains active through the night, resolves on Day 2 morning, and
   records both transitions even when Sleep skips across the whole interval.
-- The storm satisfies the no-render-no-event rule. The renderer supplies rain,
-  wet fog, lightning, synthesized thunder, darker ground, and warm window
-  lights; the behavior layer evacuates all 20 residents into the inn; Marta,
-  Nessa, and Pip receive authored active/resolved awareness lines.
+- The storm satisfies the no-render-no-event rule. The 2D renderer supplies
+  diagonal rain, a darker header treatment, and synthesized thunder; the
+  behavior layer evacuates all 20 residents into the inn; Marta, Nessa, and Pip
+  receive authored active/resolved awareness lines.
 - Active town-event state, weather, overridden resident positions, awareness,
   and public lifecycle events are server-authoritative. Refresh renders the
   restored Cockroach snapshot, and storm clearing reapplies the authored Day 2
@@ -280,9 +280,8 @@ Completed:
   affected ambient schedules, and Bram's busy status; a non-selected run stores
   a private skipped draw instead of silently pretending no draw occurred.
 - A selected draw clusters all twelve ambients at Market Row while principals
-  keep their own schedules. The scene adds two stalls to the permanent one,
-  eight animated market visitors, a wider resident ring, a visible event
-  banner, and synthesized crowd-and-bell audio.
+  keep their own schedules. The map shows the resulting resident cluster and a
+  visible event label, with synthesized crowd-and-bell audio.
 - Bram cannot be addressed remotely while the market is active. The UI explains
   why, disables his conversation choices from afar, and free movement through
   the square to Market Row makes him reachable again. Twelve authored active
@@ -540,21 +539,139 @@ Validated:
   its audio state, blocks Bram from afar, enables him after two free waypoint
   moves, survives reload, and visibly clears into the public argument.
 - Ruff, strict mypy, ESLint, strict TypeScript, Vitest, Next.js production
-  build, Playwright, asset validation, Cloud/vector doctor, cached BGE probe,
-  and real Modal structured-output probe pass.
+  build, Playwright, the 2D runtime-asset presence check, Cloud/vector doctor,
+  cached BGE probe, and real Modal structured-output probe pass.
 
 Remaining:
 
-- Second principal favors and the broader social, information, and ambition
-  verb set remain.
-- The remaining three-layer event-deck slices beyond storm, Market Day, and
-  public argument
-  remain.
+- The Amazon Bedrock Claude provider is implemented, but a paid request has not
+  been invoked during local development. One explicitly approved real dialogue,
+  rumor-retelling, and autonomous-choice proof remains for the deployed path.
+- A real independently authenticated Managed MCP Historian success remains;
+  direct-database fallback is correctly labeled as not sponsor proof.
+- S3 replay/benchmark upload and the public AWS application deployment remain.
+- A human clean-browser rehearsal still needs to confirm that the now-enforced
+  ten-action path lands inside the 12–20 minute target.
+
+## Release-scope decision — 2026-07-30
+
+The user approved a smaller hackathon release so missing full-town art does not
+block a playable submission.
+
+- Five featured agents: Marta, Bram, Pip, Talia, and Rhea.
+- Existing additional principals and ambient residents are preserved, but are
+  background/optional content rather than release blockers.
+- The default path targets 12–20 minutes and three headline outcome families.
+- The existing illustrated waypoint map becomes an intentional town-board
+  presentation; only the Newcomer and Talia require production animation.
+- Autonomous ticks, CockroachDB memory/vector recall, the Managed MCP Historian,
+  Bedrock Claude, S3 replay evidence, and AWS deployment are the remaining
+  priorities.
+- Festival Night, second favors, more event-deck breadth, a full tileset, and
+  more bespoke character packs are explicitly deferred.
+
+## Release implementation — 2026-07-30
+
+Completed:
+
+- Added a `hackathon_small` web release profile that spotlights Marta, Bram,
+  Pip, Talia, and Rhea without deleting or invalidating the full authored
+  roster.
+- Established a visible featured/supporting/background hierarchy on both the
+  map and action bar, while keeping all existing story paths available for
+  regression coverage.
+- Integrated Talia's accepted production portrait and south-facing sprite from
+  the supplied asset pack.
+- Reframed the event strip as a town-activity feed. Autonomous schedule,
+  gossip, rumor, retelling, and transmission events receive a visible `Agent`
+  marker and a CockroachDB persistence cue.
+- Replaced the small dialogue audit note with a player-visible long-term-memory
+  proof: recalled proposition, belief identifier, immutable version, contested
+  state, and truthful provider/model provenance.
+- Made `hackathon_small` authoritative in the saved run. It has a ten-action
+  budget, a compressed three-day clock, a five-resident action allowlist, and
+  persists through repository restoration; the original 18-action profile
+  remains backward-compatible.
+- Added a lazy `BedrockInferenceProvider` over the Bedrock Converse API with a
+  configured model/inference-profile ID, Bedrock-compatible JSON Schema output,
+  Pydantic validation, bounded timeout/retry handling, and deterministic
+  fallback. Merely starting the API does not create a Bedrock client.
+- Added bounded autonomous-action selection for Pip at the signature rumor
+  boundary. The validated choice can only share with an eligible co-located
+  resident or wait; the selected recipient becomes the actual immutable memory
+  holder, and the town feed shows truthful provider/model/fallback provenance.
+- Added migration `20260730_0009` for input/output token provenance on rumor
+  transmissions. Dialogue snapshots, immutable belief metadata, the direct
+  Historian path, and Managed MCP query contract expose token counts when the
+  provider returns them.
+- Changed local inference defaults to the deterministic provider. Bedrock or
+  Modal now requires deliberate configuration; no paid model request is claimed
+  by the local validation run.
+
+Validated:
+
+- A production preview was played through arrival, Talia interaction, Marta's
+  promise, an autonomous afternoon schedule wave, and Marta's later recall.
+  The recall visibly changed her standing and dialogue while showing the exact
+  versioned memory reference.
+- ESLint, strict TypeScript, Vitest, and the Next.js production build pass for
+  the release presentation changes.
+- The full local API suite passes with cloud-marked tests skipped. Mocked
+  Bedrock tests cover Converse request shape, schema adaptation, invalid output,
+  invalid autonomous targets, safe fallback, provider selection, token usage,
+  selected-listener persistence, and the complete ten-action election path.
+- Ruff, formatting, strict mypy, generated OpenAPI/TypeScript contracts,
+  frontend lint/typecheck/unit tests, the production build, and the Alembic
+  `20260730_0009` head check pass. No real LLM call was made.
+
+## Infrastructure proof update — 2026-07-30
+
+Completed:
+
+- Applied migration `20260730_0009` to both the configured `hearsay` and
+  isolated `hearsay_test` CockroachDB Cloud databases.
+- The read-only database doctor reports `hearsay` healthy at `0009` with
+  CockroachDB VECTOR support and the scoped distributed recall index enabled.
+- All 22 real CockroachDB tests pass in bounded groups against `hearsay_test`.
+- Added and passed a dedicated release proof that creates Talia's
+  `bram-price-confrontation` memory, recreates the repository and game service,
+  retrieves her exact belief/version through holder-scoped vector recall,
+  changes her later dialogue and election input, recreates the repository
+  again, and verifies the completed election and immutable lineage still exist.
+- `scripts/check_historian.py --execute --trace-fixture` is now a short-lived,
+  deterministic proof harness. It seeds only `hearsay_test`, invokes the
+  Managed MCP `select_query` path, requires `sponsor_proof=true`, persists the
+  sanitized audit, and exits. It never calls an LLM.
+- `scripts/check_bedrock.py` is now an explicit cost-controlled proof harness.
+  It refuses all AWS requests unless the provider, region, Claude model, and
+  `--execute` are present. It can make at most one rumor, one dialogue, and one
+  autonomous-action call, with SDK retries and fallback disabled, and then
+  exits.
+- The current zero-request preflights complete cleanly. No persistent server,
+  background LLM process, Managed MCP request, or paid Bedrock request was
+  started.
+
+External configuration still required:
+
+- The ignored environment does not yet contain an independent
+  `COCKROACH_MCP_CLUSTER_ID` and `COCKROACH_MCP_API_KEY`, so a truthful real
+  Managed MCP sponsor proof cannot yet be captured.
+- `HEARSAY_BEDROCK_MODEL` and usable AWS credentials are not yet configured.
+  Therefore no real Bedrock claim or token charge is made.
+- The official rules were rechecked on 2026-07-30. The submission must use
+  CockroachDB as persistent agent memory, run on AWS, meaningfully integrate at
+  least two listed CockroachDB tools and at least one AWS service, expose a
+  functional demo, and show the CockroachDB memory layer in a public video under
+  three minutes. The submission deadline is 2026-08-18 at 5:00 p.m. EDT. The
+  release targets Distributed Vector Indexing + Managed MCP and Bedrock; the
+  latter two must be demonstrated for that claim to count.
 
 ## Next implementation slice
 
-1. Add Festival Night as the fourth complete three-layer event: lanterns,
-   square gathering and music; an everyone-reachable schedule override;
-   a small, explicit trust benefit for conversations; authored resident
-   awareness; durable draw/effect state; refresh-safe rendering; and real
-   Cockroach replay proof.
+1. Add the independent Managed MCP cluster ID/API key to the ignored
+   environment and run the one-shot `--execute --trace-fixture` proof.
+2. Configure a Bedrock Claude model and standard AWS credential chain, then run
+   the one-shot rumor, dialogue, and autonomous-action proof.
+3. Finish the private S3 replay bundle and public AWS application deployment.
+4. Time one clean ten-action browser run and trim onboarding copy if it falls
+   outside 12–20 minutes.

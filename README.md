@@ -8,17 +8,34 @@ mutate as people repeat them, and every decisive memory keeps its provenance.
 
 The project is under active implementation. The playable foundation provides an
 authoritative FastAPI run/action/snapshot loop, durable CockroachDB persistence,
-and an optimized React Three Fiber Greyhaven scene with animated characters,
-graph-constrained movement, conversation camera focus, and storm presentation.
+and a lightweight 2D Greyhaven map with graph-constrained movement, NPC
+interactions, dialogue, and storm presentation. The professional player sprite
+pack is integrated; commissioned town and NPC art will replace the temporary
+map markers without changing the authoritative simulation.
 
 ## Local setup
 
-On Windows:
+Hearsay is pinned to Node 22 and pnpm 11.9.0. On Windows, activate the
+repository's exact package-manager version once:
+
+```powershell
+corepack install --global pnpm@11.9.0
+pnpm --version
+```
+
+The version check must print `11.9.0`. Then:
 
 ```powershell
 pnpm bootstrap
 pnpm doctor
 pnpm dev
+```
+
+If another global pnpm installation still shadows Corepack, no uninstall is
+required. Use the pinned launcher directly:
+
+```powershell
+corepack pnpm@11.9.0 dev
 ```
 
 Then open `http://localhost:3000`. The API serves health and OpenAPI
@@ -34,8 +51,8 @@ HEARSAY_PERSISTENCE_BACKEND=cockroachdb
 ```
 
 ```powershell
-pnpm db:migrate
-pnpm db:test
+corepack pnpm@11.9.0 db:migrate
+corepack pnpm@11.9.0 db:test
 ```
 
 The migration and test commands translate Cockroach Cloud's certificate command
@@ -62,16 +79,41 @@ authentication keeps the game usable through a clearly labeled direct-database
 fallback; that response always carries `sponsor_proof=false` and is not valid
 hackathon MCP evidence.
 
+The proof command is intentionally one-shot. Its default mode is a local
+configuration check with no external request. The explicit fixture mode writes
+a deterministic two-action run only to `hearsay_test`, performs one Managed MCP
+tool discovery and one read-only `select_query`, records the audit, and exits:
+
+```powershell
+tools/uv/uv.exe run python scripts/check_historian.py
+tools/uv/uv.exe run python scripts/check_historian.py --execute --trace-fixture
+```
+
 Cloud credentials are optional. With
 `HEARSAY_PERSISTENCE_BACKEND=memory`, the API uses an explicit deterministic
 development fallback; it never silently switches authoritative state.
 
-Inference defaults to `HEARSAY_LLM_PROVIDER=auto`: when the Modal URL and both
-tokens are present in `.env`, development uses the configured
-`thinkingmachines/Inkling-NVFP4` endpoint. Without them it uses a deterministic
-offline provider. Invalid or timed-out responses are schema-rejected, retried,
-and replaced with a content-safe fallback whose provider/model provenance is
-stored with the transmission.
+Inference defaults to `HEARSAY_LLM_PROVIDER=fallback`, so starting the local
+application cannot invoke a paid model. The deployed path must explicitly set
+`HEARSAY_LLM_PROVIDER=bedrock`, `AWS_REGION`, and
+`HEARSAY_BEDROCK_MODEL`. Bedrock uses the Converse API with a configured Claude
+model or inference profile, a constrained JSON Schema response, lazy client
+creation, bounded retries, and deterministic fallback. Provider, model,
+latency, attempts, fallback state, and token usage are stored with the
+transmission when available. Modal remains an explicitly selected development
+adapter; `auto` prefers configured Bedrock, then Modal, then the offline
+provider.
+
+Use the standard AWS credential chain rather than committing credentials. The
+Bedrock proof also defaults to a zero-request preflight. A real proof requires
+the explicit provider setting, region, Claude model/inference-profile ID, and
+`--execute`; each selected operation runs exactly once with SDK retries and
+fallback disabled, then the process exits:
+
+```powershell
+tools/uv/uv.exe run python scripts/check_bedrock.py
+tools/uv/uv.exe run python scripts/check_bedrock.py --execute rumor dialogue autonomous
+```
 
 Embeddings likewise default to `HEARSAY_EMBEDDING_PROVIDER=auto`. The API loads
 `BAAI/bge-small-en-v1.5` on CPU, caches it under `.cache/huggingface`, stores
@@ -82,7 +124,7 @@ reproducibility details.
 
 ## Current playable slice
 
-The opening loop is intentionally small but end to end:
+The default `hackathon_small` loop is intentionally small but end to end:
 
 1. Start or restore a run.
 2. Promise Marta that you will release the inn shipment.
@@ -94,16 +136,19 @@ The opening loop is intentionally small but end to end:
 6. Return to Bram before evening and pay to release Marta's shipment—or let the
    deadline pass. The ledger, notice-board traits, Pip's chatter, Marta's
    treatment, and immutable promise memory all reflect the outcome.
-7. Sleep to Day 2, declare against Rhea, and advance to election night. All 20
-   residents vote from stored disposition, traits, relationships, and memories;
-   the ending shows which exact inputs turned the tally.
+7. Optionally resolve Talia's sick-house request, declare against Rhea, answer
+   her ballot compact, and reach election night within the ten-action budget.
+   All 20 residents still vote from stored disposition, traits, relationships,
+   and memories; the ending shows which exact inputs turned the tally.
 
 Movement, eavesdropping, and the notice board are free actions. Walk through
 connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
 the browser restores the current run from CockroachDB. The current memory slice
 persists immutable belief lineage and performs holder-scoped 384-dimensional
-vector recall with relational reranking. Structured Modal rumor retelling is
-validated and provenance-tracked. Conflicting claims are stored as independent
+vector recall with relational reranking. Structured Bedrock/Modal inference is
+validated and provenance-tracked. In the small release, Pip's bounded
+autonomous decision selects an eligible real memory recipient and exposes its
+provider provenance in the town feed. Conflicting claims are stored as independent
 inputs and deterministically resolved without losing either source history; a
 real Cockroach serialization race proves one coherent active belief survives.
 Local BGE embeddings now power configured development recall. Memory-driven
@@ -133,11 +178,11 @@ shallow recall and voting use at most their last three memories with hop/style
 attenuation.
 Those residents also follow validated three-day,
 morning/afternoon/evening/night routines. Consequential actions advance the
-authoritative clock, move NPCs in the 3D town, append a public schedule-shift
+authoritative clock, move NPCs on the 2D town map, append a public schedule-shift
 event, and persist the same locations that reappear after refresh from the
 configured Cockroach Cloud `hearsay` database.
 Day 1 evening now draws the GDD's never-cut storm as durable game state. Rain,
-fog, lightning, thunder, and warm window lights provide the render layer; every
+screen treatment, and thunder provide the render layer; every
 resident evacuates to the inn for the behavior layer; Marta, Nessa, and Pip
 react in dialogue. Refresh restores the same storm and crowd, while Day 2 writes
 the clear event and resumes ordinary routes.
