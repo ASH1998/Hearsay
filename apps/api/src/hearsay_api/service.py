@@ -8,6 +8,8 @@ import structlog
 from hearsay_api.content import BramApproachContent, GreyhavenContent, load_content
 from hearsay_api.election import resolve_election
 from hearsay_api.inference import (
+    AutonomousActionOutput,
+    AutonomousActionRequest,
     DeterministicInferenceProvider,
     DialogueRequest,
     InferenceResult,
@@ -104,6 +106,25 @@ RHEA_COMPACT_CHOICE_VERBS = {
     ActionVerb.DEAL_WITH_RHEA,
 }
 
+HACKATHON_SMALL_ACTION_BUDGET = 10
+HACKATHON_SMALL_FEATURED_NPCS = frozenset({"marta", "bram", "pip", "talia", "rhea"})
+HACKATHON_SMALL_ACTIONS = frozenset(
+    {
+        *FREE_ACTIONS,
+        ActionVerb.TALK,
+        ActionVerb.PROMISE_HELP,
+        ActionVerb.SETTLE_SHIPMENT,
+        ActionVerb.DECLARE_CANDIDACY,
+        *BRAM_APPROACH_VERBS,
+        ActionVerb.ACCEPT_TALIA_FAVOR,
+        *TALIA_SICK_HOUSE_CHOICE_VERBS,
+        ActionVerb.ACCEPT_RHEA_COMPACT,
+        *RHEA_COMPACT_CHOICE_VERBS,
+        ActionVerb.GIVE_SQUARE_SPEECH,
+        ActionVerb.SLEEP,
+    }
+)
+
 
 class GameService:
     def __init__(
@@ -154,6 +175,12 @@ class GameService:
         snapshot = RunSnapshot(
             run_id=run_id,
             seed=request.seed,
+            release_profile=request.release_profile,
+            action_budget=(
+                HACKATHON_SMALL_ACTION_BUDGET
+                if request.release_profile == "hackathon_small"
+                else 18
+            ),
             player=PlayerState(display_name=request.display_name, location_id="road"),
             locations=locations,
             npcs=npcs,
@@ -208,6 +235,7 @@ class GameService:
             promise_status_before = {promise.id: promise.status for promise in snapshot.promises}
             if snapshot.status != "active":
                 raise InvalidActionError("This run has already ended.")
+            self._validate_release_action(snapshot, request)
 
             consumed_time = request.verb not in FREE_ACTIONS
             event = self._apply_action(snapshot, request)
@@ -229,7 +257,7 @@ class GameService:
                 )[:8]
                 if snapshot.action_count % 2 == 0:
                     self._run_gossip_tick(snapshot)
-            if snapshot.action_count >= 18 and snapshot.election is None:
+            if snapshot.action_count >= snapshot.action_budget and snapshot.election is None:
                 lineage = self.repository.list_memory_lineage(run_id)
                 snapshot.election = resolve_election(
                     snapshot,
@@ -291,6 +319,10 @@ class GameService:
                 if consumed_time and snapshot.action_count % 2 == 0 and snapshot.election is None
                 else None
             )
+            autonomous_decision = self._choose_release_autonomous_action(
+                snapshot,
+                request,
+            )
 
             response = ActionResponse(
                 action_id=uuid4(),
@@ -307,6 +339,7 @@ class GameService:
                 promise_transitions,
                 town_event_transitions,
                 existing_lineage,
+                autonomous_decision,
             )
             self._apply_visible_ambient_echoes(
                 snapshot,
@@ -326,6 +359,74 @@ class GameService:
                 if attempt == self.max_concurrency_retries:
                     raise
         raise AssertionError("Unreachable concurrency retry state.")
+
+    def _choose_release_autonomous_action(
+        self,
+        snapshot: RunSnapshot,
+        request: ActionRequest,
+    ) -> InferenceResult[AutonomousActionOutput] | None:
+        if (
+            snapshot.release_profile != "hackathon_small"
+            or request.verb not in BRAM_APPROACH_VERBS
+            or snapshot.action_count % 2 != 0
+            or snapshot.election is not None
+        ):
+            return None
+        pip = self._require_npc(snapshot, "pip")
+        featured_nearby = sorted(
+            npc.id
+            for npc in snapshot.npcs
+            if npc.id in HACKATHON_SMALL_FEATURED_NPCS - {"pip", "bram"}
+            and npc.location_id == pip.location_id
+        )
+        ambient_nearby = sorted(
+            npc.id
+            for npc in snapshot.npcs
+            if npc.id in self.content.ambients_by_id and npc.location_id == pip.location_id
+        )
+        nearby_agent_ids = featured_nearby or ambient_nearby
+        if not nearby_agent_ids:
+            return None
+        result = self.inference.choose_autonomous_action(
+            AutonomousActionRequest(
+                agent_id="pip",
+                location_id=pip.location_id,
+                nearby_agent_ids=nearby_agent_ids,
+                recalled_memories=[pip.speech] if pip.speech else [],
+                allowed_actions=["share_rumor", "wait"],
+            )
+        )
+        target = (
+            self.content.residents_by_id[result.value.target_id].name
+            if result.value.target_id is not None
+            else None
+        )
+        event_text = (
+            f"Pip chooses to carry the market story to {target}."
+            if result.value.action == "share_rumor" and target is not None
+            else "Pip holds the market story for now."
+        )
+        event = self._event(
+            "agent_decision",
+            event_text,
+            payload={
+                "agent_id": "pip",
+                "action": result.value.action,
+                "target_id": result.value.target_id,
+                "provider_id": result.provider_id,
+                "model_id": result.model_id,
+                "fallback_used": result.fallback_used,
+                "fallback_reason": result.fallback_reason,
+                "attempts": result.attempts,
+                "latency_ms": result.latency_ms,
+                "input_tokens": result.input_tokens,
+                "output_tokens": result.output_tokens,
+            },
+        )
+        snapshot.recent_events = (
+            snapshot.recent_events[:1] + [event] + snapshot.recent_events[1:]
+        )[:8]
+        return result
 
     def _apply_memory_driven_dialogue(
         self,
@@ -393,6 +494,8 @@ class GameService:
             model_id=result.model_id,
             fallback_used=result.fallback_used,
             fallback_reason=result.fallback_reason,
+            inference_input_tokens=result.input_tokens,
+            inference_output_tokens=result.output_tokens,
             treatment_cue=treatment.cue,
             available_choices=list(treatment.choices),
         )
@@ -965,6 +1068,21 @@ class GameService:
             return self._event("sleep", "Greyhaven keeps talking after your lamp goes dark.")
         raise InvalidActionError(f"Unsupported action: {request.verb}")
 
+    @staticmethod
+    def _validate_release_action(
+        snapshot: RunSnapshot,
+        request: ActionRequest,
+    ) -> None:
+        if snapshot.release_profile != "hackathon_small":
+            return
+        if request.verb not in HACKATHON_SMALL_ACTIONS:
+            raise InvalidActionError("That side story is outside this five-resident release run.")
+        if (
+            request.verb == ActionVerb.TALK
+            and request.target_id not in HACKATHON_SMALL_FEATURED_NPCS
+        ):
+            raise InvalidActionError("This release run follows Marta, Bram, Pip, Talia, and Rhea.")
+
     def _move(self, snapshot: RunSnapshot, target_id: str | None) -> WorldEvent:
         if target_id is None or target_id not in self.content.locations_by_id:
             raise InvalidActionError("Choose a valid Greyhaven location.")
@@ -983,6 +1101,10 @@ class GameService:
 
     @staticmethod
     def _advance_clock(snapshot: RunSnapshot, verb: ActionVerb) -> None:
+        if snapshot.release_profile == "hackathon_small":
+            GameService._advance_hackathon_small_clock(snapshot, verb)
+            return
+
         if verb == ActionVerb.SLEEP:
             completed_days = (snapshot.action_count // 6) + 1
             snapshot.action_count = min(completed_days * 6, 18)
@@ -1005,6 +1127,49 @@ class GameService:
             snapshot.phase = "evening"
         else:
             snapshot.phase = "night"
+
+    @staticmethod
+    def _advance_hackathon_small_clock(
+        snapshot: RunSnapshot,
+        verb: ActionVerb,
+    ) -> None:
+        if verb == ActionVerb.SLEEP:
+            next_boundary = next(
+                (
+                    boundary
+                    for boundary in (6, 9, HACKATHON_SMALL_ACTION_BUDGET)
+                    if boundary > snapshot.action_count
+                ),
+                HACKATHON_SMALL_ACTION_BUDGET,
+            )
+            snapshot.action_count = next_boundary
+        else:
+            snapshot.action_count = min(
+                snapshot.action_count + 1,
+                HACKATHON_SMALL_ACTION_BUDGET,
+            )
+
+        clock = {
+            0: (1, "morning"),
+            1: (1, "morning"),
+            2: (1, "afternoon"),
+            3: (1, "afternoon"),
+            4: (1, "evening"),
+            5: (1, "night"),
+            6: (2, "morning"),
+            7: (2, "afternoon"),
+            8: (2, "evening"),
+            9: (3, "morning"),
+            10: (3, "night"),
+        }
+        day, phase = clock[snapshot.action_count]
+        snapshot.day = day
+        snapshot.phase = cast(
+            Literal["morning", "afternoon", "evening", "night"],
+            phase,
+        )
+        if snapshot.action_count >= HACKATHON_SMALL_ACTION_BUDGET:
+            snapshot.status = "completed"
 
     def _apply_schedules(self, snapshot: RunSnapshot) -> WorldEvent | None:
         destinations: dict[str, int] = {}

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import dataclass
 from time import perf_counter
-from typing import TYPE_CHECKING, Literal, Never, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Never, Protocol, cast
 
 import structlog
 from openai import OpenAI
@@ -85,6 +87,24 @@ class ContradictionOutput(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
+AutonomousAction = Literal["move", "talk", "share_rumor", "react", "wait"]
+
+
+class AutonomousActionRequest(BaseModel):
+    agent_id: str = Field(min_length=1, max_length=64)
+    location_id: str = Field(min_length=1, max_length=64)
+    nearby_agent_ids: list[str] = Field(default_factory=list, max_length=20)
+    recalled_memories: list[str] = Field(default_factory=list, max_length=4)
+    allowed_actions: list[AutonomousAction] = Field(min_length=1, max_length=5)
+
+
+class AutonomousActionOutput(BaseModel):
+    action: AutonomousAction
+    target_id: str | None = Field(default=None, max_length=64)
+    utterance: str | None = Field(default=None, max_length=280)
+    rationale: str = Field(min_length=1, max_length=240)
+
+
 @dataclass(frozen=True)
 class InferenceResult[ResultValue]:
     value: ResultValue
@@ -94,6 +114,15 @@ class InferenceResult[ResultValue]:
     fallback_reason: str | None
     attempts: int
     latency_ms: float
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+
+
+@dataclass(frozen=True)
+class ProviderCall[ResultValue]:
+    value: ResultValue
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 class InferenceProvider(Protocol):
@@ -103,14 +132,25 @@ class InferenceProvider(Protocol):
     @property
     def model_id(self) -> str: ...
 
-    def retell_rumor(self, request: RumorRetellingRequest) -> RumorRetelling: ...
+    def retell_rumor(
+        self,
+        request: RumorRetellingRequest,
+    ) -> RumorRetelling | ProviderCall[RumorRetelling]: ...
 
-    def generate_dialogue(self, request: DialogueRequest) -> DialogueOutput: ...
+    def generate_dialogue(
+        self,
+        request: DialogueRequest,
+    ) -> DialogueOutput | ProviderCall[DialogueOutput]: ...
 
     def classify_contradiction(
         self,
         request: ContradictionRequest,
-    ) -> ContradictionOutput: ...
+    ) -> ContradictionOutput | ProviderCall[ContradictionOutput]: ...
+
+    def choose_autonomous_action(
+        self,
+        request: AutonomousActionRequest,
+    ) -> AutonomousActionOutput | ProviderCall[AutonomousActionOutput]: ...
 
 
 class DeterministicInferenceProvider:
@@ -217,6 +257,283 @@ class DeterministicInferenceProvider:
             confidence=0.9 if shared_keys else 0.55,
         )
 
+    def choose_autonomous_action(
+        self,
+        request: AutonomousActionRequest,
+    ) -> AutonomousActionOutput:
+        if "share_rumor" in request.allowed_actions and request.nearby_agent_ids:
+            return AutonomousActionOutput(
+                action="share_rumor",
+                target_id=request.nearby_agent_ids[0],
+                utterance=(
+                    request.recalled_memories[0]
+                    if request.recalled_memories
+                    else "Greyhaven has a new story."
+                ),
+                rationale="Share the most salient public memory with a nearby listener.",
+            )
+        if "react" in request.allowed_actions:
+            return AutonomousActionOutput(
+                action="react",
+                utterance="That changes the shape of the story.",
+                rationale="React visibly because there is no valid listener.",
+            )
+        return AutonomousActionOutput(
+            action="wait",
+            rationale="No safe, allowed social action is currently available.",
+        )
+
+
+def _validate_retelling_content(
+    request: RumorRetellingRequest,
+    retelling: RumorRetelling,
+) -> RumorRetelling:
+    if len(WORD_PATTERN.findall(retelling.retold_claim)) > 35:
+        raise ValueError("The retold claim exceeds the 35-word content limit.")
+    allowed_tokens = {
+        token.lower()
+        for token in WORD_PATTERN.findall(f"{request.original_claim} {request.context}")
+    }
+    introduced_names = set()
+    for match in CAPITALIZED_TOKEN_PATTERN.finditer(retelling.retold_claim):
+        token = match.group(0)
+        normalized = token.lower()
+        if normalized in allowed_tokens or normalized in GRAMMATICAL_CAPITALS:
+            continue
+        if normalized in KNOWN_GREYHAVEN_ENTITIES or match.start() > 0:
+            introduced_names.add(token)
+    if introduced_names:
+        raise ValueError("The retold claim introduced an undeclared named entity.")
+    return retelling
+
+
+def _validate_autonomous_action(
+    request: AutonomousActionRequest,
+    action: AutonomousActionOutput,
+) -> AutonomousActionOutput:
+    if action.action not in request.allowed_actions:
+        raise ValueError("The autonomous action is outside the supplied allowlist.")
+    if action.target_id is not None and action.target_id not in request.nearby_agent_ids:
+        raise ValueError("The autonomous action targets an ineligible resident.")
+    if action.action in {"talk", "share_rumor"} and action.target_id is None:
+        raise ValueError("The autonomous social action requires an eligible target.")
+    if action.action == "wait" and action.target_id is not None:
+        raise ValueError("A wait action cannot target another resident.")
+    return action
+
+
+BEDROCK_UNSUPPORTED_SCHEMA_KEYS = frozenset(
+    {
+        "maxItems",
+        "maxLength",
+        "maximum",
+        "minLength",
+        "minimum",
+        "multipleOf",
+        "pattern",
+    }
+)
+
+
+def _bedrock_json_schema(schema: type[BaseModel]) -> dict[str, object]:
+    prepared = deepcopy(schema.model_json_schema())
+
+    def sanitize(value: object) -> object:
+        if isinstance(value, list):
+            return [sanitize(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        cleaned = {
+            key: sanitize(item)
+            for key, item in value.items()
+            if key not in BEDROCK_UNSUPPORTED_SCHEMA_KEYS
+        }
+        if cleaned.get("type") == "object":
+            cleaned["additionalProperties"] = False
+        return cleaned
+
+    return cast(dict[str, object], sanitize(prepared))
+
+
+class BedrockRuntimeClient(Protocol):
+    def converse(self, **kwargs: Any) -> dict[str, Any]: ...
+
+
+class BedrockInferenceProvider:
+    def __init__(
+        self,
+        region: str,
+        model_id: str,
+        timeout_seconds: float = 45,
+        client: BedrockRuntimeClient | None = None,
+    ) -> None:
+        self.region = region
+        self._model_id = model_id
+        self.timeout_seconds = timeout_seconds
+        self.client = client
+
+    @property
+    def provider_id(self) -> str:
+        return "bedrock"
+
+    @property
+    def model_id(self) -> str:
+        return self._model_id
+
+    def _client(self) -> BedrockRuntimeClient:
+        if self.client is not None:
+            return self.client
+        import boto3  # type: ignore[import-untyped]
+        from botocore.config import Config  # type: ignore[import-untyped]
+
+        self.client = cast(
+            BedrockRuntimeClient,
+            boto3.client(
+                "bedrock-runtime",
+                region_name=self.region,
+                config=Config(
+                    connect_timeout=min(self.timeout_seconds, 10),
+                    read_timeout=self.timeout_seconds,
+                    retries={"max_attempts": 0},
+                ),
+            ),
+        )
+        return self.client
+
+    def _complete[OutputModel: BaseModel](
+        self,
+        schema: type[OutputModel],
+        schema_name: str,
+        description: str,
+        system_prompt: str,
+        payload: BaseModel,
+    ) -> ProviderCall[OutputModel]:
+        response = self._client().converse(
+            modelId=self.model_id,
+            system=[{"text": system_prompt}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": [{"text": payload.model_dump_json()}],
+                }
+            ],
+            inferenceConfig={
+                "maxTokens": 2_000,
+                "temperature": 0,
+            },
+            outputConfig={
+                "textFormat": {
+                    "type": "json_schema",
+                    "structure": {
+                        "jsonSchema": {
+                            "schema": json.dumps(
+                                _bedrock_json_schema(schema),
+                                separators=(",", ":"),
+                            ),
+                            "name": schema_name,
+                            "description": description,
+                        }
+                    },
+                }
+            },
+        )
+        output = response.get("output")
+        message = output.get("message") if isinstance(output, dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        text_blocks = (
+            [
+                block["text"]
+                for block in content
+                if isinstance(block, dict) and isinstance(block.get("text"), str)
+            ]
+            if isinstance(content, list)
+            else []
+        )
+        if len(text_blocks) != 1:
+            raise ValueError("Bedrock returned no single structured text response.")
+
+        usage = response.get("usage")
+        input_tokens = usage.get("inputTokens") if isinstance(usage, dict) else None
+        output_tokens = usage.get("outputTokens") if isinstance(usage, dict) else None
+        return ProviderCall(
+            value=schema.model_validate_json(text_blocks[0]),
+            input_tokens=input_tokens if isinstance(input_tokens, int) else None,
+            output_tokens=output_tokens if isinstance(output_tokens, int) else None,
+        )
+
+    def retell_rumor(
+        self,
+        request: RumorRetellingRequest,
+    ) -> ProviderCall[RumorRetelling]:
+        result = self._complete(
+            RumorRetelling,
+            "rumor_retelling",
+            "A bounded Greyhaven rumor retelling.",
+            (
+                "Retell the supplied claim in a compact Greyhaven rumor voice. "
+                "Do not add named people, places, objects, or events absent from "
+                "the input. Preserve the core event while allowing controlled drift. "
+                "Keep retold_claim under 35 words and drift_note under 25 words."
+            ),
+            request,
+        )
+        return ProviderCall(
+            value=_validate_retelling_content(request, result.value),
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+        )
+
+    def generate_dialogue(
+        self,
+        request: DialogueRequest,
+    ) -> ProviderCall[DialogueOutput]:
+        return self._complete(
+            DialogueOutput,
+            "npc_dialogue",
+            "One memory-grounded NPC response.",
+            (
+                "Write one concise in-character Greyhaven response using only the "
+                "provided memories. Never invent evidence or change game state."
+            ),
+            request,
+        )
+
+    def classify_contradiction(
+        self,
+        request: ContradictionRequest,
+    ) -> ProviderCall[ContradictionOutput]:
+        return self._complete(
+            ContradictionOutput,
+            "contradiction_analysis",
+            "A bounded semantic contradiction classification.",
+            (
+                "Classify semantic agreement only. Explain briefly; deterministic "
+                "game code decides whether any belief changes."
+            ),
+            request,
+        )
+
+    def choose_autonomous_action(
+        self,
+        request: AutonomousActionRequest,
+    ) -> ProviderCall[AutonomousActionOutput]:
+        result = self._complete(
+            AutonomousActionOutput,
+            "autonomous_action",
+            "One bounded action for a Greyhaven resident.",
+            (
+                "Choose exactly one action from allowed_actions. Use only a supplied "
+                "nearby_agent_id as target. Do not invent entities or game effects. "
+                "Deterministic game code validates and applies the choice."
+            ),
+            request,
+        )
+        return ProviderCall(
+            value=_validate_autonomous_action(request, result.value),
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+        )
+
 
 class ModalInferenceProvider:
     def __init__(
@@ -298,23 +615,7 @@ class ModalInferenceProvider:
             request,
         )
         retelling = RumorRetelling.model_validate(output)
-        if len(WORD_PATTERN.findall(retelling.retold_claim)) > 35:
-            raise ValueError("The retold claim exceeds the 35-word content limit.")
-        allowed_tokens = {
-            token.lower()
-            for token in WORD_PATTERN.findall(f"{request.original_claim} {request.context}")
-        }
-        introduced_names = set()
-        for match in CAPITALIZED_TOKEN_PATTERN.finditer(retelling.retold_claim):
-            token = match.group(0)
-            normalized = token.lower()
-            if normalized in allowed_tokens or normalized in GRAMMATICAL_CAPITALS:
-                continue
-            if normalized in KNOWN_GREYHAVEN_ENTITIES or match.start() > 0:
-                introduced_names.add(token)
-        if introduced_names:
-            raise ValueError("The retold claim introduced an undeclared named entity.")
-        return retelling
+        return _validate_retelling_content(request, retelling)
 
     def generate_dialogue(self, request: DialogueRequest) -> DialogueOutput:
         output = self._complete(
@@ -343,6 +644,24 @@ class ModalInferenceProvider:
         )
         return ContradictionOutput.model_validate(output)
 
+    def choose_autonomous_action(
+        self,
+        request: AutonomousActionRequest,
+    ) -> AutonomousActionOutput:
+        output = self._complete(
+            AutonomousActionOutput,
+            "autonomous_action",
+            (
+                "Choose one action from allowed_actions and only a supplied nearby "
+                "resident as target. Never invent entities or game effects."
+            ),
+            request,
+        )
+        return _validate_autonomous_action(
+            request,
+            AutonomousActionOutput.model_validate(output),
+        )
+
 
 class SafeInferenceProvider:
     def __init__(
@@ -366,14 +685,22 @@ class SafeInferenceProvider:
     def _run[ResultValue](
         self,
         operation: str,
-        primary_call: Callable[[], ResultValue],
-        fallback_call: Callable[[], ResultValue],
+        primary_call: Callable[[], ResultValue | ProviderCall[ResultValue]],
+        fallback_call: Callable[[], ResultValue | ProviderCall[ResultValue]],
     ) -> InferenceResult[ResultValue]:
         started = perf_counter()
         last_error: Exception | None = None
         for attempt in range(1, self.max_attempts + 1):
             try:
-                value = primary_call()
+                primary_result = primary_call()
+                if isinstance(primary_result, ProviderCall):
+                    value = primary_result.value
+                    input_tokens = primary_result.input_tokens
+                    output_tokens = primary_result.output_tokens
+                else:
+                    value = primary_result
+                    input_tokens = None
+                    output_tokens = None
                 return InferenceResult(
                     value=value,
                     provider_id=self.primary.provider_id,
@@ -382,6 +709,8 @@ class SafeInferenceProvider:
                     fallback_reason=None,
                     attempts=attempt,
                     latency_ms=(perf_counter() - started) * 1000,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
                 )
             except Exception as error:
                 last_error = error
@@ -395,7 +724,10 @@ class SafeInferenceProvider:
                 )
 
         reason = type(last_error).__name__ if last_error is not None else "UnknownError"
-        value = fallback_call()
+        fallback_result = fallback_call()
+        value = (
+            fallback_result.value if isinstance(fallback_result, ProviderCall) else fallback_result
+        )
         logger.warning(
             "inference_fallback_used",
             provider=self.primary.provider_id,
@@ -444,6 +776,16 @@ class SafeInferenceProvider:
             lambda: self.fallback.classify_contradiction(request),
         )
 
+    def choose_autonomous_action(
+        self,
+        request: AutonomousActionRequest,
+    ) -> InferenceResult[AutonomousActionOutput]:
+        return self._run(
+            "choose_autonomous_action",
+            lambda: self.primary.choose_autonomous_action(request),
+            lambda: self.fallback.choose_autonomous_action(request),
+        )
+
 
 class UnavailableInferenceProvider:
     def __init__(self, provider_id: str, model_id: str, reason: str) -> None:
@@ -474,6 +816,12 @@ class UnavailableInferenceProvider:
     ) -> ContradictionOutput:
         self._raise()
 
+    def choose_autonomous_action(
+        self,
+        request: AutonomousActionRequest,
+    ) -> AutonomousActionOutput:
+        self._raise()
+
 
 def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
     fallback = DeterministicInferenceProvider()
@@ -488,8 +836,9 @@ def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
         else None
     )
     modal_is_configured = bool(settings.modal_proxy_url and token_id and token_secret)
+    bedrock_is_configured = bool(settings.aws_region and settings.bedrock_model)
     if settings.llm_provider == "fallback" or (
-        settings.llm_provider == "auto" and not modal_is_configured
+        settings.llm_provider == "auto" and not bedrock_is_configured and not modal_is_configured
     ):
         return SafeInferenceProvider(
             primary=fallback,
@@ -497,8 +846,26 @@ def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
             max_attempts=1,
         )
 
-    if not modal_is_configured:
-        primary: InferenceProvider = UnavailableInferenceProvider(
+    primary: InferenceProvider
+    if settings.llm_provider == "bedrock" or (
+        settings.llm_provider == "auto" and bedrock_is_configured
+    ):
+        if not bedrock_is_configured:
+            primary = UnavailableInferenceProvider(
+                provider_id="bedrock",
+                model_id=settings.bedrock_model or "unconfigured",
+                reason="Bedrock inference configuration is incomplete.",
+            )
+        else:
+            assert settings.aws_region is not None
+            assert settings.bedrock_model is not None
+            primary = BedrockInferenceProvider(
+                region=settings.aws_region,
+                model_id=settings.bedrock_model,
+                timeout_seconds=settings.inference_timeout_seconds,
+            )
+    elif not modal_is_configured:
+        primary = UnavailableInferenceProvider(
             provider_id="modal",
             model_id=settings.modal_model,
             reason="Modal inference configuration is incomplete.",

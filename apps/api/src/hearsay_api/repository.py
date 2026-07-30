@@ -227,6 +227,8 @@ class InMemoryRunRepository:
                             fallback_reason=planned.fallback_reason,
                             inference_attempts=planned.inference_attempts,
                             inference_latency_ms=planned.inference_latency_ms,
+                            inference_input_tokens=planned.inference_input_tokens,
+                            inference_output_tokens=planned.inference_output_tokens,
                         )
                     )
 

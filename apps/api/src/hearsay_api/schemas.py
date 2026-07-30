@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Phase = Literal["morning", "afternoon", "evening", "night"]
 RunStatus = Literal["active", "completed"]
+ReleaseProfile = Literal["full", "hackathon_small"]
 Weather = Literal["clear", "rain"]
 VoteChoice = Literal["player", "rhea"]
 EndingKey = Literal[
@@ -63,6 +64,7 @@ class ActionVerb(StrEnum):
 class CreateRunRequest(BaseModel):
     display_name: str = Field(default="Newcomer", min_length=1, max_length=40)
     seed: int = Field(default=1729, ge=0, le=2_147_483_647)
+    release_profile: ReleaseProfile = "full"
 
 
 class ActionRequest(BaseModel):
@@ -155,6 +157,8 @@ class DialogueState(BaseModel):
     model_id: str | None = None
     fallback_used: bool = False
     fallback_reason: str | None = None
+    inference_input_tokens: int | None = Field(default=None, ge=0)
+    inference_output_tokens: int | None = Field(default=None, ge=0)
     treatment_cue: str | None = None
     available_choices: list[DialogueChoiceState] = Field(default_factory=list)
 
@@ -235,6 +239,8 @@ class ElectionState(BaseModel):
 class RunSnapshot(BaseModel):
     run_id: UUID
     seed: int
+    release_profile: ReleaseProfile = "full"
+    action_budget: int = Field(default=18, ge=1, le=18)
     revision: int = Field(default=0, ge=0)
     status: RunStatus = "active"
     day: int = Field(default=1, ge=1, le=3)
@@ -251,6 +257,12 @@ class RunSnapshot(BaseModel):
     town_events: list[TownEventState] = Field(default_factory=list)
     election: ElectionState | None = None
     recent_events: list[WorldEvent] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def action_count_must_fit_budget(self) -> RunSnapshot:
+        if self.action_count > self.action_budget:
+            raise ValueError("Run action count cannot exceed its release-profile budget.")
+        return self
 
 
 class CreateRunResponse(BaseModel):
@@ -300,6 +312,8 @@ class TransmissionState(BaseModel):
     fallback_reason: str | None = None
     inference_attempts: int = 0
     inference_latency_ms: float | None = None
+    inference_input_tokens: int | None = Field(default=None, ge=0)
+    inference_output_tokens: int | None = Field(default=None, ge=0)
     created_at: datetime | None = None
 
 

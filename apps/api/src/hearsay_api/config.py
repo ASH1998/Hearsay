@@ -95,9 +95,21 @@ class Settings(BaseSettings):
         le=60,
         alias="HEARSAY_HISTORIAN_TIMEOUT_SECONDS",
     )
-    llm_provider: Literal["auto", "fallback", "modal"] = Field(
-        default="auto",
+    llm_provider: Literal["auto", "fallback", "modal", "bedrock"] = Field(
+        default="fallback",
         alias="HEARSAY_LLM_PROVIDER",
+    )
+    aws_region: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("AWS_REGION", "AWS_DEFAULT_REGION"),
+        exclude=True,
+    )
+    bedrock_model: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "HEARSAY_BEDROCK_MODEL",
+            "HEARSAY_BEDROCK_PRINCIPAL_MODEL",
+        ),
     )
     modal_proxy_url: str | None = Field(
         default=None,

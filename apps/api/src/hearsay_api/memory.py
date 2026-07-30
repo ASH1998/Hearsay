@@ -16,6 +16,7 @@ import structlog
 
 from hearsay_api.content import GreyhavenContent
 from hearsay_api.inference import (
+    AutonomousActionOutput,
     DeterministicInferenceProvider,
     InferenceResult,
     RumorRetelling,
@@ -274,6 +275,8 @@ class PlannedBelief:
     fallback_reason: str | None = None
     inference_attempts: int = 0
     inference_latency_ms: float | None = None
+    inference_input_tokens: int | None = None
+    inference_output_tokens: int | None = None
 
 
 @dataclass(frozen=True)
@@ -333,6 +336,7 @@ def plan_action_memory(
     promise_transitions: tuple[PromiseTransition, ...] = (),
     town_event_transitions: tuple[str, ...] = (),
     existing_lineage: MemoryLineageResponse | None = None,
+    autonomous_decision: InferenceResult[AutonomousActionOutput] | None = None,
 ) -> MemoryEffects:
     primary = _plan_primary_action_memory(
         request,
@@ -354,6 +358,7 @@ def plan_action_memory(
         response,
         embeddings,
         content,
+        autonomous_decision,
     )
     autonomous_echoes = (
         MemoryEffects()
@@ -546,6 +551,8 @@ def _plan_primary_action_memory(
                     fallback_reason=retelling.fallback_reason,
                     inference_attempts=retelling.attempts,
                     inference_latency_ms=retelling.latency_ms,
+                    inference_input_tokens=retelling.input_tokens,
+                    inference_output_tokens=retelling.output_tokens,
                 ),
             ),
             relationships=(
@@ -1685,6 +1692,7 @@ def _plan_ambient_echoes(
     response: ActionResponse,
     embeddings: EmbeddingProvider,
     content: GreyhavenContent,
+    autonomous_decision: InferenceResult[AutonomousActionOutput] | None = None,
 ) -> MemoryEffects:
     snapshot = response.snapshot
     if snapshot.world_tick == 0 or snapshot.action_count % 2 != 0:
@@ -1699,6 +1707,23 @@ def _plan_ambient_echoes(
         for npc in snapshot.npcs
         if npc.id in content.ambients_by_id and npc.location_id == pip.location_id
     )
+    if autonomous_decision is not None:
+        if autonomous_decision.value.action != "share_rumor":
+            return MemoryEffects()
+        preferred_listener = autonomous_decision.value.target_id
+        if (
+            preferred_listener is not None
+            and preferred_listener not in candidates
+            and preferred_listener in content.residents_by_id
+            and preferred_listener != "pip"
+            and next(npc for npc in snapshot.npcs if npc.id == preferred_listener).location_id
+            == pip.location_id
+        ):
+            candidates.append(preferred_listener)
+            candidates.sort()
+        if preferred_listener in candidates:
+            candidates.remove(preferred_listener)
+            candidates.insert(0, preferred_listener)
     if not candidates:
         return MemoryEffects()
 
@@ -1707,14 +1732,18 @@ def _plan_ambient_echoes(
         2 + ((snapshot.seed + snapshot.world_tick) % 3),
     )
     offset = (snapshot.seed + snapshot.world_tick) % len(candidates)
-    listeners = (candidates[offset:] + candidates[:offset])[:hop_count]
+    listeners = (
+        (candidates[:1] + candidates[1 + offset :] + candidates[1 : 1 + offset])[:hop_count]
+        if autonomous_decision is not None
+        else (candidates[offset:] + candidates[:offset])[:hop_count]
+    )
     echo_beliefs: list[PlannedBelief] = []
     visible_echoes: list[VisibleAmbientEcho] = []
     for listener_id in listeners:
-        ambient = content.ambients_by_id[listener_id]
+        listener = content.residents_by_id[listener_id]
         retold_text, mutation_note = _retell_rumor(
             source.narrative_text,
-            ambient.echo_style,
+            listener.echo_style,
             "Pip",
         )
         text_embedding = embeddings.embed(retold_text)
@@ -1729,7 +1758,18 @@ def _plan_ambient_echoes(
                 normalized_position={
                     **source.normalized_position,
                     "echo_hop": 2,
-                    "echo_style": ambient.echo_style,
+                    "echo_style": listener.echo_style,
+                    **(
+                        {
+                            "decision_provider_id": autonomous_decision.provider_id,
+                            "decision_model_id": autonomous_decision.model_id,
+                            "decision_action": autonomous_decision.value.action,
+                            "decision_input_tokens": autonomous_decision.input_tokens,
+                            "decision_output_tokens": autonomous_decision.output_tokens,
+                        }
+                        if autonomous_decision is not None
+                        else {}
+                    ),
                 },
                 confidence=max(source.confidence - 0.08, 0.1),
                 salience=max(source.salience - 0.12, 0.1),

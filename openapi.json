@@ -669,6 +669,15 @@
             "minimum": 0.0,
             "title": "Seed",
             "default": 1729
+          },
+          "release_profile": {
+            "type": "string",
+            "enum": [
+              "full",
+              "hackathon_small"
+            ],
+            "title": "Release Profile",
+            "default": "full"
           }
         },
         "type": "object",
@@ -802,6 +811,30 @@
               }
             ],
             "title": "Fallback Reason"
+          },
+          "inference_input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inference Input Tokens"
+          },
+          "inference_output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inference Output Tokens"
           },
           "treatment_cue": {
             "anyOf": [
@@ -1703,6 +1736,22 @@
             "type": "integer",
             "title": "Seed"
           },
+          "release_profile": {
+            "type": "string",
+            "enum": [
+              "full",
+              "hackathon_small"
+            ],
+            "title": "Release Profile",
+            "default": "full"
+          },
+          "action_budget": {
+            "type": "integer",
+            "maximum": 18.0,
+            "minimum": 1.0,
+            "title": "Action Budget",
+            "default": 18
+          },
           "revision": {
             "type": "integer",
             "minimum": 0.0,
@@ -2084,6 +2133,30 @@
               }
             ],
             "title": "Inference Latency Ms"
+          },
+          "inference_input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inference Input Tokens"
+          },
+          "inference_output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inference Output Tokens"
           },
           "created_at": {
             "anyOf": [

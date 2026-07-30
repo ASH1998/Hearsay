@@ -13,6 +13,13 @@ from sqlalchemy.engine import make_url
 
 from hearsay_api.conflicts import ClaimResolution, IncomingClaim
 from hearsay_api.historian import HistorianService
+from hearsay_api.inference import (
+    DeterministicInferenceProvider,
+    ProviderCall,
+    RumorRetelling,
+    RumorRetellingRequest,
+    SafeInferenceProvider,
+)
 from hearsay_api.memory import DeterministicEmbeddingProvider
 from hearsay_api.persistence.cockroach_repository import CockroachRunRepository
 from hearsay_api.persistence.database import normalize_cockroach_url
@@ -34,7 +41,12 @@ from hearsay_api.persistence.models import (
     VoteInputModel,
     VoteModel,
 )
-from hearsay_api.schemas import ActionRequest, CreateRunRequest, HistorianTraceRequest
+from hearsay_api.schemas import (
+    ActionRequest,
+    CreateRunRequest,
+    HistorianTraceRequest,
+    MemoryRecallRequest,
+)
 from hearsay_api.service import GameService
 
 TEST_DATABASE_URL = os.getenv("HEARSAY_TEST_DATABASE_URL")
@@ -46,6 +58,26 @@ pytestmark = [
         reason="HEARSAY_TEST_DATABASE_URL is not configured.",
     ),
 ]
+
+
+class TokenUsageRetellingProvider(DeterministicInferenceProvider):
+    @property
+    def provider_id(self) -> str:
+        return "bedrock"
+
+    @property
+    def model_id(self) -> str:
+        return "cockroach-token-proof-model"
+
+    def retell_rumor(
+        self,
+        request: RumorRetellingRequest,
+    ) -> ProviderCall[RumorRetelling]:
+        return ProviderCall(
+            value=super().retell_rumor(request),
+            input_tokens=61,
+            output_tokens=31,
+        )
 
 
 @pytest.fixture
@@ -87,11 +119,178 @@ def test_run_and_idempotent_action_survive_repository_recreation(
     finally:
         replacement.dispose()
 
+
+def test_bedrock_token_usage_survives_repository_recreation(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(
+        repository=repository,
+        inference=SafeInferenceProvider(
+            primary=TokenUsageRetellingProvider(),
+            max_attempts=1,
+        ),
+    )
+    created = service.create_run(CreateRunRequest(display_name="Ada", seed=42))
+    service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="negotiate_bram",
+            target_id="bram",
+        ),
+    )
+
+    with repository.session_factory() as session:
+        row = session.execute(
+            select(
+                TransmissionModel.provider_id,
+                TransmissionModel.model_id,
+                TransmissionModel.inference_input_tokens,
+                TransmissionModel.inference_output_tokens,
+            ).where(TransmissionModel.game_run_id == created.run_id)
+        ).one()
+    assert row.provider_id == "bedrock"
+    assert row.model_id == "cockroach-token-proof-model"
+    assert row.inference_input_tokens == 61
+    assert row.inference_output_tokens == 31
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        transmission = replacement.list_memory_lineage(
+            created.run_id,
+            "bram-price-confrontation",
+        ).transmissions[0]
+        assert transmission.inference_input_tokens == 61
+        assert transmission.inference_output_tokens == 31
+    finally:
+        replacement.dispose()
+
     with repository.session_factory() as session:
         action_count = session.scalar(select(func.count()).select_from(ActionModel))
         event_count = session.scalar(select(func.count()).select_from(EventModel))
     assert action_count == 1
     assert event_count == 2
+
+
+def test_release_memory_survives_restart_and_changes_featured_vote(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(
+        CreateRunRequest(
+            display_name="Ada",
+            seed=1729,
+            release_profile="hackathon_small",
+        )
+    )
+    for verb, target_id in (
+        ("promise_help", "marta"),
+        ("negotiate_bram", "bram"),
+    ):
+        response = service.take_action(
+            created.run_id,
+            ActionRequest(
+                idempotency_key=uuid4(),
+                verb=verb,
+                target_id=target_id,
+            ),
+        )
+
+    decision = next(
+        event for event in response.snapshot.recent_events if event.kind == "agent_decision"
+    )
+    assert decision.payload["target_id"] == "talia"
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    resumed = GameService(repository=replacement)
+    try:
+        restored = resumed.get_snapshot(created.run_id)
+        assert restored.release_profile == "hackathon_small"
+        assert restored.action_count == 2
+
+        recalled = resumed.recall_memories(
+            created.run_id,
+            MemoryRecallRequest(
+                holder_id="talia",
+                query="What did Pip say about the confrontation with Bram?",
+                limit=4,
+            ),
+        )
+        rumor = next(
+            memory
+            for memory in recalled.memories
+            if memory.proposition_key == "bram-price-confrontation"
+        )
+        assert rumor.version == 1
+
+        remaining_path = (
+            ("settle_shipment", "bram", None),
+            (
+                "talk",
+                "talia",
+                "What did Pip tell you about the confrontation with Bram?",
+            ),
+            ("accept_talia_favor", "talia", None),
+            ("help_oswin_quietly", "talia", None),
+            ("declare_candidacy", "rhea", None),
+            ("accept_rhea_compact", "rhea", None),
+            ("challenge_rhea_ballot", "rhea", None),
+            (
+                "talk",
+                "rhea",
+                "What do you remember about the ballot safeguards?",
+            ),
+        )
+        talia_dialogue = None
+        for verb, target_id, content in remaining_path:
+            result = resumed.take_action(
+                created.run_id,
+                ActionRequest(
+                    idempotency_key=uuid4(),
+                    verb=verb,
+                    target_id=target_id,
+                    content=content,
+                ),
+            )
+            if verb == "talk" and target_id == "talia":
+                talia_dialogue = result.snapshot.dialogue
+
+        assert talia_dialogue is not None
+        assert any(
+            memory.belief_id == rumor.belief_id and memory.version == rumor.version
+            for memory in talia_dialogue.recalled_memories
+        )
+        assert talia_dialogue.treatment_cue is not None
+        assert talia_dialogue.treatment_cue.startswith("Cold:")
+
+        election = result.snapshot.election
+        assert election is not None
+        talia_vote = next(vote for vote in election.votes if vote.voter_id == "talia")
+        rumor_input = next(
+            item for item in talia_vote.inputs if item.key == "bram-price-confrontation"
+        )
+        assert rumor_input.belief_id == rumor.belief_id
+        assert rumor_input.belief_version == rumor.version
+    finally:
+        replacement.dispose()
+
+    final_replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    try:
+        final_snapshot = final_replacement.get(created.run_id)
+        assert final_snapshot.status == "completed"
+        assert final_snapshot.election is not None
+        final_lineage = final_replacement.list_memory_lineage(
+            created.run_id,
+            "bram-price-confrontation",
+        )
+        assert any(
+            version.belief_id == rumor.belief_id
+            and version.version == rumor.version
+            and version.holder_id == "talia"
+            for version in final_lineage.versions
+        )
+    finally:
+        final_replacement.dispose()
 
 
 def test_concurrent_actions_commit_complete_monotonic_history(

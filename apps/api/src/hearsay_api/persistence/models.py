@@ -355,6 +355,8 @@ class TransmissionModel(Base):
     fallback_reason: Mapped[str | None] = mapped_column(String(96))
     inference_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     inference_latency_ms: Mapped[float | None] = mapped_column(Float)
+    inference_input_tokens: Mapped[int | None] = mapped_column(Integer)
+    inference_output_tokens: Mapped[int | None] = mapped_column(Integer)
     tick_id: Mapped[UUID | None] = mapped_column(
         SQLUUID(as_uuid=True),
         ForeignKey("gossip_ticks.id", ondelete="SET NULL"),

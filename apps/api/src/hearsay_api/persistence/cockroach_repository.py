@@ -101,6 +101,7 @@ class CockroachRunRepository:
                 insert(GameRunModel).values(
                     id=snapshot.run_id,
                     player_id=player_id,
+                    scenario_key=snapshot.release_profile,
                     seed=snapshot.seed,
                     revision=snapshot.revision,
                     status=snapshot.status,
@@ -792,6 +793,8 @@ class CockroachRunRepository:
                         fallback_reason=planned.fallback_reason,
                         inference_attempts=planned.inference_attempts,
                         inference_latency_ms=planned.inference_latency_ms,
+                        inference_input_tokens=planned.inference_input_tokens,
+                        inference_output_tokens=planned.inference_output_tokens,
                         tick_id=tick_id,
                     )
                 )
@@ -979,6 +982,8 @@ class CockroachRunRepository:
                 fallback_reason=transmission.fallback_reason,
                 inference_attempts=transmission.inference_attempts,
                 inference_latency_ms=transmission.inference_latency_ms,
+                inference_input_tokens=transmission.inference_input_tokens,
+                inference_output_tokens=transmission.inference_output_tokens,
                 created_at=transmission.created_at,
             )
             for transmission, key in transmission_rows

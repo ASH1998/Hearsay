@@ -416,6 +416,8 @@ SELECT jsonb_build_object(
       'fallback_reason', t.fallback_reason,
       'inference_attempts', t.inference_attempts,
       'inference_latency_ms', t.inference_latency_ms,
+      'inference_input_tokens', t.inference_input_tokens,
+      'inference_output_tokens', t.inference_output_tokens,
       'created_at', t.created_at
     ) ORDER BY t.created_at)
     FROM transmissions AS t
