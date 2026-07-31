@@ -47,7 +47,9 @@ if (Test-LocalPort -Port 3000) {
 
 $env:PYTHONPATH = "apps/api/src;.venv/Lib/site-packages"
 $env:HEARSAY_WEB_ORIGIN = "http://localhost:3000"
-$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000"
+$env:NEXT_PUBLIC_API_BASE_URL = "http://127.0.0.1:8000"
+# The one-command local playthrough is deliberately self-contained.
+$env:HEARSAY_PERSISTENCE_BACKEND = "memory"
 
 try {
     Write-Host "Preparing the production gameplay build (60 second limit)..."

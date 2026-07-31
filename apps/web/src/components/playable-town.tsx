@@ -40,28 +40,60 @@ interface PlayableTownProps {
 }
 
 type AssetKey =
+  | "anchor"
+  | "animalButterfly"
+  | "animalDog"
+  | "animalFox"
+  | "animalFoxSide"
+  | "animalFrog"
   | "barrels"
   | "bench"
   | "boat"
   | "bridge"
+  | "bushGreen"
+  | "bushTeal"
   | "buildingChapel"
   | "buildingConstable"
   | "buildingGuildhouse"
   | "buildingInn"
   | "buildingMidwife"
+  | "fieldStone"
+  | "fence"
   | "flowers"
   | "fountain"
   | "graves"
+  | "herbPlanterGreen"
+  | "herbPlanterOrange"
+  | "lamp"
+  | "laundry"
+  | "lilies"
   | "marketBlue"
   | "marketCream"
   | "marketRed"
   | "noticeBoard"
+  | "newsstand"
   | "paths"
+  | "picnic"
+  | "picnicFood"
+  | "produceCrate"
+  | "reeds"
+  | "rockCluster"
+  | "shippingCrates"
   | "signpost"
+  | "snowLog"
+  | "snowman"
+  | "snowRock"
+  | "stump"
   | "terrain"
+  | "terrainWinter"
   | "terrainWater"
   | "treeGreen"
+  | "treeBirch"
   | "treeLime"
+  | "treeMahogany"
+  | "treePine"
+  | "treeSnowMaple"
+  | "treeSnowPine"
   | "treeTeal"
   | "water"
   | "well"
@@ -112,17 +144,26 @@ interface Renderable {
 }
 
 const ASSET_ROOT = "/world/farm-rpg";
+const ASSET_REVISION = "greyhaven-20260731-2";
 const INTERACTION_DISTANCE = 1.35;
 const LOCATION_ACTIVATION_DISTANCE = 0.68;
 const PLAYER_SPEED_TILES_PER_SECOND = 165 / TILE_SIZE;
 
 const ASSET_URLS: Record<AssetKey, string> = {
+  anchor: `${ASSET_ROOT}/prop-anchor.png`,
+  animalButterfly: `${ASSET_ROOT}/animal-butterfly.png`,
+  animalDog: `${ASSET_ROOT}/animal-dog.png`,
+  animalFox: `${ASSET_ROOT}/animal-fox.png`,
+  animalFoxSide: `${ASSET_ROOT}/animal-fox-side.png`,
+  animalFrog: `${ASSET_ROOT}/animal-frog.png`,
   barrels: `${ASSET_ROOT}/prop-barrels.png`,
   bench: `${ASSET_ROOT}/prop-bench.png`,
   boat: `${ASSET_ROOT}/prop-boat.png`,
   bramIdle: `${ASSET_ROOT}/characters/bram-blacksmith-idle.png`,
   bramWalk: `${ASSET_ROOT}/characters/bram-blacksmith-walk.png`,
   bridge: `${ASSET_ROOT}/prop-bridge.png`,
+  bushGreen: `${ASSET_ROOT}/prop-bush-green.png`,
+  bushTeal: `${ASSET_ROOT}/prop-bush-teal.png`,
   buildingChapel: `${ASSET_ROOT}/building-chapel.png`,
   buildingConstable: `${ASSET_ROOT}/building-constable.png`,
   buildingGuildhouse: `${ASSET_ROOT}/building-guildhouse.png`,
@@ -130,9 +171,16 @@ const ASSET_URLS: Record<AssetKey, string> = {
   buildingMidwife: `${ASSET_ROOT}/building-midwife.png`,
   eliasIdle: `${ASSET_ROOT}/characters/elias-banker-idle.png`,
   eliasWalk: `${ASSET_ROOT}/characters/elias-banker-walk.png`,
+  fieldStone: `${ASSET_ROOT}/prop-field-stone.png`,
+  fence: `${ASSET_ROOT}/prop-wood-fence.png`,
   flowers: `${ASSET_ROOT}/prop-flowers.png`,
   fountain: `${ASSET_ROOT}/prop-fountain.png`,
   graves: `${ASSET_ROOT}/prop-graves.png`,
+  herbPlanterGreen: `${ASSET_ROOT}/prop-herb-planter-green.png`,
+  herbPlanterOrange: `${ASSET_ROOT}/prop-herb-planter-orange.png`,
+  lamp: `${ASSET_ROOT}/prop-lamp.png`,
+  laundry: `${ASSET_ROOT}/prop-laundry.png`,
+  lilies: `${ASSET_ROOT}/prop-lily-cluster.png`,
   marketBlue: `${ASSET_ROOT}/market-stall-blue.png`,
   marketCream: `${ASSET_ROOT}/market-stall-cream.png`,
   marketRed: `${ASSET_ROOT}/market-stall-red.png`,
@@ -141,22 +189,39 @@ const ASSET_URLS: Record<AssetKey, string> = {
   nessaIdle: `${ASSET_ROOT}/characters/nessa-pirate-idle.png`,
   nessaWalk: `${ASSET_ROOT}/characters/nessa-pirate-walk.png`,
   noticeBoard: `${ASSET_ROOT}/prop-notice-board.png`,
+  newsstand: `${ASSET_ROOT}/prop-newsstand.png`,
   orinIdle: `${ASSET_ROOT}/characters/orin-idle.png`,
   orinWalk: `${ASSET_ROOT}/characters/orin-walk.png`,
   paths: `${ASSET_ROOT}/paths.png`,
+  picnic: `${ASSET_ROOT}/prop-picnic-blanket.png`,
+  picnicFood: `${ASSET_ROOT}/prop-picnic-food.png`,
+  produceCrate: `${ASSET_ROOT}/prop-produce-crate.png`,
   pipIdle: `${ASSET_ROOT}/characters/pip-josh-idle.png`,
   pipWalk: `${ASSET_ROOT}/characters/pip-josh-walk.png`,
   playerIdle: `${ASSET_ROOT}/characters/player-alex-idle.png`,
   playerWalk: `${ASSET_ROOT}/characters/player-alex-walk.png`,
   rheaIdle: `${ASSET_ROOT}/characters/rhea-manu-idle.png`,
   rheaWalk: `${ASSET_ROOT}/characters/rhea-manu-walk.png`,
+  reeds: `${ASSET_ROOT}/prop-reeds.png`,
+  rockCluster: `${ASSET_ROOT}/prop-rock-cluster.png`,
+  shippingCrates: `${ASSET_ROOT}/prop-shipping-crates.png`,
   signpost: `${ASSET_ROOT}/prop-signpost.png`,
+  snowLog: `${ASSET_ROOT}/prop-snow-log.png`,
+  snowman: `${ASSET_ROOT}/prop-snowman.png`,
+  snowRock: `${ASSET_ROOT}/prop-snow-rock.png`,
+  stump: `${ASSET_ROOT}/prop-stump.png`,
   taliaIdle: `${ASSET_ROOT}/characters/talia-tori-idle.png`,
   taliaWalk: `${ASSET_ROOT}/characters/talia-tori-walk.png`,
   terrain: `${ASSET_ROOT}/terrain-spring.png`,
+  terrainWinter: `${ASSET_ROOT}/terrain-winter.png`,
   terrainWater: `${ASSET_ROOT}/terrain-water-spring.png`,
   treeGreen: `${ASSET_ROOT}/tree-green.png`,
+  treeBirch: `${ASSET_ROOT}/tree-birch.png`,
   treeLime: `${ASSET_ROOT}/tree-lime.png`,
+  treeMahogany: `${ASSET_ROOT}/tree-mahogany.png`,
+  treePine: `${ASSET_ROOT}/tree-pine.png`,
+  treeSnowMaple: `${ASSET_ROOT}/tree-maple-snow.png`,
+  treeSnowPine: `${ASSET_ROOT}/tree-pine-snow.png`,
   treeTeal: `${ASSET_ROOT}/tree-teal.png`,
   water: `${ASSET_ROOT}/water.png`,
   well: `${ASSET_ROOT}/prop-well.png`,
@@ -284,20 +349,136 @@ const PROP_SCENERY: Array<{
   scale: number;
   x: number;
 }> = [
+  // Harbor: cargo, working equipment, and life along the irregular shoreline.
   { asset: "boat", bottomY: 3.45, scale: 1.15, x: 4.1 },
   { asset: "bridge", bottomY: 5.0, scale: 1.65, x: 5.3 },
   { asset: "barrels", bottomY: 5.75, scale: 1.4, x: 7.1 },
+  { asset: "anchor", bottomY: 4.95, scale: 2, x: 1.45 },
+  { asset: "lilies", bottomY: 1.8, scale: 1.35, x: 1.45 },
+  { asset: "lilies", bottomY: 3.2, scale: 1.15, x: 7.05 },
+  { asset: "reeds", bottomY: 3.95, scale: 2.15, x: 7.75 },
+  { asset: "shippingCrates", bottomY: 5.15, scale: 1.9, x: 3.35 },
+  { asset: "shippingCrates", bottomY: 5.45, scale: 1.55, x: 8.25 },
+  { asset: "rockCluster", bottomY: 4.65, scale: 1.65, x: 8.75 },
+
+  // Northern ridge: a compact winter pocket above the chapel approach.
+  { asset: "snowRock", bottomY: 3.35, scale: 1.8, x: 15.4 },
+  { asset: "snowRock", bottomY: 4.05, scale: 1.65, x: 18.0 },
+  { asset: "snowRock", bottomY: 2.7, scale: 1.7, x: 29.15 },
+  { asset: "snowLog", bottomY: 4.15, scale: 2.4, x: 16.9 },
+  { asset: "snowman", bottomY: 3.95, scale: 2.2, x: 27.05 },
+
+  // Back alley and the Guildhouse service lane.
   { asset: "well", bottomY: 8.35, scale: 1.45, x: 9.7 },
+  { asset: "fence", bottomY: 7.25, scale: 1.5, x: 8.1 },
+  { asset: "laundry", bottomY: 7.75, scale: 1.85, x: 9.85 },
+  { asset: "shippingCrates", bottomY: 8.0, scale: 1.45, x: 10.9 },
+  { asset: "lamp", bottomY: 8.35, scale: 1.8, x: 8.7 },
+  { asset: "stump", bottomY: 7.65, scale: 1.9, x: 11.15 },
+  { asset: "bushGreen", bottomY: 6.55, scale: 1.25, x: 10.45 },
+  { asset: "flowers", bottomY: 7.7, scale: 0.58, x: 11.15 },
+
+  // Chapel and constable yards: enclosed, formal, and slightly overgrown.
   { asset: "graves", bottomY: 7.15, scale: 1.5, x: 27.25 },
   { asset: "graves", bottomY: 7.55, scale: 1.35, x: 27.8 },
+  { asset: "fence", bottomY: 7.15, scale: 1.3, x: 23.05 },
+  { asset: "fence", bottomY: 6.7, scale: 1.3, x: 27.15 },
+  { asset: "bushGreen", bottomY: 5.2, scale: 1.2, x: 27.45 },
+  { asset: "bushTeal", bottomY: 5.0, scale: 1.15, x: 18.25 },
+  { asset: "shippingCrates", bottomY: 7.75, scale: 1.45, x: 22.85 },
+  { asset: "rockCluster", bottomY: 6.65, scale: 1.6, x: 28.35 },
+  { asset: "flowers", bottomY: 6.35, scale: 0.62, x: 27.35 },
+  { asset: "lamp", bottomY: 8.0, scale: 1.75, x: 18.75 },
+
+  // Civic square: framed gathering space with planted corners and lighting.
   { asset: "bench", bottomY: 10.85, scale: 2, x: 12.8 },
   { asset: "bench", bottomY: 10.85, scale: 2, x: 17.15 },
   { asset: "fountain", bottomY: 9.6, scale: 1.6, x: 15 },
   { asset: "noticeBoard", bottomY: 10.15, scale: 1.65, x: 17.35 },
+  { asset: "newsstand", bottomY: 9.85, scale: 1.75, x: 12.1 },
+  { asset: "produceCrate", bottomY: 8.25, scale: 2.25, x: 12.2 },
+  { asset: "produceCrate", bottomY: 11.45, scale: 2.15, x: 17.75 },
   { asset: "signpost", bottomY: 12.0, scale: 1.35, x: 18.5 },
   { asset: "flowers", bottomY: 11.7, scale: 1.2, x: 13.4 },
+  { asset: "flowers", bottomY: 8.0, scale: 0.65, x: 11.7 },
+  { asset: "flowers", bottomY: 11.55, scale: 0.62, x: 18.1 },
+  { asset: "bushGreen", bottomY: 11.7, scale: 1.15, x: 11.25 },
+  { asset: "bushTeal", bottomY: 7.75, scale: 1.15, x: 18.45 },
+  { asset: "lamp", bottomY: 8.15, scale: 1.7, x: 11.35 },
+  { asset: "lamp", bottomY: 8.15, scale: 1.7, x: 18.65 },
+  { asset: "herbPlanterGreen", bottomY: 11.7, scale: 2, x: 12.05 },
+  { asset: "herbPlanterOrange", bottomY: 11.7, scale: 2, x: 17.9 },
+  { asset: "fieldStone", bottomY: 11.9, scale: 1.8, x: 19.15 },
+
+  // Inn lawn: homely detail kept to the sides so the entrance remains clear.
+  { asset: "picnic", bottomY: 13.6, scale: 1.15, x: 10.45 },
+  { asset: "picnicFood", bottomY: 13.6, scale: 1.15, x: 10.45 },
+  { asset: "bushGreen", bottomY: 13.45, scale: 1.2, x: 3.45 },
+  { asset: "bushTeal", bottomY: 13.55, scale: 1.15, x: 11.45 },
+  { asset: "flowers", bottomY: 14.15, scale: 0.58, x: 10.2 },
+  { asset: "stump", bottomY: 14.45, scale: 1.85, x: 12.05 },
+
+  // Market Row: stock waiting behind and beside the three complete booths.
+  { asset: "shippingCrates", bottomY: 11.25, scale: 1.55, x: 20.15 },
+  { asset: "shippingCrates", bottomY: 11.25, scale: 1.55, x: 26.25 },
+  { asset: "lamp", bottomY: 11.75, scale: 1.8, x: 19.55 },
+  { asset: "lamp", bottomY: 11.75, scale: 1.8, x: 26.85 },
+  { asset: "bushGreen", bottomY: 12.9, scale: 1.15, x: 27.45 },
+  { asset: "rockCluster", bottomY: 12.45, scale: 1.5, x: 19.25 },
+
+  // Midwife's herb garden and the quieter eastern boundary.
   { asset: "flowers", bottomY: 16.1, scale: 1.25, x: 26.3 },
   { asset: "flowers", bottomY: 15.8, scale: 1.05, x: 22.7 },
+  { asset: "fence", bottomY: 13.25, scale: 1.6, x: 20.5 },
+  { asset: "fence", bottomY: 13.25, scale: 1.6, x: 22.0 },
+  { asset: "fence", bottomY: 14.65, scale: 1.35, x: 27.7 },
+  { asset: "herbPlanterGreen", bottomY: 13.95, scale: 2.2, x: 20.35 },
+  { asset: "herbPlanterGreen", bottomY: 13.95, scale: 2.2, x: 20.95 },
+  { asset: "herbPlanterGreen", bottomY: 13.95, scale: 2.2, x: 21.55 },
+  { asset: "herbPlanterGreen", bottomY: 13.95, scale: 2.2, x: 22.15 },
+  { asset: "herbPlanterOrange", bottomY: 14.5, scale: 2.2, x: 20.35 },
+  { asset: "herbPlanterOrange", bottomY: 14.5, scale: 2.2, x: 20.95 },
+  { asset: "herbPlanterOrange", bottomY: 14.5, scale: 2.2, x: 21.55 },
+  { asset: "herbPlanterOrange", bottomY: 14.5, scale: 2.2, x: 22.15 },
+  { asset: "bushGreen", bottomY: 14.5, scale: 1.25, x: 19.55 },
+  { asset: "bushTeal", bottomY: 13.65, scale: 1.2, x: 27.85 },
+  { asset: "rockCluster", bottomY: 15.85, scale: 1.55, x: 28.2 },
+  { asset: "stump", bottomY: 16.85, scale: 1.9, x: 27.75 },
+
+  // Arrival road and forest verge.
+  { asset: "rockCluster", bottomY: 16.45, scale: 1.55, x: 12.75 },
+  { asset: "fieldStone", bottomY: 14.85, scale: 1.8, x: 13.2 },
+  { asset: "fieldStone", bottomY: 16.15, scale: 1.7, x: 18.1 },
+  { asset: "rockCluster", bottomY: 17.25, scale: 1.45, x: 17.35 },
+  { asset: "lamp", bottomY: 17.35, scale: 1.8, x: 13.65 },
+  { asset: "lamp", bottomY: 17.35, scale: 1.8, x: 16.35 },
+  { asset: "stump", bottomY: 14.5, scale: 1.9, x: 11.75 },
+];
+
+const AMBIENT_FAUNA: Array<{
+  asset: AssetKey;
+  bob: number;
+  phase: number;
+  scale: number;
+  x: number;
+  y: number;
+}> = [
+  // Frogs stay close to the harbor edge and lily pads.
+  { asset: "animalFrog", bob: 0.04, phase: 0.2, scale: 1.55, x: 1.45, y: 2.55 },
+  { asset: "animalFrog", bob: 0.035, phase: 2.8, scale: 1.45, x: 7.2, y: 3.55 },
+
+  // Butterflies gather around the inn lawn and Midwife's flowers.
+  { asset: "animalButterfly", bob: 0.13, phase: 0.5, scale: 1.45, x: 10.75, y: 13.4 },
+  { asset: "animalButterfly", bob: 0.11, phase: 2.1, scale: 1.35, x: 22.55, y: 15.75 },
+  { asset: "animalButterfly", bob: 0.12, phase: 4.4, scale: 1.4, x: 27.0, y: 15.5 },
+
+  // Two village dogs sit away from the critical interaction anchors.
+  { asset: "animalDog", bob: 0.025, phase: 1.4, scale: 1.9, x: 9.55, y: 12.95 },
+  { asset: "animalDog", bob: 0.025, phase: 3.5, scale: 1.8, x: 26.9, y: 12.2 },
+
+  // Foxes keep to the quiet snowy ridge.
+  { asset: "animalFox", bob: 0.025, phase: 0.8, scale: 2.0, x: 17.35, y: 2.55 },
+  { asset: "animalFoxSide", bob: 0.03, phase: 3.0, scale: 2.15, x: 22.45, y: 2.05 },
 ];
 
 const MARKET_STALLS: Array<{
@@ -660,7 +841,7 @@ export function PlayableTown({
         loaded += 1;
         if (!cancelled) setAssetProgress(loaded / entries.length);
       };
-      image.src = source;
+      image.src = `${source}?v=${ASSET_REVISION}`;
       assets[key] = image;
     });
     assetsRef.current = assets;
@@ -992,6 +1173,16 @@ export function PlayableTown({
             );
             continue;
           }
+          if (material === "snow") {
+            drawSourceTile(
+              assets.terrainWinter,
+              (5 + ((x * 5 + y) % 2)) * 16,
+              (1 + ((x + y * 2) % 2)) * 16,
+              screenX(x),
+              screenY(y),
+            );
+            continue;
+          }
           if (material === "wood") {
             drawSourceTile(
               assets.paths,
@@ -1121,6 +1312,22 @@ export function PlayableTown({
               prop.x,
               prop.bottomY,
               prop.scale,
+              cameraX,
+              cameraY,
+          ),
+        });
+      });
+      AMBIENT_FAUNA.forEach((animal) => {
+        const animatedY =
+          animal.y + Math.sin(now / 420 + animal.phase) * animal.bob;
+        renderables.push({
+          sortY: animal.y * TILE_SIZE,
+          draw: () =>
+            drawImageBottomCenter(
+              assets[animal.asset],
+              animal.x,
+              animatedY,
+              animal.scale,
               cameraX,
               cameraY,
             ),

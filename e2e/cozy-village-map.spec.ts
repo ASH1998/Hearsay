@@ -148,6 +148,7 @@ test("all twelve cozy-village landmarks are reachable and action-free", async ({
 
   await walkTo(page, 25, 16.7);
   await walkTo(page, 25, 15.35);
+  await page.screenshot({ path: ".qa/greyhaven-east-1440x900.png" });
   await inspectLandmark(page, "Midwife's cottage");
   await talkToResident(page, "talia", "Talia Fen");
 
@@ -166,6 +167,7 @@ test("all twelve cozy-village landmarks are reachable and action-free", async ({
   await walkTo(page, 21, 8.3);
   await walkTo(page, 25, 8.3);
   await walkTo(page, 25, 7.05);
+  await page.screenshot({ path: ".qa/greyhaven-northeast-1440x900.png" });
   await inspectLandmark(page, "Chapel");
   await talkToResident(page, "orin", "Father Orin");
 

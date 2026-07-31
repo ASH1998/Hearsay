@@ -140,6 +140,7 @@ function Export-Composite {
 # Terrain and water.
 Copy-SelectedAsset "Tileset\Tileset Grass Spring.png" "terrain-spring.png" "Spring terrain and dirt-path source tiles"
 Copy-SelectedAsset "Tileset\Tileset Grass Water Spring.png" "terrain-water-spring.png" "Spring shoreline source tiles"
+Copy-SelectedAsset "Tileset\Tileset Grass Winter.png" "terrain-winter.png" "Snowy northern-ridge terrain tiles"
 Copy-SelectedAsset "Tileset\Water tile.png" "water.png" "Harbor water base tile"
 Copy-SelectedAsset "Tileset\Path tiles.png" "paths.png" "Civic stone and timber path source tiles"
 
@@ -159,6 +160,9 @@ Export-Crop "Objects\Exterior\Exterior.png" "prop-signpost.png" "Direction signp
 Export-Crop "Objects\Exterior\Exterior.png" "prop-flowers.png" "Spring flower patch" 0 112 96 32
 Export-Crop "Objects\Exterior\Exterior.png" "prop-barrels.png" "Harbor barrel stack" 128 96 64 48
 Export-Crop "Objects\Exterior\Exterior.png" "prop-graves.png" "Chapel grave markers" 48 144 32 32
+Export-Crop "Objects\Exterior\Exterior.png" "prop-laundry.png" "Back-alley clothesline" 224 96 48 48
+Export-Crop "Objects\Exterior\Exterior.png" "prop-lamp.png" "Village lantern post" 32 144 16 32
+Export-Crop "Objects\Exterior\Exterior.png" "prop-anchor.png" "Harbor anchor" 96 144 16 32
 # The generic Exterior sheet only contains detached awnings. Use the complete
 # 48x48 vendor booths from the matching Beach tent sheet so the counters,
 # produce, posts, and canopy are exported as one runtime sprite.
@@ -167,12 +171,43 @@ Export-Crop "Objects\Exterior\Beach\Tent.png" "market-stall-red.png" "Complete r
 Export-Crop "Objects\Exterior\Beach\Tent.png" "market-stall-cream.png" "Complete cream produce stall" 48 48 48 48
 Export-Crop "Objects\Exterior\Fence and Bridge\Bridge.png" "prop-bridge.png" "Harbor boardwalk bridge" 16 0 64 32
 Export-Crop "Objects\Exterior\Beach\Wood Boat.png" "prop-boat.png" "Harbor boat" 0 0 176 112
+Export-Crop "Objects\Exterior\shipping box.png" "prop-shipping-crates.png" "Harbor shipping crates" 0 16 48 16
+Export-Crop "Objects\Exterior\Fence and Bridge\Fence Wood.png" "prop-wood-fence.png" "Village yard fence segment" 0 0 48 32
+Export-Crop "Objects\Exterior\Picnic.png" "prop-picnic-blanket.png" "Inn-yard picnic blanket" 0 0 48 48
+Export-Crop "Objects\Exterior\Picnic.png" "prop-picnic-food.png" "Picnic food and tableware" 144 96 48 48
+Export-Crop "Objects\Exterior\Box.png" "prop-herb-planter-green.png" "Midwife green herb planter" 48 32 16 16
+Export-Crop "Objects\Exterior\Box.png" "prop-herb-planter-orange.png" "Midwife orange herb planter" 48 48 16 16
+Export-Crop "Objects\Props\Spring\Ground stones.png" "prop-field-stone.png" "Spring field stone" 0 0 16 16
+Export-Crop "Objects\Props\Spring\Ground stones.png" "prop-rock-cluster.png" "Mossy rock cluster" 0 32 32 16
+Export-Crop "Objects\Props\Spring\props water.png" "prop-lily-cluster.png" "Harbor lily-pad cluster" 0 0 32 32
+Export-Crop "Objects\Props\Spring\props water.png" "prop-reeds.png" "Harbor reed patch" 96 64 16 16
+Export-Crop "Objects\Tree\Deep Forest\bushes.png" "prop-bush-green.png" "Green village shrub" 48 0 48 32
+Export-Crop "Objects\Tree\Deep Forest\bushes.png" "prop-bush-teal.png" "Teal village shrub" 0 0 48 32
+Export-Crop "Objects\Tree\Common\Shadow\Pine Tree.png" "tree-pine.png" "Evergreen boundary tree" 96 0 32 48
+Export-Crop "Objects\Tree\Common\Shadow\Pine Tree.png" "tree-pine-snow.png" "Snow-covered evergreen tree" 128 0 32 48
+Export-Crop "Objects\Tree\Common\Shadow\Maple Tree.png" "tree-maple-snow.png" "Snow-covered maple tree" 96 48 32 48
+Export-Crop "Objects\Tree\Common\Shadow\Maple Tree.png" "prop-stump.png" "Weathered tree stump" 0 128 32 16
+Export-Crop "Objects\Props\Winter\Stones .png" "prop-snow-rock.png" "Snow-capped ridge stone" 0 0 16 16
+Copy-SelectedAsset "Objects\Props\Winter\Wood.png" "prop-snow-log.png" "Snow-dusted ridge log"
+Export-Crop "Objects\Exterior\Snowman.png" "prop-snowman.png" "Northern-ridge snowman" 48 0 16 32
+Copy-SelectedAsset "Objects\Exterior\Newsstand.png" "prop-newsstand.png" "Town-square newspaper kiosk"
+Export-Crop "Objects\Exterior\Exterior.png" "prop-produce-crate.png" "Town-square produce crate" 16 32 16 16
+
+# Ambient wildlife. Only the small runtime-ready frames used by Greyhaven ship.
+Export-Crop "Icons\Bugs\Butterflies\Monarch Butterfly.png" "animal-butterfly.png" "Village monarch butterfly" 0 0 16 16
+Export-Crop "Icons\Fish\River\Creatures\Frog.png" "animal-frog.png" "Harbor frog" 0 0 16 16
+Export-Crop "Objects\Exterior\animal plates.png" "animal-fox.png" "Snow-ridge fox" 0 0 16 16
+Export-Crop "Objects\Exterior\animal plates.png" "animal-fox-side.png" "Snow-ridge prowling fox" 0 96 16 16
+Export-Crop "Icons\Pets\dogs icons.png" "animal-dog.png" "Village dog" 0 16 16 16
+
 # The common-tree atlas stores its complete large-tree row in 32x48 cells
 # beginning at y=48. The previous 48x64 crop included pieces of both the small
 # tree row above and the neighboring canopy.
 Export-Crop "Objects\Tree\Common\Shadow\Maple Tree.png" "tree-green.png" "Green boundary tree" 0 48 32 48
 Export-Crop "Objects\Tree\Common\Shadow\Maple Tree.png" "tree-lime.png" "Light-green village tree" 32 48 32 48
 Export-Crop "Objects\Tree\Common\Shadow\Maple Tree.png" "tree-teal.png" "Teal depth tree" 128 48 32 48
+Export-Crop "Objects\Tree\Common\Shadow\Birch Tree.png" "tree-birch.png" "Eastern birch tree" 96 0 32 48
+Export-Crop "Objects\Tree\Common\Shadow\Mahogany Tree.png" "tree-mahogany.png" "Eastern mahogany tree" 96 0 32 48
 
 # Premade player and resident sheets.
 $characters = [ordered]@{

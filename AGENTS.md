@@ -15,3 +15,9 @@
 - Temporary tool files may use system-managed temporary storage only when unavoidable; copy any artifact that belongs to the project back into this repository and do not treat temporary storage as canonical.
 - Preserve existing files and user changes. Do not delete, relocate, or destructively overwrite project material without explicit authorization.
 
+## Testing discipline
+
+- Use the smallest risk-based set of checks that can validate the change.
+- Prefer focused lint, type, build, or smoke checks over broad test suites when they cover the affected behavior.
+- Do not add or run redundant, low-value, or excessively long test cases.
+- Expand testing only when the change's risk or a concrete failure justifies it.

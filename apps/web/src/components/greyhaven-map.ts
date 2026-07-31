@@ -228,7 +228,15 @@ export const COLLISION_RECTS: MapRect[] = [
 
 export const TREE_SCENERY: Array<
   MapPoint & {
-    asset: "treeGreen" | "treeLime" | "treeTeal";
+    asset:
+      | "treeBirch"
+      | "treeGreen"
+      | "treeLime"
+      | "treeMahogany"
+      | "treePine"
+      | "treeSnowMaple"
+      | "treeSnowPine"
+      | "treeTeal";
     scale?: number;
   }
 > = [
@@ -266,14 +274,32 @@ export const TREE_SCENERY: Array<
   { asset: "treeTeal", x: 10.1, y: 17.65, scale: 1.8 },
   { asset: "treeGreen", x: 11.35, y: 17.65, scale: 1.85 },
 
+  { asset: "treePine", x: 12.25, y: 17.5, scale: 1.8 },
   { asset: "treeLime", x: 20.2, y: 17.4, scale: 1.65 },
+  { asset: "treePine", x: 27.45, y: 17.7, scale: 1.9 },
   { asset: "treeGreen", x: 28.5, y: 16.4, scale: 1.85 },
+  { asset: "treeBirch", x: 27.25, y: 16.75, scale: 1.85 },
+  { asset: "treeMahogany", x: 29.15, y: 15.0, scale: 1.85 },
+  { asset: "treeBirch", x: 28.0, y: 13.9, scale: 1.75 },
   { asset: "treeTeal", x: 28.7, y: 12.4, scale: 1.8 },
+  { asset: "treeMahogany", x: 29.35, y: 11.45, scale: 1.9 },
+  { asset: "treeBirch", x: 27.75, y: 10.25, scale: 1.75 },
+  { asset: "treePine", x: 29.15, y: 10.4, scale: 1.85 },
+  { asset: "treeMahogany", x: 29.35, y: 8.9, scale: 1.8 },
   { asset: "treeLime", x: 28.5, y: 8.2, scale: 1.75 },
-  { asset: "treeGreen", x: 28.2, y: 3.5, scale: 1.9 },
-  { asset: "treeTeal", x: 19, y: 3.3, scale: 1.55 },
+  { asset: "treeBirch", x: 27.75, y: 7.35, scale: 1.7 },
+  { asset: "treePine", x: 29.15, y: 6.1, scale: 1.9 },
+  { asset: "treeSnowMaple", x: 28.2, y: 3.5, scale: 1.9 },
+  { asset: "treeSnowMaple", x: 28.85, y: 1.45, scale: 1.8 },
+  { asset: "treeSnowMaple", x: 27.3, y: 1.15, scale: 1.7 },
+  { asset: "treeSnowPine", x: 21.1, y: 2.2, scale: 1.75 },
+  { asset: "treeSnowMaple", x: 22.5, y: 1.15, scale: 1.75 },
+  { asset: "treeSnowPine", x: 19.8, y: 1.0, scale: 1.8 },
+  { asset: "treeSnowMaple", x: 17.85, y: 1.3, scale: 1.75 },
+  { asset: "treeSnowMaple", x: 19, y: 3.3, scale: 1.55 },
   { asset: "treeLime", x: 18, y: 6.3, scale: 1.45 },
   { asset: "treeGreen", x: 11.2, y: 8.2, scale: 1.35 },
+  { asset: "treePine", x: 0.8, y: 11.4, scale: 1.7 },
   { asset: "treeLime", x: 3.5, y: 11.8, scale: 1.45 },
   { asset: "treeTeal", x: 20.2, y: 14.2, scale: 1.4 },
 ];
@@ -303,7 +329,18 @@ export function distanceToSegment(
   );
 }
 
+export function isSnowyRidgeTile(x: number, y: number) {
+  return (
+    (y <= 2 && x >= 13) ||
+    (y === 3 && x >= 16) ||
+    (y === 4 && x >= 22)
+  );
+}
+
 export function terrainMaterialAt(x: number, y: number) {
+  if (isSnowyRidgeTile(x, y)) {
+    return "snow" as const;
+  }
   if (
     (y <= 2 && x <= 8) ||
     (y === 3 && x <= 7) ||
@@ -313,6 +350,9 @@ export function terrainMaterialAt(x: number, y: number) {
   }
   if (x >= 12 && x <= 18 && y >= 7 && y <= 11) {
     return "stone" as const;
+  }
+  if (x >= 20 && x <= 22 && y >= 13 && y <= 14) {
+    return "dirt" as const;
   }
   const center = { x: x + 0.5, y: y + 0.5 };
   const segment = PATH_SEGMENTS.find(
