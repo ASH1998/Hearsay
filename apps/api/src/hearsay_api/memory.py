@@ -19,6 +19,7 @@ from hearsay_api.inference import (
     AutonomousActionOutput,
     DeterministicInferenceProvider,
     InferenceResult,
+    PlayerStance,
     RumorRetelling,
     RumorRetellingRequest,
 )
@@ -301,6 +302,41 @@ class DialogueTreatment:
     choices: tuple[DialogueChoiceState, ...]
     trust_floor: float | None = None
     trust_ceiling: float | None = None
+    player_stance: PlayerStance = "neutral"
+
+
+# How the player's conduct in one exchange moves the standing of the resident they
+# spoke to, and of anyone who only heard about it through town memory. The ripple is
+# deliberately small so a single demand cannot turn the whole town hostile, but it
+# compounds across repeated exchanges.
+STANCE_TARGET_STANDING_DELTA: dict[PlayerStance, int] = {
+    "hostile": -12,
+    "rude": -6,
+    "neutral": 0,
+    "friendly": 3,
+    "generous": 6,
+}
+STANCE_WITNESS_STANDING_DELTA: dict[PlayerStance, int] = {
+    "hostile": -3,
+    "rude": -2,
+    "neutral": 0,
+    "friendly": 1,
+    "generous": 2,
+}
+
+
+def chat_standing_deltas(
+    stance: PlayerStance,
+    public_statement: bool,
+) -> tuple[int, int]:
+    """Return the (target, witness) standing deltas for one conversational turn.
+
+    Witnesses only react when the exchange was shared with the town; a private
+    exchange stays between the player and the resident they spoke to.
+    """
+    target = STANCE_TARGET_STANDING_DELTA[stance]
+    witness = STANCE_WITNESS_STANDING_DELTA[stance] if public_statement else 0
+    return target, witness
 
 
 @dataclass(frozen=True)
@@ -389,6 +425,55 @@ def plan_action_memory(
     )
 
 
+def _plan_chat_relationships(
+    request: ActionRequest,
+    content: GreyhavenContent,
+    dialogue_treatment: DialogueTreatment | None,
+) -> tuple[PlannedRelationship, ...]:
+    """Turn one conversational turn into persisted trust/affinity/fear movement.
+
+    The resident spoken to always reacts. Other residents only react when the
+    exchange was shared with the town, and then only faintly.
+    """
+    assert request.target_id is not None
+    stance: PlayerStance = (
+        dialogue_treatment.player_stance if dialogue_treatment is not None else "neutral"
+    )
+    target_delta, witness_delta = chat_standing_deltas(stance, request.public_statement)
+    trust_floor = dialogue_treatment.trust_floor if dialogue_treatment is not None else None
+    trust_ceiling = dialogue_treatment.trust_ceiling if dialogue_treatment is not None else None
+    if target_delta == 0 and witness_delta == 0 and trust_floor is None and trust_ceiling is None:
+        return ()
+
+    relationships = [
+        PlannedRelationship(
+            a_kind="npc",
+            a_id=request.target_id,
+            b_kind="player",
+            b_id="player",
+            trust_delta=target_delta / 100,
+            affinity_delta=target_delta / 200,
+            fear_delta=0.15 if stance == "hostile" else 0.0,
+            trust_floor=trust_floor,
+            trust_ceiling=trust_ceiling,
+        )
+    ]
+    if witness_delta:
+        relationships.extend(
+            PlannedRelationship(
+                a_kind="npc",
+                a_id=resident.id,
+                b_kind="player",
+                b_id="player",
+                trust_delta=witness_delta / 100,
+                affinity_delta=witness_delta / 200,
+            )
+            for resident in content.residents
+            if resident.id != request.target_id
+        )
+    return tuple(relationships)
+
+
 def _plan_primary_action_memory(
     request: ActionRequest,
     response: ActionResponse,
@@ -398,23 +483,10 @@ def _plan_primary_action_memory(
     dialogue_treatment: DialogueTreatment | None = None,
 ) -> MemoryEffects:
     if request.verb == ActionVerb.TALK and request.target_id is not None:
-        relationships = (
-            (
-                PlannedRelationship(
-                    a_kind="npc",
-                    a_id=request.target_id,
-                    b_kind="player",
-                    b_id="player",
-                    trust_floor=dialogue_treatment.trust_floor,
-                    trust_ceiling=dialogue_treatment.trust_ceiling,
-                ),
-            )
-            if dialogue_treatment is not None
-            and (
-                dialogue_treatment.trust_floor is not None
-                or dialogue_treatment.trust_ceiling is not None
-            )
-            else ()
+        relationships = _plan_chat_relationships(
+            request,
+            content,
+            dialogue_treatment,
         )
         if request.content:
             return _plan_conversation_memory(

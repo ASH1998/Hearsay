@@ -13,6 +13,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field
 
 logger = structlog.get_logger(__name__)
+PlayerStance = Literal["hostile", "rude", "neutral", "friendly", "generous"]
 WORD_PATTERN = re.compile(r"[A-Za-z][A-Za-z'-]*")
 CAPITALIZED_TOKEN_PATTERN = re.compile(r"\b[A-Z][A-Za-z'-]*")
 GRAMMATICAL_CAPITALS = {"a", "an", "he", "i", "it", "she", "the", "they", "we"}
@@ -37,8 +38,46 @@ NPC_DIALOGUE_SYSTEM_PROMPT = (
     "scores, IDs, or that you are an agent. Never say 'I will remember that' or announce that "
     "you stored the player's words. Respond naturally to greetings and small talk. Keep the "
     "reply to one to three short sentences, ask a relevant follow-up when useful, and never "
-    "invent evidence or change game state."
+    "invent evidence or change game state. Also rate player_stance: how the player just treated "
+    "you, judged from player_message alone. Use 'hostile' for threats, extortion, or demands for "
+    "money or goods; 'rude' for insults, contempt, or dismissiveness; 'neutral' for questions, "
+    "greetings, and ordinary talk; 'friendly' for warmth, courtesy, or thanks; 'generous' for "
+    "offers of real help or a gift. Rate the player's conduct, not whether you liked the topic; "
+    "deterministic game code turns this into the standing change."
 )
+# Only the deterministic fallback uses these. The real provider has the model rate
+# player_stance, because a demand like "gimme all your money" contains no single
+# word that marks it as extortion.
+HOSTILE_STANCE_WORDS = frozenset({"kill", "loot", "rob", "steal", "threaten"})
+HOSTILE_STANCE_PHRASES = (
+    "all your",
+    "gimme",
+    "give me your",
+    "hand over",
+    "or else",
+)
+RUDE_STANCE_WORDS = frozenset({"fool", "idiot", "liar", "stupid", "useless", "worthless"})
+GENEROUS_STANCE_WORDS = frozenset({"gift", "protect"})
+GENEROUS_STANCE_PHRASES = ("can i help", "i can help", "i will help", "let me help")
+FRIENDLY_STANCE_WORDS = frozenset(
+    {"friend", "glad", "kind", "please", "sorry", "thank", "thanks", "welcome"}
+)
+
+
+def _heuristic_player_stance(lowered: str, words: set[str]) -> PlayerStance:
+    if words & HOSTILE_STANCE_WORDS or any(
+        phrase in lowered for phrase in HOSTILE_STANCE_PHRASES
+    ):
+        return "hostile"
+    if words & RUDE_STANCE_WORDS or "shut up" in lowered:
+        return "rude"
+    if words & GENEROUS_STANCE_WORDS or any(
+        phrase in lowered for phrase in GENEROUS_STANCE_PHRASES
+    ):
+        return "generous"
+    if words & FRIENDLY_STANCE_WORDS:
+        return "friendly"
+    return "neutral"
 
 if TYPE_CHECKING:
     from hearsay_api.config import Settings
@@ -92,6 +131,7 @@ class DialogueOutput(BaseModel):
     text: str = Field(min_length=1, max_length=700)
     intent: Literal["inform", "question", "refuse", "warn", "bargain"]
     mood: Literal["warm", "guarded", "angry", "afraid", "neutral"]
+    player_stance: PlayerStance = "neutral"
     disclosed_claim_keys: list[str] = Field(default_factory=list, max_length=8)
 
 
@@ -251,6 +291,28 @@ class DeterministicInferenceProvider:
         message = " ".join(request.player_message.split())
         lowered = message.lower().strip(" .!?")
         words = set(WORD_PATTERN.findall(lowered))
+        stance = _heuristic_player_stance(lowered, words)
+        if stance in {"hostile", "rude"}:
+            return DialogueOutput(
+                text=(
+                    "You will get nothing of mine by talking to me that way."
+                    if stance == "hostile"
+                    else "Mind your tongue. I have done nothing to earn that."
+                ),
+                intent="refuse",
+                mood="angry",
+                player_stance=stance,
+            )
+        output = self._scripted_dialogue(request, message, lowered, words)
+        return output.model_copy(update={"player_stance": stance})
+
+    def _scripted_dialogue(
+        self,
+        request: DialogueRequest,
+        message: str,
+        lowered: str,
+        words: set[str],
+    ) -> DialogueOutput:
         role_greetings = {
             "Constable": "Good day. Keeping out of trouble, I hope?",
             "Guild leader": "Good day. What business brings you to me?",
@@ -916,7 +978,9 @@ def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
         if settings.modal_proxy_token_secret is not None
         else None
     )
-    modal_is_configured = bool(settings.modal_proxy_url and token_id and token_secret)
+    modal_is_configured = bool(
+        settings.modal_proxy_url and token_id and token_secret and settings.modal_model
+    )
     bedrock_is_configured = bool(settings.aws_region and settings.bedrock_model)
     if settings.llm_provider == "fallback" or (
         settings.llm_provider == "auto" and not bedrock_is_configured and not modal_is_configured
@@ -948,11 +1012,15 @@ def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
     elif not modal_is_configured:
         primary = UnavailableInferenceProvider(
             provider_id="modal",
-            model_id=settings.modal_model,
-            reason="Modal inference configuration is incomplete.",
+            model_id=settings.modal_model or "unconfigured",
+            reason=(
+                "Modal inference configuration is incomplete. Set MODAL_PROXY_URL, "
+                "MODAL_PROXY_TOKEN_ID, MODAL_PROXY_TOKEN_SECRET, and HEARSAY_MODAL_MODEL."
+            ),
         )
     else:
         assert settings.modal_proxy_url is not None
+        assert settings.modal_model is not None
         assert token_id is not None
         assert token_secret is not None
         primary = ModalInferenceProvider(

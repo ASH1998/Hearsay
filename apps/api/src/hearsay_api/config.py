@@ -126,8 +126,8 @@ class Settings(BaseSettings):
         validation_alias="MODAL_PROXY_TOKEN_SECRET",
         exclude=True,
     )
-    modal_model: str = Field(
-        default="thinkingmachines/Inkling-NVFP4",
+    modal_model: str | None = Field(
+        default=None,
         alias="HEARSAY_MODAL_MODEL",
     )
     inference_timeout_seconds: float = Field(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Literal, cast
 from uuid import UUID, uuid4
 
@@ -13,6 +14,7 @@ from hearsay_api.inference import (
     DeterministicInferenceProvider,
     DialogueRequest,
     InferenceResult,
+    PlayerStance,
     RumorRetelling,
     RumorRetellingRequest,
     SafeInferenceProvider,
@@ -23,6 +25,7 @@ from hearsay_api.memory import (
     EmbeddingProvider,
     PromiseTransition,
     VisibleAmbientEcho,
+    chat_standing_deltas,
     derive_dialogue_treatment,
     plan_action_memory,
 )
@@ -67,6 +70,18 @@ FREE_ACTIONS = {
     ActionVerb.OBSERVE,
     ActionVerb.READ_NOTICE_BOARD,
 }
+
+CHAT_STANDING_CUES: dict[PlayerStance, str] = {
+    "hostile": "Hostile: {name} will not forget being threatened.",
+    "rude": "Stung: {name} did not care for your tone.",
+    "friendly": "Warmer: {name} appreciated how you spoke to them.",
+    "generous": "Grateful: {name} noticed you offered something real.",
+}
+
+
+def _chat_standing_cue(stance: PlayerStance, name: str, heard_by_town: bool) -> str:
+    cue = CHAT_STANDING_CUES[stance].format(name=name)
+    return f"{cue} The whole town heard it." if heard_by_town else cue
 
 BRAM_APPROACH_VERBS = {
     ActionVerb.CONFRONT,
@@ -522,6 +537,12 @@ class GameService:
                 ),
             )
         )
+        treatment = self._apply_chat_standing(
+            snapshot,
+            request,
+            treatment,
+            result.value.player_stance,
+        )
         snapshot.dialogue = DialogueState(
             speaker_id=npc.id,
             speaker_name=npc.name,
@@ -556,6 +577,38 @@ class GameService:
             available_choices=list(treatment.choices),
         )
         return treatment
+
+    def _apply_chat_standing(
+        self,
+        snapshot: RunSnapshot,
+        request: ActionRequest,
+        treatment: DialogueTreatment,
+        stance: PlayerStance,
+    ) -> DialogueTreatment:
+        """Move standing based on how the player just spoke, then re-cue the dialogue.
+
+        The resident spoken to takes the full delta. Others take a small ripple only
+        when the exchange was shared with the town, so one demand cannot flip the
+        whole town at once but repeated demands accumulate.
+        """
+        assert request.target_id is not None
+        target_delta, witness_delta = chat_standing_deltas(stance, request.public_statement)
+        if target_delta == 0 and witness_delta == 0:
+            return treatment
+
+        for npc in snapshot.npcs:
+            if npc.id == request.target_id:
+                npc.relationship = max(-100, min(100, npc.relationship + target_delta))
+            elif witness_delta:
+                npc.relationship = max(-100, min(100, npc.relationship + witness_delta))
+
+        target = self._require_npc(snapshot, request.target_id)
+        return replace(
+            treatment,
+            relationship_score=target.relationship,
+            cue=_chat_standing_cue(stance, target.name, witness_delta != 0),
+            player_stance=stance,
+        )
 
     def _record_conversation_exchange(
         self,
