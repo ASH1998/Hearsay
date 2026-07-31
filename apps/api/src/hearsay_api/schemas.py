@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -72,6 +72,7 @@ class ActionRequest(BaseModel):
     verb: ActionVerb
     target_id: str | None = Field(default=None, max_length=64)
     content: str | None = Field(default=None, max_length=500)
+    public_statement: bool = False
 
 
 class LocationState(BaseModel):
@@ -139,6 +140,8 @@ class DialogueMemoryRef(BaseModel):
     belief_id: UUID
     version: int
     proposition_key: str
+    scope: Literal["individual", "town", "rumor"] = "individual"
+    summary: str = Field(default="", max_length=600)
     contested: bool = False
 
 
@@ -161,6 +164,16 @@ class DialogueState(BaseModel):
     inference_output_tokens: int | None = Field(default=None, ge=0)
     treatment_cue: str | None = None
     available_choices: list[DialogueChoiceState] = Field(default_factory=list)
+
+
+class ChatMessageState(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    npc_id: str = Field(min_length=1, max_length=64)
+    speaker: Literal["player", "npc"]
+    text: str = Field(min_length=1, max_length=700)
+    day: int = Field(ge=1, le=3)
+    phase: Phase
+    public_statement: bool = False
 
 
 class WorldEvent(BaseModel):
@@ -192,6 +205,7 @@ class PlayerState(BaseModel):
     location_id: str
     traits: list[str] = Field(default_factory=list)
     candidate: bool = False
+    bram_approach: str | None = None
     argument_choice: str | None = None
     endorsements: list[str] = Field(default_factory=list)
     square_speech_days: list[int] = Field(default_factory=list)
@@ -254,6 +268,7 @@ class RunSnapshot(BaseModel):
     promises: list[PromiseState] = Field(default_factory=list)
     favors: list[FavorState] = Field(default_factory=list)
     dialogue: DialogueState | None = None
+    conversation_history: list[ChatMessageState] = Field(default_factory=list, max_length=80)
     town_events: list[TownEventState] = Field(default_factory=list)
     election: ElectionState | None = None
     recent_events: list[WorldEvent] = Field(default_factory=list)

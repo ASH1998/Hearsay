@@ -47,6 +47,7 @@ PUBLIC_AUTONOMOUS_SOURCE_KINDS = frozenset(
         "moral_endorsement",
         "official_record",
         "player_action",
+        "player_statement_public",
         "public_ballot_challenge",
         "public_guild_compact",
         "public_health_gossip",
@@ -396,17 +397,9 @@ def _plan_primary_action_memory(
     retelling: InferenceResult[RumorRetelling] | None = None,
     dialogue_treatment: DialogueTreatment | None = None,
 ) -> MemoryEffects:
-    if (
-        request.verb == ActionVerb.TALK
-        and request.target_id is not None
-        and dialogue_treatment is not None
-        and (
-            dialogue_treatment.trust_floor is not None
-            or dialogue_treatment.trust_ceiling is not None
-        )
-    ):
-        return MemoryEffects(
-            relationships=(
+    if request.verb == ActionVerb.TALK and request.target_id is not None:
+        relationships = (
+            (
                 PlannedRelationship(
                     a_kind="npc",
                     a_id=request.target_id,
@@ -416,7 +409,21 @@ def _plan_primary_action_memory(
                     trust_ceiling=dialogue_treatment.trust_ceiling,
                 ),
             )
+            if dialogue_treatment is not None
+            and (
+                dialogue_treatment.trust_floor is not None
+                or dialogue_treatment.trust_ceiling is not None
+            )
+            else ()
         )
+        if request.content:
+            return _plan_conversation_memory(
+                request,
+                embeddings,
+                content,
+                relationships,
+            )
+        return MemoryEffects(relationships=relationships)
 
     if request.verb == ActionVerb.PROMISE_HELP and request.target_id == "marta":
         text = "The newcomer promised to release Marta's shipment from Bram before evening."
@@ -1660,6 +1667,153 @@ def _plan_primary_action_memory(
     return MemoryEffects()
 
 
+def _plan_conversation_memory(
+    request: ActionRequest,
+    embeddings: EmbeddingProvider,
+    content: GreyhavenContent,
+    relationships: tuple[PlannedRelationship, ...],
+) -> MemoryEffects:
+    assert request.target_id is not None
+    assert request.content is not None
+    message = " ".join(request.content.split())
+    lowered = message.lower()
+    mentioned_resident = next(
+        (
+            resident
+            for resident in content.residents
+            if any(
+                re.search(rf"\b{re.escape(alias)}\b", lowered)
+                for alias in {
+                    resident.id.lower(),
+                    resident.name.lower(),
+                    *(part.lower() for part in resident.name.split()),
+                }
+            )
+        ),
+        None,
+    )
+    if mentioned_resident is not None:
+        topic_id = mentioned_resident.id
+        proposition_key = f"conversation-about-{topic_id}"
+        subject_kind = "resident"
+        subject_id = topic_id
+    else:
+        digest = hashlib.blake2b(lowered.encode(), digest_size=6).hexdigest()
+        topic_id = "general"
+        proposition_key = f"conversation-{request.target_id}-{digest}"
+        subject_kind = "conversation"
+        subject_id = request.target_id
+
+    public_statement = request.public_statement
+    election_contribution = _chat_election_contribution(lowered)
+    holder = content.residents_by_id[request.target_id]
+    narrative = f'The player told {holder.name}: "{message}"'
+    embedding = embeddings.embed(narrative)
+    normalized_position: dict[str, object] = {
+        "chat_memory": True,
+        "memory_scope": "individual",
+        "topic_id": topic_id,
+        "public": public_statement,
+        "player_statement": message,
+        "election_contribution": election_contribution,
+    }
+    source_kind = "player_statement_public" if public_statement else "player_statement_private"
+    beliefs: list[PlannedBelief] = [
+        PlannedBelief(
+            proposition_key=proposition_key,
+            subject_kind=subject_kind,
+            subject_id=subject_id,
+            predicate="player_told_npc",
+            holder_id=request.target_id,
+            narrative_text=narrative,
+            normalized_position=normalized_position,
+            confidence=0.68,
+            salience=0.82 if public_statement else 0.68,
+            source_kind=source_kind,
+            source_id="player",
+            embedding=embedding.vector,
+            embedding_model_id=embedding.model_id,
+        )
+    ]
+    if public_statement:
+        town_narrative = f'Greyhaven records a public claim: "{message}"'
+        town_embedding = embeddings.embed(town_narrative)
+        beliefs.append(
+            PlannedBelief(
+                proposition_key=proposition_key,
+                subject_kind=subject_kind,
+                subject_id=subject_id,
+                predicate="town_heard_player_claim",
+                holder_id="town",
+                narrative_text=town_narrative,
+                normalized_position={
+                    **normalized_position,
+                    "memory_scope": "town",
+                },
+                confidence=0.58,
+                salience=0.72,
+                source_kind="town_record",
+                source_id=request.target_id,
+                embedding=town_embedding.vector,
+                embedding_model_id=town_embedding.model_id,
+                parent_holder_id=request.target_id,
+                mutation_note="A private statement was deliberately made public.",
+                trust_at_time=0.5,
+                retelling_provider_id="deterministic",
+                retelling_model_id="hearsay-town-record-v1",
+            )
+        )
+    return MemoryEffects(
+        beliefs=tuple(beliefs),
+        relationships=relationships,
+    )
+
+
+def _chat_election_contribution(message: str) -> float:
+    positive_words = {
+        "fair",
+        "good",
+        "helped",
+        "helpful",
+        "honest",
+        "kind",
+        "reliable",
+        "trust",
+        "trustworthy",
+    }
+    negative_words = {
+        "bad",
+        "cheated",
+        "corrupt",
+        "dangerous",
+        "dishonest",
+        "fraud",
+        "lied",
+        "liar",
+        "rigged",
+        "stole",
+        "unfair",
+    }
+    words = set(TOKEN_PATTERN.findall(message))
+    positive = len(words & positive_words)
+    negative = len(words & negative_words)
+    if "rhea" in words:
+        if negative > positive:
+            return 0.18
+        if positive > negative:
+            return -0.14
+    if words & {"newcomer", "player", "myself", "me", "i"}:
+        if positive > negative:
+            return 0.1
+        if negative > positive:
+            return -0.16
+    if positive > negative:
+        return 0.04
+    if negative > positive:
+        return -0.04
+    return 0.0
+
+
 def _plan_town_event_transitions(
     transitions: tuple[str, ...],
 ) -> MemoryEffects:
@@ -1820,13 +1974,14 @@ def _plan_autonomous_gossip(
     npc_by_id = {npc.id: npc for npc in snapshot.npcs}
     candidates: list[tuple[MemoryVersionState, int, list[str]]] = []
     for source in active_versions:
+        minimum_depth = 1 if source.source_kind == "player_statement_public" else 2
         if (
             source.holder_id not in npc_by_id
             or source.source_kind not in PUBLIC_AUTONOMOUS_SOURCE_KINDS
         ):
             continue
         source_depth = hop_depths.get((source.belief_id, source.version), 0)
-        if source_depth < 2 or source_depth >= MAX_AUTONOMOUS_RUMOR_HOP:
+        if source_depth < minimum_depth or source_depth >= MAX_AUTONOMOUS_RUMOR_HOP:
             continue
         speaker = npc_by_id[source.holder_id]
         listeners = sorted(

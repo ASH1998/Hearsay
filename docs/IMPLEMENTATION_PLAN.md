@@ -132,11 +132,10 @@ The existing twelve-location graph may remain authoritative internally. The rele
 
 The focused release now presents the complete twelve-location graph as one
 continuous, bright 30×18-tile exterior village. All landmarks are visible,
-reachable, and respond to nearby interaction, but optional exploration never
-spends or replaces one of the ten guided story actions. The five featured story
-residents remain the only mandatory route; Nessa, Elias, and Orin provide short
-focused-profile conversations without exposing their longer full-profile favor
-trees.
+reachable, and respond to nearby interaction. The first ten actions form the
+guided story spine; the remaining campaign is open social play. All twenty
+residents can be approached for free-form conversation without exposing their
+longer full-profile favor trees.
 
 The Town Square is the navigation hub. Stone marks civic routes, warm dirt
 connects residential and market districts, wood marks the northwest harbor,
@@ -157,18 +156,22 @@ The default run is one compressed election arc:
 6. Resolve or break Marta's promise.
 7. Optionally handle Talia's sick-house request privately or turn it into public warning.
 8. Make one final public/election choice.
-9. Finish with an explainable vote and one of three headline outcomes:
+9. Spend the remaining campaign talking to any resident, making private claims
+   or public statements, and seeing personal, town, and rumor memories return.
+10. Finish with an explainable vote and one of three headline outcomes:
    - trusted win;
    - narrow loss;
    - public disgrace/exposure.
-10. Open the Town Historian to trace the decisive rumor from source to outcome.
+11. Open the Town Historian to trace the decisive rumor from source to outcome.
 
 Existing additional endings may still be selected by the authoritative classifier, but the release only promises and rehearses these three outcome families.
 
 ### 4.4 Time and action budget
 
 - Target 12–20 minutes for a first run.
-- Use at most 10 consequential player actions in the critical path.
+- Use 18 consequential player actions across three days, six actions per day.
+- Treat actions 1–10 as the guided onboarding spine, then open the campaign to
+  free-form conversation with any resident until the election.
 - Movement, observation, reading, and opening the Historian remain free.
 - Run an autonomous town tick after every two consequential player actions and at authored story boundaries.
 - Avoid a tutorial wall. The opening promise and first visible gossip hop teach the game.

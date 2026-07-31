@@ -544,6 +544,150 @@ button:focus-visible {
   line-height: 1.35;
 }
 
+.world-bark__proof {
+  display: block;
+  margin-top: 0.55rem;
+  border-top: 1px solid rgb(255 217 111 / 28%);
+  padding-top: 0.42rem;
+  color: rgb(255 241 201 / 70%);
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.56rem;
+  line-height: 1.35;
+}
+
+.world-bark__proof strong {
+  color: #ffd96f;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.agent-turn-card {
+  position: absolute;
+  z-index: 6;
+  top: 14rem;
+  right: 1rem;
+  display: grid;
+  width: min(22rem, calc(100vw - 2rem));
+  gap: 0.7rem;
+  border: 3px solid #6b432b;
+  border-radius: 0.55rem;
+  padding: 0.85rem;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 18%), transparent 45%),
+    #f1e2b4;
+  box-shadow:
+    0 0 0 2px #d3aa54,
+    0 12px 34px rgb(40 61 46 / 34%);
+  color: #34271d;
+}
+
+.agent-turn-card header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.agent-turn-card header div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.agent-turn-card header small,
+.agent-turn-card li > span {
+  color: #9b4b31;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agent-turn-card header strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+}
+
+.agent-turn-card__pulse {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid #f1e2b4;
+  border-radius: 50%;
+  background: #2d7765;
+  box-shadow: 0 0 0 3px rgb(45 119 101 / 24%);
+  animation: agent-pulse 1.35s ease-in-out infinite;
+}
+
+.agent-turn-card ol {
+  display: grid;
+  margin: 0;
+  gap: 0.45rem;
+  padding: 0;
+  list-style: none;
+}
+
+.agent-turn-card li {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 0 0.55rem;
+  border-left: 3px solid #b77638;
+  padding: 0.42rem 0.5rem;
+  background: rgb(255 250 226 / 54%);
+  opacity: 0;
+  animation: agent-stage-in 0.35s ease-out forwards;
+}
+
+.agent-turn-card li:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.agent-turn-card li:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+.agent-turn-card li p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.agent-turn-card li small {
+  grid-column: 2;
+  margin-top: 0.2rem;
+  color: #73543a;
+  font-size: 0.55rem;
+  line-height: 1.25;
+}
+
+.agent-turn-card footer {
+  border-top: 1px solid rgb(107 67 43 / 24%);
+  padding-top: 0.5rem;
+  color: #526045;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+@keyframes agent-pulse {
+  50% {
+    background: #52aa8f;
+    box-shadow: 0 0 0 6px rgb(45 119 101 / 12%);
+  }
+}
+
+@keyframes agent-stage-in {
+  from {
+    opacity: 0;
+    transform: translateX(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .town-map__rain {
   position: absolute;
   z-index: 4;
@@ -1219,6 +1363,67 @@ button:disabled {
   border: 1px solid rgb(232 223 198 / 12%);
   padding: 0.4rem 0.5rem;
   background: rgb(0 0 0 / 12%);
+}
+
+.memory-proof li > span {
+  color: rgb(232 223 198 / 82%);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.npc-chat {
+  display: grid;
+  margin: 0.65rem 0;
+  gap: 0.4rem;
+  border: 1px solid rgb(217 174 98 / 38%);
+  border-radius: 0.45rem;
+  padding: 0.65rem;
+  background: rgb(7 27 25 / 38%);
+}
+
+.npc-chat > label {
+  color: var(--gold);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.npc-chat textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgb(232 223 198 / 35%);
+  border-radius: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  background: rgb(245 237 214 / 95%);
+  color: #34271d;
+  font: 0.78rem/1.35 var(--font-sans);
+}
+
+.npc-chat__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.npc-chat__controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgb(232 223 198 / 74%);
+  font-size: 0.62rem;
+}
+
+.npc-chat__controls button {
+  min-width: 5rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.npc-chat > small {
+  color: rgb(232 223 198 / 52%);
+  font-size: 0.56rem;
 }
 
 .memory-proof strong {
@@ -1935,6 +2140,8 @@ button:disabled {
 }
 
 .game[data-release-profile="hackathon_small"] .conversation {
+  max-height: calc(100vh - 2.4rem);
+  overflow-y: auto;
   border: 4px solid #6b432b;
   border-left-color: #6b432b;
   border-radius: 0.6rem;
@@ -1947,6 +2154,10 @@ button:disabled {
 }
 
 .game[data-release-profile="hackathon_small"] .portrait {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 1;
+  align-self: start;
   border: 3px solid #d0a454;
   border-radius: 0.35rem;
   background-color: var(--portrait-color);
@@ -1990,6 +2201,63 @@ button:disabled {
 
 .game[data-release-profile="hackathon_small"] .conversation blockquote {
   color: #fff1c9;
+}
+
+.chat-thread {
+  display: grid;
+  max-height: 12rem;
+  margin: 0.45rem 0 0.7rem;
+  gap: 0.55rem;
+  overflow-y: auto;
+  padding: 0.15rem 0.35rem 0.15rem 0;
+  scroll-behavior: smooth;
+}
+
+.chat-message {
+  width: fit-content;
+  max-width: min(88%, 42rem);
+  border: 1px solid rgb(211 170 84 / 45%);
+  border-radius: 0.6rem 0.6rem 0.6rem 0.15rem;
+  padding: 0.5rem 0.65rem;
+  background: rgb(23 59 51 / 76%);
+}
+
+.chat-message--player {
+  justify-self: end;
+  border-color: rgb(239 188 92 / 58%);
+  border-radius: 0.6rem 0.6rem 0.15rem;
+  background: #32675a;
+}
+
+.chat-message > span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #e7b361;
+  font-family: ui-monospace, "Cascadia Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-message > span em {
+  border-radius: 999px;
+  padding: 0.12rem 0.35rem;
+  background: #d3aa54;
+  color: #284e46;
+  font-size: 0.52rem;
+  font-style: normal;
+  letter-spacing: 0.03em;
+}
+
+.chat-message p {
+  margin: 0.2rem 0 0;
+  color: #fff1c9;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .game[data-release-profile="hackathon_small"]

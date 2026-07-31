@@ -12,6 +12,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.engine import make_url
 
 from hearsay_api.conflicts import ClaimResolution, IncomingClaim
+from hearsay_api.election import resolve_election
 from hearsay_api.historian import HistorianService
 from hearsay_api.inference import (
     DeterministicInferenceProvider,
@@ -291,6 +292,101 @@ def test_release_memory_survives_restart_and_changes_featured_vote(
         )
     finally:
         final_replacement.dispose()
+
+
+def test_free_form_chat_scopes_survive_restart_and_reach_the_vote(
+    repository: CockroachRunRepository,
+) -> None:
+    service = GameService(repository=repository)
+    created = service.create_run(
+        CreateRunRequest(
+            display_name="Ada",
+            seed=1729,
+            release_profile="hackathon_small",
+        )
+    )
+    service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="talk",
+            target_id="nessa",
+            content="Rhea rigged the last election and that was unfair.",
+        ),
+    )
+    service.take_action(
+        created.run_id,
+        ActionRequest(
+            idempotency_key=uuid4(),
+            verb="talk",
+            target_id="pip",
+            content="Tell everyone that Rhea is corrupt and rigged the vote.",
+            public_statement=True,
+        ),
+    )
+
+    replacement = CockroachRunRepository(TEST_DATABASE_URL or "")
+    resumed = GameService(repository=replacement)
+    try:
+        restored = replacement.get(created.run_id)
+        assert restored.action_count == 2
+        assert len(restored.conversation_history) == 6
+        assert any(
+            message.npc_id == "nessa"
+            and message.speaker == "player"
+            and not message.public_statement
+            for message in restored.conversation_history
+        )
+        assert any(
+            message.npc_id == "pip" and message.speaker == "player" and message.public_statement
+            for message in restored.conversation_history
+        )
+
+        lineage = replacement.list_memory_lineage(
+            created.run_id,
+            "conversation-about-rhea",
+        )
+        assert {"nessa", "pip", "town"}.issubset(
+            {version.holder_id for version in lineage.versions}
+        )
+        assert any(
+            version.normalized_position["memory_scope"] == "town" for version in lineage.versions
+        )
+        assert lineage.transmissions
+
+        personal = resumed.recall_memories(
+            created.run_id,
+            MemoryRecallRequest(
+                holder_id="nessa",
+                query="What did the player tell me about Rhea?",
+                limit=4,
+            ),
+        )
+        town = resumed.recall_memories(
+            created.run_id,
+            MemoryRecallRequest(
+                holder_id="town",
+                query="What is the town saying about Rhea?",
+                limit=4,
+            ),
+        )
+        assert any(item.proposition_key == "conversation-about-rhea" for item in personal.memories)
+        assert any(item.proposition_key == "conversation-about-rhea" for item in town.memories)
+
+        restored.player.candidate = True
+        election = resolve_election(
+            restored,
+            resumed.content,
+            replacement.list_memory_lineage(created.run_id),
+        )
+        nessa_vote = next(vote for vote in election.votes if vote.voter_id == "nessa")
+        chat_input = next(
+            item for item in nessa_vote.inputs if item.key == "conversation-about-rhea"
+        )
+        assert chat_input.contribution == 0.18
+        assert chat_input.belief_id is not None
+    finally:
+        replacement.dispose()
 
 
 def test_concurrent_actions_commit_complete_monotonic_history(

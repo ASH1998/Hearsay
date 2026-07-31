@@ -593,6 +593,12 @@ Completed:
 - Reframed the event strip as a town-activity feed. Autonomous schedule,
   gossip, rumor, retelling, and transmission events receive a visible `Agent`
   marker and a CockroachDB persistence cue.
+- The focused signature scene now renders an explicit autonomous-turn card:
+  Pip recalls the current story, chooses a valid nearby listener, and produces
+  the visible changed-memory hop. The durable decision event carries location,
+  nearby agents, memory inputs, bounded action, model rationale, utterance,
+  provider/model, token usage, and truthful fallback provenance. The card
+  presents only this validated structured state, not hidden chain-of-thought.
 - Replaced the small dialogue audit note with a player-visible long-term-memory
   proof: recalled proposition, belief identifier, immutable version, contested
   state, and truthful provider/model provenance.
@@ -667,6 +673,9 @@ Validated:
   Marta promise → Bram negotiation and shipment release → Marta recall →
   Talia's quiet help → candidacy → Rhea's public count → final talk. It verifies
   the `14–6` ending, exact memory proof, action exhaustion, and refresh restore.
+- The same focused automation now requires the player-visible Recall → Decide
+  → Act agent turn, its model/fallback identity, and the CockroachDB commit cue
+  at the Bram-to-Pip rumor boundary.
 - All 20 Playwright stories pass in one bounded 25-second run. The harness uses
   isolated ports `3200`/`8200`, stops the exact processes it owns, and does not
   touch an existing development session on `3000`/`8000`.
@@ -772,6 +781,62 @@ External configuration still required:
   release targets Distributed Vector Indexing + Managed MCP and Bedrock; the
   latter two must be demonstrated for that claim to count.
 
+## Agent conversation campaign — 2026-07-31
+
+Completed:
+
+- Expanded the focused release from ten actions to eighteen across three days,
+  six actions per day. The original route remains the guided onboarding spine;
+  after the ballot challenge, the objective becomes an open social campaign.
+- Made all twenty residents visible and approachable in the focused town. Every
+  conversation now includes a free-form text field, and the player can continue
+  talking to the same resident or walk to anyone else.
+- Replaced the single changing dialogue caption with a per-resident chat thread
+  containing the opening, player messages, and NPC replies. The transcript is
+  part of the authoritative run snapshot, survives CockroachDB repository
+  recreation, and supplies recent turns to the next dialogue inference.
+- Movement and interaction shortcuts now yield to focused text inputs, so WASD,
+  `T`, Enter, and Space work normally while composing a message.
+- Every chat inference receives that resident's identity, town role, authored
+  persona context, voice style, relationship, location, day/phase, recent
+  conversation, player message, and recalled memories. The Bedrock prompt makes
+  the model inhabit that NPC, treat claims as unverified, and forbids mentioning
+  prompts, databases, retrieval, memory storage, IDs, or scores. The safe local
+  fallback handles greetings, identity, small talk, questions, praise, and
+  accusations without narrating persistence operations.
+- Old saved/API snapshots that predate `conversation_history` are normalized to
+  an empty transcript, preventing hot-reload and restore crashes.
+- Added three explicit CockroachDB-backed memory scopes: individual chat memory
+  owned by the listener, shared town memory for public statements, and immutable
+  rumor versions/transmission hops. Every message is private by default,
+  including messages to Pip; town memory is created only when the player checks
+  **Share this message with the town** for that message.
+- Conversation recall now searches both the listener's holder-scoped memories
+  and shared town memory. The dialogue panel renders the recalled scope,
+  narrative summary, proposition, belief ID, and immutable version.
+- Added bounded election effects for claims made in chat. A voter can cite their
+  own remembered player statement as a belief input; public versions retain hop
+  attenuation and provenance, so a claim can influence voters without becoming
+  an untraceable direct vote mutation.
+- Added focused API tests for private recall, public town memory, rumor hops,
+  and a cited election input, plus a real-Cockroach integration proof that
+  recreates the repository before recalling all three scopes and resolving the
+  vote.
+
+Validated locally:
+
+- Ruff, formatting, strict mypy, the full non-cloud API suite (136 tests),
+  strict frontend TypeScript, frontend ESLint, Vitest, and the production Next.js
+  build pass.
+- The clean-browser eighteen-action campaign reaches election night, recalls a
+  player-authored claim in the conversation UI, and changes the rehearsed result
+  from `14–6` to `15–5`. The updated final assertion and refresh check are part
+  of the focused Playwright regression.
+- The focused real-Cockroach proof passes against the isolated CockroachDB
+  Cloud test database after repository recreation: individual and town recall,
+  rumor transmission lineage, and the exact `+0.18` cited election input all
+  remain durable.
+
 ## Next implementation slice
 
 1. Add the independent Managed MCP cluster ID/API key to the ignored
@@ -779,5 +844,5 @@ External configuration still required:
 2. Configure a Bedrock Claude model and standard AWS credential chain, then run
    the one-shot rumor, dialogue, and autonomous-action proof.
 3. Finish the private S3 replay bundle and public AWS application deployment.
-4. Time one clean ten-action browser run and trim onboarding copy if it falls
+4. Time one clean eighteen-action browser run and trim onboarding copy if it falls
    outside 12–20 minutes.

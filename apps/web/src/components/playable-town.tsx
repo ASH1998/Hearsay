@@ -552,9 +552,6 @@ function movementBlocked(point: MapPoint) {
 function npcPoints(snapshot: RunSnapshot) {
   const byLocation = new Map<string, NpcState[]>();
   snapshot.npcs
-    .filter(
-      (npc) => PRESENTED_NPC_IDS.has(npc.id) || npc.recent_echoes.length > 0,
-    )
     .forEach((npc) => {
       const residents = byLocation.get(npc.location_id) ?? [];
       residents.push(npc);
@@ -1475,7 +1472,17 @@ export function PlayableTown({
       if (normalized === "arrowright" || normalized === "d") return "right";
       return null;
     };
+    const isTextEntryTarget = (target: EventTarget | null) =>
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      (target instanceof HTMLElement && target.isContentEditable);
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isTextEntryTarget(event.target)) {
+        keysRef.current.clear();
+        keyOrderRef.current = [];
+        return;
+      }
       const normalized = event.key.toLowerCase();
       if (normalized === "t" || normalized === "enter" || normalized === " ") {
         interact();
@@ -1496,6 +1503,7 @@ export function PlayableTown({
       const direction = keyDirection(event.key);
       if (!direction) return;
       keysRef.current.delete(direction);
+      if (isTextEntryTarget(event.target)) return;
       event.preventDefault();
     };
     const clearKeys = () => {
@@ -1584,6 +1592,19 @@ export function PlayableTown({
       listener.recent_echoes.map((echo) => ({ echo, listener })),
     )
     .sort((left, right) => right.echo.hop - left.echo.hop)[0];
+  const latestAgentDecision = snapshot.recent_events.find(
+    (event) => event.kind === "agent_decision",
+  );
+  const agentDecisionPayload = latestAgentDecision?.payload;
+  const agentProvider =
+    agentDecisionPayload && typeof agentDecisionPayload.provider_id === "string"
+      ? agentDecisionPayload.provider_id
+      : null;
+  const agentModel =
+    agentDecisionPayload && typeof agentDecisionPayload.model_id === "string"
+      ? agentDecisionPayload.model_id
+      : null;
+  const agentFallbackUsed = agentDecisionPayload?.fallback_used === true;
 
   return (
     <div className="playable-town">
@@ -1606,6 +1627,13 @@ export function PlayableTown({
             {latestEcho.listener.name} · hop {latestEcho.echo.hop}
           </small>
           <p>{latestEcho.echo.text}</p>
+          <span className="world-bark__proof">
+            <strong>Agent memory</strong>
+            {agentProvider && agentModel
+              ? ` · ${agentProvider}/${agentModel}${agentFallbackUsed ? " · safe fallback" : ""}`
+              : " · bounded autonomous retelling"}
+            {" · committed to CockroachDB"}
+          </span>
         </aside>
       ) : null}
       {snapshot.status === "completed" ? null : promptTarget ? (

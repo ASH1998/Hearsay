@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from hearsay_api.config import Settings
 from hearsay_api.inference import (
     BEDROCK_UNSUPPORTED_SCHEMA_KEYS,
+    NPC_DIALOGUE_SYSTEM_PROMPT,
     AutonomousActionOutput,
     AutonomousActionRequest,
     BedrockInferenceProvider,
@@ -467,6 +468,68 @@ def test_safe_provider_wraps_dialogue_and_contradiction_operations() -> None:
     assert contradiction.value.classification == "contradicts"
 
 
+def test_deterministic_npc_answers_a_greeting_without_narrating_memory_storage() -> None:
+    response = DeterministicInferenceProvider().generate_dialogue(
+        DialogueRequest(
+            npc_id="marta",
+            npc_name="Marta Vale",
+            npc_role="Innkeeper",
+            voice_style="practical",
+            persona_context="Marta needs help freeing an inn shipment.",
+            location_name="The Gull & Anchor",
+            player_message="hello!",
+            recalled_memories=['The player told Marta Vale: "hello!"'],
+        )
+    )
+
+    assert response.text == "Hello. Come in—what can I do for you?"
+    assert "remember" not in response.text.lower()
+    assert response.intent == "question"
+    assert response.mood == "warm"
+
+
+def test_bedrock_dialogue_prompt_frames_the_model_as_the_npc() -> None:
+    fake = FakeBedrockRuntime(
+        DialogueOutput(
+            text="Hello. Sit down a moment—you look winded.",
+            intent="question",
+            mood="warm",
+        ).model_dump_json()
+    )
+    provider = BedrockInferenceProvider(
+        region="us-east-1",
+        model_id="us.anthropic.claude-haiku-test-v1:0",
+        client=fake,
+    )
+    request = DialogueRequest(
+        npc_id="marta",
+        npc_name="Marta Vale",
+        npc_role="Innkeeper",
+        voice_style="practical",
+        persona_context="Bram is holding Marta's shipment.",
+        relationship_score=15,
+        day=1,
+        phase="morning",
+        location_name="The Gull & Anchor",
+        player_message="Hello",
+        recent_messages=["Marta Vale: What brings you to Greyhaven?"],
+    )
+
+    result = provider.generate_dialogue(request)
+
+    system = cast(list[dict[str, str]], fake.arguments["system"])
+    assert system[0]["text"] == NPC_DIALOGUE_SYSTEM_PROMPT
+    assert "not an assistant" in system[0]["text"]
+    assert "Never say 'I will remember that'" in system[0]["text"]
+    messages = cast(list[dict[str, object]], fake.arguments["messages"])
+    content = cast(list[dict[str, str]], messages[0]["content"])
+    payload = json.loads(content[0]["text"])
+    assert payload["npc_name"] == "Marta Vale"
+    assert payload["persona_context"] == "Bram is holding Marta's shipment."
+    assert payload["recent_messages"] == ["Marta Vale: What brings you to Greyhaven?"]
+    assert result.value.text.startswith("Hello.")
+
+
 def test_service_persists_provider_provenance_with_the_transmission() -> None:
     repository = InMemoryRunRepository()
     primary = CustomRetellingProvider()
@@ -577,6 +640,10 @@ def test_small_release_persists_bounded_agent_decision_and_selected_listener() -
     selected_listener = cast(str, decision_event.payload["target_id"])
     assert selected_listener in {"marta", "talia", "rhea"}
     assert decision_event.payload["provider_id"] == "bedrock"
+    assert decision_event.payload["agent_id"] == "pip"
+    assert decision_event.payload["recalled_memories"]
+    assert decision_event.payload["rationale"]
+    assert decision_event.payload["nearby_agent_ids"]
     assert decision_event.payload["model_id"] == "greyhaven-autonomy-test-model"
     assert decision_event.payload["fallback_used"] is False
 

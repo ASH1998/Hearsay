@@ -43,7 +43,7 @@ def test_hackathon_small_profile_is_authoritative_and_rejects_side_stories() -> 
     )
 
     assert created.snapshot.release_profile == "hackathon_small"
-    assert created.snapshot.action_budget == 10
+    assert created.snapshot.action_budget == 18
 
     moved = take(service, created.run_id, ActionVerb.MOVE, "midwife")
     assert moved.consumed_time is False
@@ -53,13 +53,21 @@ def test_hackathon_small_profile_is_authoritative_and_rejects_side_stories() -> 
     with pytest.raises(InvalidActionError, match="outside this five-resident"):
         take(service, created.run_id, ActionVerb.ACCEPT_NESSA_FAVOR, "nessa")
 
-    with pytest.raises(InvalidActionError, match="Marta, Bram, Pip, Talia, and Rhea"):
-        take(service, created.run_id, ActionVerb.TALK, "nessa", "What did you hear?")
+    chatted = take(
+        service,
+        created.run_id,
+        ActionVerb.TALK,
+        "nessa",
+        "What did you hear?",
+    )
+    assert chatted.snapshot.action_count == 1
+    assert chatted.snapshot.dialogue is not None
+    assert chatted.snapshot.dialogue.speaker_id == "nessa"
 
     restored = service.get_snapshot(created.run_id)
     assert restored.release_profile == "hackathon_small"
-    assert restored.action_budget == 10
-    assert restored.action_count == 0
+    assert restored.action_budget == 18
+    assert restored.action_count == 1
 
 
 def test_full_profile_remains_backward_compatible() -> None:
@@ -80,7 +88,7 @@ def test_full_profile_remains_backward_compatible() -> None:
     assert response.snapshot.status == "active"
 
 
-def test_hackathon_small_critical_path_ends_in_ten_actions_with_memory() -> None:
+def test_hackathon_small_critical_path_expands_into_an_eighteen_action_campaign() -> None:
     service = GameService(repository=InMemoryRunRepository())
     created = service.create_run(
         CreateRunRequest(
@@ -110,6 +118,14 @@ def test_hackathon_small_critical_path_ends_in_ten_actions_with_memory() -> None
             "rhea",
             "What do you remember about the ballot safeguards?",
         ),
+        (ActionVerb.TALK, "nessa", "What do you remember about Rhea?"),
+        (ActionVerb.TALK, "elias", "Rhea rigged the last election."),
+        (ActionVerb.TALK, "orin", "Do you trust Rhea with the ballot?"),
+        (ActionVerb.TALK, "pip", "Tell everyone Rhea is corrupt."),
+        (ActionVerb.TALK, "marta", "What rumors reached the inn?"),
+        (ActionVerb.TALK, "bram", "Who do you support in the election?"),
+        (ActionVerb.TALK, "talia", "What does the town remember about me?"),
+        (ActionVerb.TALK, "rhea", "What will voters remember tonight?"),
     )
 
     result = None
@@ -125,10 +141,10 @@ def test_hackathon_small_critical_path_ends_in_ten_actions_with_memory() -> None
     assert result is not None
     snapshot = result.snapshot
     assert snapshot.status == "completed"
-    assert snapshot.action_count == snapshot.action_budget == 10
+    assert snapshot.action_count == snapshot.action_budget == 18
     assert snapshot.day == 3
     assert snapshot.phase == "night"
-    assert snapshot.world_tick == 5
+    assert snapshot.world_tick == 9
     assert snapshot.election is not None
     assert snapshot.player.candidate is True
     assert snapshot.promises[0].status == "kept"
@@ -139,5 +155,5 @@ def test_hackathon_small_critical_path_ends_in_ten_actions_with_memory() -> None
 
     restored = service.get_snapshot(run_id)
     assert restored.release_profile == "hackathon_small"
-    assert restored.action_budget == 10
+    assert restored.action_budget == 18
     assert restored.election == snapshot.election

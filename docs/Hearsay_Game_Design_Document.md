@@ -5,6 +5,8 @@
 
 > **Hackathon release-scope amendment — 2026-07-30.** The user approved a smaller playable release. `IMPLEMENTATION_PLAN.md` now governs the release roster, critical path, asset requirements, and milestone order. The larger town described below remains the long-term design and may continue to exist in the simulation, but 20 fully presented residents, a complete tileset, additional events, second favors, and bespoke animation for every character are not hackathon-release blockers. The core pillars, memory consequences, autonomous behavior, election payoff, and CockroachDB/AWS proof remain mandatory.
 
+> **Agent-conversation amendment — 2026-07-31.** The focused release is an eighteen-action, three-day campaign. All twenty residents are present and can be approached for free-form conversation at any story stage. Each resident recalls holder-scoped conversation memory; public statements also enter town memory and may become versioned rumor hops. These cited memories can affect election inputs. The original ten story actions are now the guided onboarding spine, not the whole playable campaign.
+
 > **The one-line game:** You arrive a stranger in a living 2D town of twenty people who talk to each other about you — and in three days, they elect a mayor.
 
 ---

@@ -156,6 +156,11 @@ export interface components {
             target_id?: string | null;
             /** Content */
             content?: string | null;
+            /**
+             * Public Statement
+             * @default false
+             */
+            public_statement: boolean;
         };
         /** ActionResponse */
         ActionResponse: {
@@ -227,6 +232,35 @@ export interface components {
             /** Created At */
             created_at?: string | null;
         };
+        /** ChatMessageState */
+        ChatMessageState: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id?: string;
+            /** Npc Id */
+            npc_id: string;
+            /**
+             * Speaker
+             * @enum {string}
+             */
+            speaker: "player" | "npc";
+            /** Text */
+            text: string;
+            /** Day */
+            day: number;
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "morning" | "afternoon" | "evening" | "night";
+            /**
+             * Public Statement
+             * @default false
+             */
+            public_statement: boolean;
+        };
         /** CreateRunRequest */
         CreateRunRequest: {
             /**
@@ -275,6 +309,17 @@ export interface components {
             version: number;
             /** Proposition Key */
             proposition_key: string;
+            /**
+             * Scope
+             * @default individual
+             * @enum {string}
+             */
+            scope: "individual" | "town" | "rumor";
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
             /**
              * Contested
              * @default false
@@ -600,6 +645,8 @@ export interface components {
              * @default false
              */
             candidate: boolean;
+            /** Bram Approach */
+            bram_approach?: string | null;
             /** Argument Choice */
             argument_choice?: string | null;
             /** Endorsements */
@@ -733,6 +780,8 @@ export interface components {
             /** Favors */
             favors?: components["schemas"]["FavorState"][];
             dialogue?: components["schemas"]["DialogueState"] | null;
+            /** Conversation History */
+            conversation_history?: components["schemas"]["ChatMessageState"][];
             /** Town Events */
             town_events?: components["schemas"]["TownEventState"][];
             election?: components["schemas"]["ElectionState"] | null;
