@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("a resident carries Pip's rumor onward on a later tick", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?release_profile=full");
   await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
 
   await page.getByRole("button", { name: /Find Marta/ }).click();

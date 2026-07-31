@@ -45,9 +45,10 @@ def test_hackathon_small_profile_is_authoritative_and_rejects_side_stories() -> 
     assert created.snapshot.release_profile == "hackathon_small"
     assert created.snapshot.action_budget == 10
 
-    moved = take(service, created.run_id, ActionVerb.MOVE, "square")
+    moved = take(service, created.run_id, ActionVerb.MOVE, "midwife")
     assert moved.consumed_time is False
     assert moved.snapshot.action_count == 0
+    assert moved.snapshot.player.location_id == "midwife"
 
     with pytest.raises(InvalidActionError, match="outside this five-resident"):
         take(service, created.run_id, ActionVerb.ACCEPT_NESSA_FAVOR, "nessa")

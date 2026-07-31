@@ -3,7 +3,11 @@
 import { useEffect, useMemo, type CSSProperties } from "react";
 
 import type { NpcState, RunSnapshot } from "@/lib/api";
-import { releaseTierForNpc } from "@/lib/release-profile";
+import {
+  isFeaturedNpc,
+  isReleaseLocation,
+  releaseTierForNpc,
+} from "@/lib/release-profile";
 
 interface TownMapProps {
   snapshot: RunSnapshot;
@@ -57,12 +61,18 @@ function directionalNeighbor(
   current: RunSnapshot["locations"][number],
   locations: Map<string, RunSnapshot["locations"][number]>,
   direction: MapPoint,
+  visibleLocationIds: Set<string>,
 ) {
   const [currentX, , currentZ] = current.position;
 
   return current.neighbors
     .map((id) => locations.get(id))
-    .filter((location) => location !== undefined)
+    .filter(
+      (
+        location,
+      ): location is RunSnapshot["locations"][number] =>
+        location !== undefined && visibleLocationIds.has(location.id),
+    )
     .map((location) => {
       const [x, , z] = location.position;
       const deltaX = x - currentX;
@@ -99,10 +109,49 @@ export function TownMap({
     () => new Map(snapshot.locations.map((location) => [location.id, location])),
     [snapshot.locations],
   );
+  const smallRelease = snapshot.release_profile === "hackathon_small";
+  const visibleLocations = useMemo(
+    () =>
+      smallRelease
+        ? snapshot.locations.filter((location) => isReleaseLocation(location.id))
+        : snapshot.locations,
+    [smallRelease, snapshot.locations],
+  );
+  const visibleLocationIds = useMemo(
+    () => new Set(visibleLocations.map((location) => location.id)),
+    [visibleLocations],
+  );
+  const visibleNpcs = useMemo(
+    () =>
+      smallRelease
+        ? snapshot.npcs.filter(
+            (npc) => isFeaturedNpc(npc.id) || npc.recent_echoes.length > 0,
+          )
+        : snapshot.npcs,
+    [smallRelease, snapshot.npcs],
+  );
+  const visibleEchoes = useMemo(
+    () =>
+      snapshot.npcs
+        .flatMap((listener) =>
+          listener.recent_echoes.map((echo) => ({ echo, listener })),
+        )
+        .sort((left, right) => right.echo.hop - left.echo.hop)
+        .slice(0, 4),
+    [snapshot.npcs],
+  );
+  const activeTownEvent = snapshot.town_events.find(
+    (event) => event.status === "active",
+  );
   const currentLocation = locations.get(snapshot.player.location_id);
   const reachableLocations = useMemo(
-    () => new Set(currentLocation?.neighbors ?? []),
-    [currentLocation],
+    () =>
+      new Set(
+        (currentLocation?.neighbors ?? []).filter((locationId) =>
+          visibleLocationIds.has(locationId),
+        ),
+      ),
+    [currentLocation, visibleLocationIds],
   );
 
   useEffect(() => {
@@ -122,7 +171,12 @@ export function TownMap({
         return;
       }
 
-      const destination = directionalNeighbor(currentLocation, locations, direction);
+      const destination = directionalNeighbor(
+        currentLocation,
+        locations,
+        direction,
+        visibleLocationIds,
+      );
       if (!destination) return;
       event.preventDefault();
       onMove(destination.id);
@@ -130,7 +184,13 @@ export function TownMap({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [currentLocation, locations, movementDisabled, onMove]);
+  }, [
+    currentLocation,
+    locations,
+    movementDisabled,
+    onMove,
+    visibleLocationIds,
+  ]);
 
   if (!currentLocation) return null;
 
@@ -151,10 +211,13 @@ export function TownMap({
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        {snapshot.locations.flatMap((location) => {
+        {visibleLocations.flatMap((location) => {
           const start = mapPoint(location);
           return location.neighbors
-            .filter((neighborId) => location.id < neighborId)
+            .filter(
+              (neighborId) =>
+                location.id < neighborId && visibleLocationIds.has(neighborId),
+            )
             .map((neighborId) => {
               const neighbor = locations.get(neighborId);
               if (!neighbor) return null;
@@ -172,7 +235,7 @@ export function TownMap({
         })}
       </svg>
 
-      {snapshot.locations.map((location) => {
+      {visibleLocations.map((location) => {
         const point = mapPoint(location);
         const current = location.id === currentLocation.id;
         const reachable = reachableLocations.has(location.id);
@@ -196,12 +259,12 @@ export function TownMap({
         );
       })}
 
-      {snapshot.npcs.map((npc) => {
+      {visibleNpcs.map((npc) => {
         const location = locations.get(npc.location_id);
-        if (!location) return null;
+        if (!location || !visibleLocationIds.has(location.id)) return null;
         const releaseTier = releaseTierForNpc(npc.id);
         const point = mapPoint(location);
-        const peers = snapshot.npcs.filter(
+        const peers = visibleNpcs.filter(
           (resident) => resident.location_id === npc.location_id,
         );
         const peerIndex = peers.findIndex((resident) => resident.id === npc.id);
@@ -240,6 +303,52 @@ export function TownMap({
         aria-label={`The Newcomer at ${currentLocation.name}`}
         role="img"
       />
+
+      {activeTownEvent?.key === "market_day" ? (
+        <aside
+          className="town-map__scene-event"
+          data-market-crowd="8"
+          data-market-stalls="3"
+          data-scene-event="market_day"
+        >
+          <strong>Market Day at the row</strong>
+          <span>Three stalls · half the coast has crowded into Greyhaven.</span>
+        </aside>
+      ) : null}
+
+      {activeTownEvent?.key === "public_argument" ? (
+        <aside
+          className="town-map__scene-event"
+          data-scene-event="public_argument"
+        >
+          <strong>Bram and Nessa draw a crowd</strong>
+          <span>The square is choosing sides.</span>
+        </aside>
+      ) : null}
+
+      {activeTownEvent?.key === "storm" ? (
+        <aside className="town-map__scene-event" data-scene-event="storm">
+          <strong>Storm over Greyhaven</strong>
+          <span>The docks empty as the town crowds into the inn.</span>
+        </aside>
+      ) : null}
+
+      {visibleEchoes.length > 0 ? (
+        <aside className="town-map__gossip" aria-label="Visible gossip">
+          {visibleEchoes.map(({ echo, listener }) => (
+            <blockquote
+              className="speech-bubble"
+              key={`${listener.id}-${echo.speaker_id}-${echo.proposition_key}-${echo.hop}`}
+            >
+              <small>
+                {echo.speaker_name ?? echo.speaker_id} → {listener.name} · hop{" "}
+                {echo.hop}
+              </small>
+              <span>{echo.text}</span>
+            </blockquote>
+          ))}
+        </aside>
+      ) : null}
 
       {snapshot.weather === "rain" ? (
         <div className="town-map__rain" aria-hidden="true" />

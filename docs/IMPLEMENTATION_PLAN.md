@@ -128,6 +128,23 @@ Use a compact release map centered on:
 
 The existing twelve-location graph may remain authoritative internally. The release UI should emphasize only the locations needed by the featured story and avoid presenting unused waypoints as obligations.
 
+#### Approved visual-map amendment — 2026-07-31
+
+The focused release now presents the complete twelve-location graph as one
+continuous, bright 30×18-tile exterior village. All landmarks are visible,
+reachable, and respond to nearby interaction, but optional exploration never
+spends or replaces one of the ten guided story actions. The five featured story
+residents remain the only mandatory route; Nessa, Elias, and Orin provide short
+focused-profile conversations without exposing their longer full-profile favor
+trees.
+
+The Town Square is the navigation hub. Stone marks civic routes, warm dirt
+connects residential and market districts, wood marks the northwest harbor,
+and dense edge scenery conceals the world boundary. A gold in-world marker,
+compact objective card, signposts, plaques, minimap, and contextual bottom
+prompt provide direction without turning the full location set into twelve
+simultaneous objectives.
+
 ### 4.3 Playable story
 
 The default run is one compressed election arc:

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 async function acceptFavor(page: import("@playwright/test").Page) {
-  await page.goto("/");
+  await page.goto("/?release_profile=full");
   await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
   await page.getByRole("button", { name: /Find Pip/ }).click();
   await page

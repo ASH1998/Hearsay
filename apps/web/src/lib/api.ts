@@ -6,6 +6,7 @@ type GeneratedSnapshot = Schemas["RunSnapshot"];
 
 export type ActionVerb = Schemas["ActionVerb"];
 export type Phase = GeneratedSnapshot["phase"];
+export type ReleaseProfile = GeneratedSnapshot["release_profile"];
 export type LocationState = Schemas["LocationState"];
 export type PromiseState = Schemas["PromiseState"];
 export type MemoryLineage = Schemas["MemoryLineageResponse"];
@@ -55,13 +56,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function createRun(displayName: string): Promise<RunSnapshot> {
+export async function createRun(
+  displayName: string,
+  releaseProfile: ReleaseProfile = RELEASE_PROFILE_ID,
+): Promise<RunSnapshot> {
   const body = await request<{ snapshot: RunSnapshot }>("/v1/runs", {
     method: "POST",
     body: JSON.stringify({
       display_name: displayName,
       seed: 1729,
-      release_profile: RELEASE_PROFILE_ID,
+      release_profile: releaseProfile,
     }),
   });
   return body.snapshot;

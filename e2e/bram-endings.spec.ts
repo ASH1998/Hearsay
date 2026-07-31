@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("threatening Bram becomes a remembered run-out-of-town ending", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?release_profile=full");
   await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
 
   await page.getByRole("button", { name: /Find Bram/ }).click();
@@ -44,7 +44,7 @@ test("threatening Bram becomes a remembered run-out-of-town ending", async ({
 test("lying about Elias becomes a remembered Exposed ending", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?release_profile=full");
   await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
   await page.getByRole("button", { name: /Find Bram/ }).click();
   await page

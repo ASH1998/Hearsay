@@ -24,11 +24,12 @@ Completed:
 - Twelve Greyhaven locations and all eight principal NPCs stored as validated
   content data.
 - Playable Marta promise → Bram confrontation → Pip rumor tick.
-- Lightweight 2D Greyhaven map driven directly by authoritative locations,
+- Full-screen tile-based Greyhaven driven directly by authoritative locations,
   schedules, residents, weather, and town events.
-- Graph-constrained waypoint movement through map buttons or WASD/arrow keys,
-  responsive dialogue, interaction markers, rain, and synthesized feedback
-  audio.
+- Direct grid movement through WASD/arrow keys, camera follow, collision,
+  proximity dialogue, gold objective markers, a circular minimap, rain, and
+  synthesized feedback audio. The complete full-simulation waypoint surface
+  remains available behind the `full` release profile.
 - OpenAPI export and generated TypeScript contracts.
 - SQLAlchemy/Alembic persistence with players, versioned run snapshots,
   idempotent actions, and immutable event records.
@@ -51,6 +52,9 @@ Validated:
 - Next.js production build emits the App Router `/` route and standalone server.
 - Tracked Playwright coverage completes create → promise → confrontation → Pip
   rumor → refresh and restores the durable story state.
+- The movement-based release test walks the player through the actual town,
+  opens every required conversation by proximity, reaches the `14–6` ending,
+  and restores it after refresh.
 - Live visual inspection against the configured Cockroach Cloud application
   database passes at desktop and 390×844 mobile viewports.
 
@@ -494,8 +498,12 @@ Validated:
   public continuation events, exact Fen→Orin/Rhea parent versions, Orin's
   `-0.0125` hop-three vote input, and a non-Pip restored bubble after repository
   recreation.
-- Nineteen browser playthroughs pass and collectively reach all six endings. The
-  first plays arrival → promise → rumor → audited Historian
+- Twenty browser playthroughs pass and collectively reach all six endings. The
+  focused release playthrough follows the visible objectives through exactly
+  ten consequential actions, renders four Pip rumor bubbles and both recalled
+  belief versions, reaches `14–6` The Town Turns, and restores the same ending
+  after refresh. The original first full-profile story plays arrival → promise
+  → rumor → audited Historian
   fallback → promise kept → candidacy → midnight election. It renders the
   live afternoon movement cue, four labeled Pip→ambient bubbles, Pip's new
   Market row location, storm start, and storm refresh before the `11–9` result and exact v1 promise memory
@@ -607,22 +615,120 @@ Completed:
 - Changed local inference defaults to the deterministic provider. Bedrock or
   Modal now requires deliberate configuration; no paid model request is claimed
   by the local validation run.
+- Reduced the default release map to the six locations needed by the featured
+  story, while preserving the complete town behind the explicit `full` profile
+  used by regression stories.
+- Added a persistent Current objective card for the exact ten-action route,
+  correct remaining-action grammar, visible rumor speech bubbles with speaker,
+  listener, hop, and proposition, and map overlays for the storm, Market Day,
+  and public argument.
+- Removed Sleep from the focused release so a new player cannot accidentally
+  skip the action budget past required story beats. The full profile retains
+  Sleep for authored regression paths.
+- Added a self-cleaning Windows Playwright harness for both the focused release
+  check and the full browser suite. It owns and terminates the exact API/web
+  processes it starts, including on failure.
+- Replaced the focused release's map dashboard with a full-screen playable town
+  inspired by Rune-Goblin: tile-by-tile movement, camera follow, collision,
+  proximity-only talk, fixed objective anchors, NPC crowd spacing, a compact
+  quest HUD, a circular minimap, and in-world rumor barks.
+- Removed the focused release action bar and persistent ledger from the
+  rendered tree. The journal is optional behind `J`; a single objective
+  sentence and gold marker carry the opening from Marta through election night.
+- Decoupled free movement synchronization from consequential-action busy state,
+  added duplicate-location guards, allowed continuous-town location sync in the
+  focused API profile, and based the guide on durable milestones instead of the
+  short recent-event feed.
+- Added a readable election evidence overlay and an immediate
+  **Start a new story** action.
+- Split browser save pointers by release profile. The bare `/` URL now restores
+  only the playable-town run; `/?release_profile=full` has an independent save.
+  A legacy shared save is migrated only when its stored profile matches the
+  requested URL, so an older full-simulation run can no longer reopen the old
+  interface on the default command.
 
 Validated:
 
-- A production preview was played through arrival, Talia interaction, Marta's
-  promise, an autonomous afternoon schedule wave, and Marta's later recall.
-  The recall visibly changed her standing and dialogue while showing the exact
-  versioned memory reference.
+- An isolated desktop preview was manually played from arrival through Marta,
+  Bram, the visible multi-hop rumor, Marta's recalled promise, the storm crowd,
+  Talia, Rhea, and the final `14–6` election. Movement and every conversation
+  were exercised through the proximity controls.
 - ESLint, strict TypeScript, Vitest, and the Next.js production build pass for
   the release presentation changes.
-- The full local API suite passes with cloud-marked tests skipped. Mocked
+- The full local API suite passes (129 passed, 22 cloud-marked skipped). Mocked
   Bedrock tests cover Converse request shape, schema adaptation, invalid output,
   invalid autonomous targets, safe fallback, provider selection, token usage,
   selected-listener persistence, and the complete ten-action election path.
 - Ruff, formatting, strict mypy, generated OpenAPI/TypeScript contracts,
   frontend lint/typecheck/unit tests, the production build, and the Alembic
   `20260730_0009` head check pass. No real LLM call was made.
+- The focused clean-browser automation passes the full movement-based
+  ten-action route:
+  Marta promise → Bram negotiation and shipment release → Marta recall →
+  Talia's quiet help → candidacy → Rhea's public count → final talk. It verifies
+  the `14–6` ending, exact memory proof, action exhaustion, and refresh restore.
+- All 20 Playwright stories pass in one bounded 25-second run. The harness uses
+  isolated ports `3200`/`8200`, stops the exact processes it owns, and does not
+  touch an existing development session on `3000`/`8000`.
+- A dedicated clean-browser regression seeds the old shared storage key with a
+  real full-profile run, navigates back to `/`, proves the old map is rejected,
+  and starts the playable-town renderer instead.
+
+## Cozy village map expansion — 2026-07-31
+
+Completed:
+
+- Rebuilt the focused Greyhaven presentation as a hand-authored 30×18-tile
+  scrolling spring village with all twelve authoritative landmarks in one
+  exterior scene. The square, civic roads, residential paths, northwest harbor,
+  buildings, market, gardens, graves, signposts, and edge tree clusters now use
+  the licensed Farm RPG art family.
+- Added a reproducible `scripts/prepare-farm-rpg-assets.ps1` pipeline. It copies
+  or crops only 54 integrated runtime assets, composites Orin from modular
+  layers, and records every selected source path, purpose, SHA-256 hash, and
+  license restriction in `assets/manifest.json`. The complete licensed pack is
+  not exposed by the web application.
+- Replaced discrete tile stepping with held-key cardinal movement at about
+  165 world pixels per second, four-direction idle/walk animation, left-facing
+  mirroring, foot-level collision, independent axis resolution, Y-sorting,
+  camera easing, click selection, nearby keyboard interaction, and
+  server-authoritative location synchronization.
+- Made all twelve landmarks responsive without spending story actions. The
+  board opens the journal; the room reports save/day state; the alley presents
+  the latest speaker chain; the road reports story or election status; and
+  resident districts provide contextual plaques when their resident is away.
+- Added distinct Farm RPG world sprites and portraits for Marta, Bram, Pip,
+  Talia, Rhea, Nessa, Elias, and Orin. The three supporting residents retain
+  short conversations in the focused profile without exposing their full
+  side-quest action trees.
+- Replaced the purple prototype chrome with warm wood, cream paper, teal, and
+  gold framing. The gold objective marker, landmark plaques, signposts, compact
+  objective card, always-visible minimap, and bottom interaction prompt keep
+  the ten-action route legible while allowing free exploration.
+- Preserved the previous Tiny Swords files as unreferenced legacy material. The
+  focused renderer contains no `/world/greyhaven` request.
+- Extended the self-cleaning Playwright harness with a validated single-spec
+  mode so visual or movement regressions can be run without starting unrelated
+  long-lived work.
+
+Validated:
+
+- The exact guided ten-action election route passes with held-key smooth
+  movement in 21.8 seconds; both focused-release browser checks pass in
+  25.0 seconds.
+- The dedicated cozy-village smoke walks collision-safe routes to all twelve
+  landmarks, activates every one, opens all eight principal conversations,
+  confirms optional exploration leaves the story at step 1 of 10, rejects
+  missing Farm RPG responses, and rejects legacy Tiny Swords requests. It
+  passes in 45.7 seconds.
+- Desktop captures at 1440×900 and 1280×720 and the 760×900 narrow layout show
+  sharp nearest-neighbor pixels, readable HUD layers, unobstructed routes, and
+  stable camera bounds.
+- ESLint, strict TypeScript, the frontend unit test, and the Next.js production
+  build pass. The local API suite passes with 129 tests; 22 cloud-marked tests
+  remain deliberately deselected.
+- Every QA server was bounded and self-cleaned. No listener remains on the
+  isolated QA ports 3100/8100 or 3200/8200.
 
 ## Infrastructure proof update — 2026-07-30
 

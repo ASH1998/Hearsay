@@ -3,11 +3,11 @@ import { expect, test } from "@playwright/test";
 test("a promise, confrontation, rumor, and refresh form one durable story", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?release_profile=full");
   await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
 
   await expect(page.getByLabel("Town ledger")).toBeVisible();
-  await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.getByLabel("Map of Greyhaven")).toBeVisible();
 
   await page.getByRole("button", { name: /Find Marta/ }).click();
   await page
@@ -43,7 +43,9 @@ test("a promise, confrontation, rumor, and refresh form one durable story", asyn
     "The newcomer tried to ruin Bram in the middle of market row.",
   );
   await page.getByRole("button", { name: "Talk", exact: true }).click();
-  await expect(page.getByText(/Memory-informed · 1 recalled/)).toBeVisible();
+  await expect(page.getByLabel("Long-term memories recalled")).toContainText(
+    "bram-price-confrontation",
+  );
   await expect(page.getByText(/standing -10/)).toBeVisible();
   await expect(page.getByText(/Cold: the market-row rumor/)).toBeVisible();
   await expect(

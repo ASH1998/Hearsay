@@ -6,12 +6,11 @@ Hearsay is a browser-based social-memory game set in Greyhaven. You have three
 days to win a mayoral election in a town where promises become rumors, rumors
 mutate as people repeat them, and every decisive memory keeps its provenance.
 
-The project is under active implementation. The playable foundation provides an
-authoritative FastAPI run/action/snapshot loop, durable CockroachDB persistence,
-and a lightweight 2D Greyhaven map with graph-constrained movement, NPC
-interactions, dialogue, and storm presentation. The professional player sprite
-pack is integrated; commissioned town and NPC art will replace the temporary
-map markers without changing the authoritative simulation.
+The default first playthrough is a full-screen, top-down playable town. Walk
+Greyhaven directly, approach residents under the gold objective marker, and
+hear rumors change while you move. The compact world HUD sits over an
+authoritative FastAPI simulation with durable CockroachDB memory, schedules,
+promises, town events, and an explainable 20-resident election.
 
 ## Local setup
 
@@ -28,19 +27,48 @@ The version check must print `11.9.0`. Then:
 ```powershell
 pnpm bootstrap
 pnpm doctor
-pnpm dev
+pnpm play
 ```
 
 If another global pnpm installation still shadows Corepack, no uninstall is
 required. Use the pinned launcher directly:
 
 ```powershell
-corepack pnpm@11.9.0 dev
+corepack pnpm@11.9.0 play
 ```
 
 Then open `http://localhost:3000`. The API serves health and OpenAPI
 documentation at `http://localhost:8000/health` and
 `http://localhost:8000/docs`.
+
+`pnpm play` creates a bounded production build and serves it without Next.js
+development controls or a persistent compiler. The build is stopped if it
+exceeds 60 seconds, and Ctrl+C cleans up the exact web/API processes started by
+the command. Use `pnpm dev` only while editing source; it uses the tested
+Webpack watcher, hides the development indicator from the game surface, rejects
+duplicate port 3000 servers, and follows the same owned-process cleanup rule.
+
+### How to play
+
+1. Select **Take the road to Greyhaven**. Marta immediately gives you the first
+   problem, so there is no menu to decipher.
+2. Use **WASD** or the **arrow keys** to walk toward the gold marker.
+3. Press **T**, **Enter**, or **Space** when the proximity prompt names the
+   resident you need.
+4. Follow the single sentence in the top-left objective card. Press **J** only
+   when you want the optional journal.
+
+The guided route is Marta → Bram → Marta → Talia → Rhea → election night. The
+first run is ten consequential choices; walking and exploration are free.
+Refreshing restores the current run. To deliberately discard an older save,
+press **J** and choose **Restart first playthrough**.
+
+The focused first-playthrough check starts isolated deterministic servers,
+plays the exact ten-action release path, and always shuts those servers down:
+
+```powershell
+corepack pnpm@11.9.0 test:e2e:release
+```
 
 To use Cockroach Cloud on Windows, put either `DATABASE_URL` or the exported
 `username`, `password`, `command_to_create_cert`, and `command_to_connect`
@@ -126,24 +154,23 @@ reproducibility details.
 
 The default `hackathon_small` loop is intentionally small but end to end:
 
-1. Start or restore a run.
-2. Promise Marta that you will release the inn shipment.
-3. Choose how to handle Bram: threaten, flatter, negotiate, or lie.
-4. After the second consequential action, Pip visibly repeats a distorted
-   version and the authoritative action clock advances.
-5. Open “Trace Pip’s rumor” in the Town Ledger to inspect Bram’s source belief,
-   Pip’s immutable retelling, and the recorded mutation.
-6. Return to Bram before evening and pay to release Marta's shipment—or let the
-   deadline pass. The ledger, notice-board traits, Pip's chatter, Marta's
-   treatment, and immutable promise memory all reflect the outcome.
-7. Optionally resolve Talia's sick-house request, declare against Rhea, answer
-   her ballot compact, and reach election night within the ten-action budget.
-   All 20 residents still vote from stored disposition, traits, relationships,
-   and memories; the ending shows which exact inputs turned the tally.
+1. Marta intercepts the newcomer and asks for a shipment promise.
+2. The player walks north-east through the rendered town to confront Bram.
+3. Bram offers four clearly labeled approaches. Pip's mutated version then
+   appears as an in-world rumor with speaker, listener, and hop.
+4. The player settles the shipment, returns to Marta, and sees her recall the
+   durable promise outcome.
+5. A storm crowds residents into the inn, where Talia presents the next moral
+   choice without opening a side-story dashboard.
+6. The gold marker leads to Rhea. Candidacy, ballot custody, and the final
+   witnessed-count decision resolve into a readable `14–6` election result.
 
-Movement, eavesdropping, and the notice board are free actions. Walk through
-connected waypoints with the on-screen controls or WASD/arrow keys. Refreshing
-the browser restores the current run from CockroachDB. The current memory slice
+The focused release renders no action bar or always-open ledger. One objective,
+one gold target, proximity interaction, a circular minimap, and optional
+journal carry the whole run. The broader `full` profile remains available for
+the authored regression stories at `/?release_profile=full`; its save is kept
+separate and cannot replace the playable-town save on the default URL. The
+current memory slice
 persists immutable belief lineage and performs holder-scoped 384-dimensional
 vector recall with relational reranking. Structured Bedrock/Modal inference is
 validated and provenance-tracked. In the small release, Pip's bounded
@@ -209,5 +236,6 @@ speech-only path resolves `10–10` in Rhea's favor as an audited Narrow loss.
   memory proof, benchmarking, MCP Historian, and submission compliance.
 - `docs/IMPLEMENTATION_PLAN.md` is the implementation queue.
 - `docs/IMPLEMENTATION_STATUS.md` records completed gates and the next slice.
+- `THIRD_PARTY_ASSETS.md` records the reusable visual assets and their terms.
 - `THIRD_PARTY_MODELS.md` records the local embedding model, license, and
   reproducibility details.

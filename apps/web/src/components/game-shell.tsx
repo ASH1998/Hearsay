@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  LANDMARKS,
+  LANDMARK_RESIDENTS,
+  PRESENTED_NPC_IDS,
+  type LandmarkId,
+} from "@/components/greyhaven-map";
+import { PlayableTown } from "@/components/playable-town";
 import { TownMap } from "@/components/town-map";
 import {
   clockLabel,
@@ -12,6 +19,7 @@ import {
   type ActionVerb,
   type HistorianTrace,
   type NpcState,
+  type ReleaseProfile,
   type RunSnapshot,
 } from "@/lib/api";
 import {
@@ -19,7 +27,101 @@ import {
   releaseTierForNpc,
 } from "@/lib/release-profile";
 
-const RUN_STORAGE_KEY = "hearsay.run-id";
+const LEGACY_RUN_STORAGE_KEY = "hearsay.run-id";
+const RUN_STORAGE_KEYS: Record<ReleaseProfile, string> = {
+  full: "hearsay.run-id.full",
+  hackathon_small: "hearsay.run-id.playable-town",
+};
+type GuidedStage =
+  | "bram_approach"
+  | "declare_candidacy"
+  | "election_complete"
+  | "final_talk"
+  | "marta_promise"
+  | "marta_recall"
+  | "rhea_question"
+  | "rhea_resolve"
+  | "settle_shipment"
+  | "talia_request"
+  | "talia_resolve";
+
+function firstPlaythroughStage(snapshot: RunSnapshot): GuidedStage {
+  if (snapshot.election) return "election_complete";
+  const martaPromise = snapshot.promises.find(
+    (promise) => promise.promisee_id === "marta",
+  );
+  const taliaFavor = snapshot.favors.find(
+    (favor) => favor.key === "talia_sick_house",
+  );
+  const rheaCompact = snapshot.favors.find(
+    (favor) => favor.key === "rhea_ballot_compact",
+  );
+
+  if (!martaPromise) return "marta_promise";
+  if (snapshot.action_count < 2) return "bram_approach";
+  if (martaPromise.status === "active") return "settle_shipment";
+  if (snapshot.action_count < 4) return "marta_recall";
+  if (!taliaFavor) return "talia_request";
+  if (taliaFavor.status === "active") return "talia_resolve";
+  if (!snapshot.player.candidate) return "declare_candidacy";
+  if (!rheaCompact) return "rhea_question";
+  if (rheaCompact.status === "active") return "rhea_resolve";
+  return "final_talk";
+}
+
+const GUIDED_OBJECTIVES: Record<GuidedStage, string> = {
+  bram_approach:
+    "Walk north-east to Market Row. Confront Bram under the gold marker.",
+  declare_candidacy:
+    "Walk north-west to the Guildhouse. Tell Rhea you are standing for mayor.",
+  election_complete: "Election resolved. Open the journal to see why each vote moved.",
+  final_talk:
+    "Speak to Rhea once more. Election night will resolve every remembered choice.",
+  marta_promise:
+    "Marta has stopped you on the road. Promise to free the inn's shipment.",
+  marta_recall:
+    "Return west to the Gull & Anchor. Let Marta tell you what she remembers.",
+  rhea_question:
+    "Stay with Rhea. Ask who controls the ballot box before election night.",
+  rhea_resolve:
+    "Choose: demand a witnessed public count, or accept Rhea's private compact.",
+  settle_shipment:
+    "Bram named his price. Pay now to keep your promise before evening.",
+  talia_request:
+    "Follow the gold marker to Talia. Ask who in Greyhaven needs help.",
+  talia_resolve:
+    "Choose whether to protect Oswin's privacy or turn his illness into public warning.",
+};
+
+const GUIDED_NPCS: Record<GuidedStage, string | null> = {
+  bram_approach: "bram",
+  declare_candidacy: "rhea",
+  election_complete: null,
+  final_talk: "rhea",
+  marta_promise: "marta",
+  marta_recall: "marta",
+  rhea_question: "rhea",
+  rhea_resolve: "rhea",
+  settle_shipment: "bram",
+  talia_request: "talia",
+  talia_resolve: "talia",
+};
+
+function firstPlaythroughObjective(snapshot: RunSnapshot) {
+  return GUIDED_OBJECTIVES[firstPlaythroughStage(snapshot)];
+}
+
+function requestedReleaseProfile(): ReleaseProfile {
+  const requestedProfile = new URLSearchParams(window.location.search).get(
+    "release_profile",
+  );
+  return requestedProfile === "full" ? "full" : "hackathon_small";
+}
+
+function remainingActionLabel(snapshot: RunSnapshot) {
+  const remaining = snapshot.action_budget - snapshot.action_count;
+  return `${remaining} consequential ${remaining === 1 ? "action remains" : "actions remain"}`;
+}
 
 function agentDecisionProvenance(
   event: RunSnapshot["recent_events"][number],
@@ -147,22 +249,48 @@ export function GameShell() {
   const [selectedNpc, setSelectedNpc] = useState<NpcState | null>(null);
   const [historian, setHistorian] = useState<HistorianTrace | null>(null);
   const [historianOpen, setHistorianOpen] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [selectedLandmarkId, setSelectedLandmarkId] =
+    useState<LandmarkId | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const moveInFlightRef = useRef(false);
   const marketDayActive =
     snapshot?.town_events.some(
       (event) => event.key === "market_day" && event.status === "active",
     ) ?? false;
 
   useEffect(() => {
-    const runId = window.localStorage.getItem(RUN_STORAGE_KEY);
+    const releaseProfile = requestedReleaseProfile();
+    const storageKey = RUN_STORAGE_KEYS[releaseProfile];
+    const profileRunId = window.localStorage.getItem(storageKey);
+    const legacyRunId = window.localStorage.getItem(LEGACY_RUN_STORAGE_KEY);
+    const runId = profileRunId ?? legacyRunId;
     if (!runId) {
       const ready = window.setTimeout(() => setBusy(false), 0);
       return () => window.clearTimeout(ready);
     }
     loadRun(runId)
-      .then(setSnapshot)
-      .catch(() => window.localStorage.removeItem(RUN_STORAGE_KEY))
+      .then((next) => {
+        if (next.release_profile !== releaseProfile) {
+          window.localStorage.removeItem(storageKey);
+          if (legacyRunId === runId) {
+            window.localStorage.removeItem(LEGACY_RUN_STORAGE_KEY);
+          }
+          return;
+        }
+        window.localStorage.setItem(storageKey, next.run_id);
+        if (legacyRunId === runId) {
+          window.localStorage.removeItem(LEGACY_RUN_STORAGE_KEY);
+        }
+        setSnapshot(next);
+      })
+      .catch(() => {
+        window.localStorage.removeItem(storageKey);
+        if (legacyRunId === runId) {
+          window.localStorage.removeItem(LEGACY_RUN_STORAGE_KEY);
+        }
+      })
       .finally(() => setBusy(false));
   }, []);
 
@@ -176,15 +304,62 @@ export function GameShell() {
   const begin = useCallback(async () => {
     setBusy(true);
     setError(null);
+    setSelectedNpc(null);
+    setHistorian(null);
+    setHistorianOpen(false);
+    setJournalOpen(false);
+    setSelectedLandmarkId(null);
     try {
-      const next = await createRun("Newcomer");
-      window.localStorage.setItem(RUN_STORAGE_KEY, next.run_id);
+      const releaseProfile = requestedReleaseProfile();
+      const next = await createRun("Newcomer", releaseProfile);
+      window.localStorage.setItem(
+        RUN_STORAGE_KEYS[releaseProfile],
+        next.run_id,
+      );
+      window.localStorage.removeItem(LEGACY_RUN_STORAGE_KEY);
       setSnapshot(next);
+      if (releaseProfile === "hackathon_small") {
+        setSelectedNpc(next.npcs.find((npc) => npc.id === "marta") ?? null);
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Greyhaven did not answer.");
     } finally {
       setBusy(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const toggleJournal = (event: KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== "j" ||
+        selectedNpc ||
+        selectedLandmarkId ||
+        historianOpen
+      ) {
+        return;
+      }
+      setJournalOpen((open) => !open);
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", toggleJournal);
+    return () => window.removeEventListener("keydown", toggleJournal);
+  }, [historianOpen, selectedLandmarkId, selectedNpc]);
+
+  const openNpc = useCallback((npc: NpcState) => {
+    setJournalOpen(false);
+    setSelectedLandmarkId(null);
+    setSelectedNpc(npc);
+  }, []);
+
+  const interactWithLandmark = useCallback((landmarkId: LandmarkId) => {
+    setSelectedNpc(null);
+    if (landmarkId === "notice_board") {
+      setSelectedLandmarkId(null);
+      setJournalOpen(true);
+      return;
+    }
+    setJournalOpen(false);
+    setSelectedLandmarkId(landmarkId);
   }, []);
 
   const act = useCallback(
@@ -209,11 +384,14 @@ export function GameShell() {
         ) {
           playMarketAmbience();
         }
-        setSelectedNpc((current) =>
-          current
-            ? next.npcs.find((npc) => npc.id === current.id) ?? null
-            : null,
-        );
+        setSelectedNpc((current) => {
+          if (!current) return null;
+          if (next.release_profile === "hackathon_small") {
+            const nextGuide = GUIDED_NPCS[firstPlaythroughStage(next)];
+            if (nextGuide !== current.id) return null;
+          }
+          return next.npcs.find((npc) => npc.id === current.id) ?? null;
+        });
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : "The action failed.");
       } finally {
@@ -245,6 +423,27 @@ export function GameShell() {
       setBusy(false);
     }
   }, [snapshot]);
+
+  const move = useCallback(
+    async (locationId: string) => {
+      if (!snapshot || moveInFlightRef.current) return;
+      moveInFlightRef.current = true;
+      setError(null);
+      try {
+        const next = await takeAction(snapshot.run_id, "move", locationId);
+        setSnapshot(next);
+      } catch (reason) {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "Greyhaven's road did not answer.",
+        );
+      } finally {
+        moveInFlightRef.current = false;
+      }
+    },
+    [snapshot],
+  );
 
   if (!snapshot) {
     return (
@@ -289,10 +488,28 @@ export function GameShell() {
   const rheaCompact = snapshot.favors.find(
     (favor) => favor.key === "rhea_ballot_compact",
   );
-
-  const move = (locationId: string) => {
-    void act("move", locationId);
-  };
+  const smallRelease = snapshot.release_profile === "hackathon_small";
+  const guidedStage = firstPlaythroughStage(snapshot);
+  const guidedNpcId = smallRelease ? GUIDED_NPCS[guidedStage] : null;
+  const guidedStep = Math.min(
+    snapshot.action_count + 1,
+    snapshot.action_budget,
+  );
+  const selectedLandmark =
+    selectedLandmarkId === null ? null : LANDMARKS[selectedLandmarkId];
+  const selectedLandmarkResidentId =
+    selectedLandmarkId === null
+      ? null
+      : LANDMARK_RESIDENTS[selectedLandmarkId] ?? null;
+  const selectedLandmarkResident =
+    selectedLandmarkResidentId === null
+      ? null
+      : snapshot.npcs.find((npc) => npc.id === selectedLandmarkResidentId) ?? null;
+  const latestEcho = snapshot.npcs
+    .flatMap((listener) =>
+      listener.recent_echoes.map((echo) => ({ echo, listener })),
+    )
+    .sort((left, right) => right.echo.hop - left.echo.hop)[0];
 
   return (
     <main
@@ -302,21 +519,40 @@ export function GameShell() {
       data-town-event={activeTownEvent?.key ?? "none"}
       data-market-audio={marketDayActive ? "active" : "inactive"}
       data-conversation={selectedNpc ? "open" : "closed"}
+      data-landmark={selectedLandmarkId ?? "closed"}
       data-historian={historianOpen ? "open" : "closed"}
+      data-game-status={snapshot.status}
     >
       <div className="town-stage">
-        <TownMap
-          snapshot={snapshot}
-          selectedNpcId={selectedNpc?.id ?? null}
-          movementDisabled={busy}
-          onMove={move}
-          onNpcClick={setSelectedNpc}
-        />
+        {smallRelease ? (
+          <PlayableTown
+            snapshot={snapshot}
+            guidedNpcId={guidedNpcId}
+            selectedNpcId={selectedNpc?.id ?? null}
+            selectedLandmarkId={selectedLandmarkId}
+            movementDisabled={busy || gameOver || selectedLandmark !== null}
+            onMove={(locationId) => void move(locationId)}
+            onLandmarkInteract={interactWithLandmark}
+            onNpcClick={openNpc}
+          />
+        ) : (
+          <TownMap
+            snapshot={snapshot}
+            selectedNpcId={selectedNpc?.id ?? null}
+            movementDisabled={busy}
+            onMove={(locationId) => void move(locationId)}
+            onNpcClick={openNpc}
+          />
+        )}
       </div>
 
       <header className="topbar">
         <div>
-          <p className="eyebrow">Greyhaven · five lives in focus</p>
+          <p className="eyebrow">
+            {smallRelease
+              ? "Greyhaven · three days to change twenty minds"
+              : "Greyhaven · full simulation"}
+          </p>
           <h1>Hearsay</h1>
         </div>
         <div className="clock" aria-label="Game clock">
@@ -329,37 +565,85 @@ export function GameShell() {
             <strong className="event-status">{activeTownEvent.title}</strong>
           ) : null}
           <small>
-            {snapshot.action_budget - snapshot.action_count} consequential actions remain
+            {smallRelease
+              ? gameOver
+                ? "Election resolved"
+                : `Story step ${guidedStep} of ${snapshot.action_budget}`
+              : remainingActionLabel(snapshot)}
           </small>
         </div>
       </header>
 
-      <aside className="where">
-        <span className="where__pin">◆</span>
-        <div>
-          <small>You are at</small>
-          <strong>{currentLocation?.name ?? "Greyhaven"}</strong>
-        </div>
-      </aside>
-
-      <nav className="waypoints" aria-label="Walk through Greyhaven">
-        <small>Walk · WASD / arrows</small>
-        {waypointLocations.map((location) => (
+      {smallRelease ? (
+        <>
+          <section className="quest-hud" aria-label="Current objective">
+            <div className="quest-hud__step">
+              <span>{gameOver ? "✓" : guidedStep}</span>
+              <small>{gameOver ? "Complete" : "Current lead"}</small>
+            </div>
+            <div>
+              <strong>{firstPlaythroughObjective(snapshot)}</strong>
+              <small>
+                {gameOver
+                  ? "The town remembers every choice."
+                  : "Follow the gold marker · WASD to move · T to talk"}
+              </small>
+            </div>
+          </section>
           <button
-            key={location.id}
+            className="journal-toggle"
+            aria-expanded={journalOpen}
+            onClick={() => setJournalOpen((open) => !open)}
             type="button"
-            disabled={busy}
-            onClick={() => move(location.id)}
           >
-            {location.name}
+            <kbd>J</kbd>
+            Journal
           </button>
-        ))}
-      </nav>
+        </>
+      ) : (
+        <>
+          <aside className="where">
+            <span className="where__pin">◆</span>
+            <div>
+              <small>You are at</small>
+              <strong>{currentLocation?.name ?? "Greyhaven"}</strong>
+            </div>
+          </aside>
 
-      <section className="ledger" aria-label="Town ledger">
+          <nav className="waypoints" aria-label="Walk through Greyhaven">
+            <small>Walk · WASD / arrows</small>
+            {waypointLocations.map((location) => (
+              <button
+                key={location.id}
+                type="button"
+                disabled={busy}
+                onClick={() => move(location.id)}
+              >
+                {location.name}
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
+
+      <section
+        className={`ledger${smallRelease ? " ledger--journal" : ""}`}
+        aria-label={smallRelease ? "Journal" : "Town ledger"}
+        aria-hidden={smallRelease && !journalOpen}
+        data-open={smallRelease && journalOpen}
+      >
         <div className="panel-title">
-          <p className="eyebrow">Town ledger</p>
+          <p className="eyebrow">{smallRelease ? "Journal" : "Town ledger"}</p>
           <span>Tick {snapshot.world_tick}</span>
+          {smallRelease ? (
+            <button
+              aria-label="Close journal"
+              onClick={() => setJournalOpen(false)}
+              type="button"
+            >
+              ×
+            </button>
+          ) : null}
         </div>
         {activeTownEvent ? (
           <article
@@ -545,6 +829,16 @@ export function GameShell() {
             Trace Pip&apos;s rumor
           </button>
         ) : null}
+        {smallRelease ? (
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={begin}
+            type="button"
+          >
+            Restart first playthrough
+          </button>
+        ) : null}
       </section>
 
       {snapshot.election ? (
@@ -589,9 +883,18 @@ export function GameShell() {
               );
             })}
           </div>
+          <button
+            className="primary election-restart"
+            disabled={busy}
+            onClick={begin}
+            type="button"
+          >
+            Start a new story
+          </button>
         </section>
       ) : null}
 
+      {!smallRelease ? (
       <section className="actions" aria-label="Available actions">
         <button type="button" disabled={busy || gameOver} onClick={() => act("observe")}>
           Eavesdrop
@@ -701,14 +1004,16 @@ export function GameShell() {
             )?.name ?? "Greyhaven"}
           </small>
         </button>
-        <button
-          type="button"
-          disabled={busy || gameOver}
-          onClick={() => act("sleep")}
-        >
-          Sleep until morning
-          <small>Advance to the next day</small>
-        </button>
+        {snapshot.release_profile === "full" ? (
+          <button
+            type="button"
+            disabled={busy || gameOver}
+            onClick={() => act("sleep")}
+          >
+            Sleep until morning
+            <small>Advance to the next day</small>
+          </button>
+        ) : null}
         {snapshot.player.candidate &&
         !snapshot.player.square_speech_days.includes(snapshot.day) ? (
           <button
@@ -721,6 +1026,74 @@ export function GameShell() {
           </button>
         ) : null}
       </section>
+      ) : null}
+
+      {smallRelease && selectedLandmark ? (
+        <section
+          className="landmark-panel"
+          aria-label={selectedLandmark.label}
+          data-landmark-id={selectedLandmark.id}
+        >
+          <button
+            className="landmark-panel__close"
+            type="button"
+            aria-label={`Close ${selectedLandmark.label}`}
+            onClick={() => setSelectedLandmarkId(null)}
+          >
+            ×
+          </button>
+          <p className="eyebrow">Greyhaven landmark</p>
+          <h2>{selectedLandmark.label}</h2>
+          <p>{selectedLandmark.summary}</p>
+          {selectedLandmark.id === "room" ? (
+            <div className="landmark-panel__note">
+              <strong>
+                Day {snapshot.day} · {snapshot.phase}
+              </strong>
+              <span>
+                Your story is saved after every choice. Rest becomes available
+                when this guided day permits it.
+              </span>
+            </div>
+          ) : selectedLandmark.id === "alley" ? (
+            <div className="landmark-panel__note">
+              <strong>{latestEcho ? "Newest whisper" : "Quiet—for now"}</strong>
+              <span>
+                {latestEcho
+                  ? `${latestEcho.echo.speaker_name ?? latestEcho.echo.speaker_id} → ${latestEcho.listener.name}, hop ${latestEcho.echo.hop}: “${latestEcho.echo.text}”`
+                  : "No story has travelled far enough to leave an echo here yet."}
+              </span>
+            </div>
+          ) : selectedLandmark.id === "road" ? (
+            <div className="landmark-panel__note">
+              <strong>
+                {snapshot.election
+                  ? snapshot.election.ending.title
+                  : `${snapshot.action_budget - snapshot.action_count} story choices remain`}
+              </strong>
+              <span>
+                {snapshot.election
+                  ? snapshot.election.ending.summary
+                  : "You arrived as a stranger. Greyhaven is still deciding what name to give you."}
+              </span>
+            </div>
+          ) : selectedLandmarkResident ? (
+            <div className="landmark-panel__note">
+              <strong>{selectedLandmarkResident.name}</strong>
+              <span>
+                {selectedLandmarkResident.location_id === selectedLandmark.id
+                  ? `${selectedLandmarkResident.role} is nearby. Close this plaque and press T beside them to talk.`
+                  : `${selectedLandmarkResident.name} is away at ${snapshot.locations.find((location) => location.id === selectedLandmarkResident.location_id)?.name ?? "another part of Greyhaven"}.`}
+              </span>
+            </div>
+          ) : (
+            <div className="landmark-panel__note">
+              <strong>A place worth remembering</strong>
+              <span>Nothing here spends a story action. Explore freely.</span>
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {selectedNpc ? (
         <section className="conversation" aria-live="polite">
@@ -737,7 +1110,7 @@ export function GameShell() {
             data-npc-id={selectedNpc.id}
             style={{ "--portrait-color": selectedNpc.color } as React.CSSProperties}
           >
-            {selectedNpc.id === "talia"
+            {PRESENTED_NPC_IDS.has(selectedNpc.id)
               ? null
               : selectedNpc.name
                   .split(" ")
@@ -797,20 +1170,26 @@ export function GameShell() {
               className="conversation__choices"
               disabled={busy || selectedNpcOutOfReach}
             >
-              <button
-                disabled={busy}
-                type="button"
-                onClick={() =>
-                  act(
-                    "talk",
-                    selectedNpc.id,
-                    "What have you heard about me and the town?",
-                  )
-                }
-              >
-                Talk
-              </button>
-              {snapshot.dialogue?.speaker_id === selectedNpc.id
+              {!smallRelease ||
+              (guidedStage === "marta_recall" &&
+                selectedNpc.id === "marta") ||
+              (guidedStage === "final_talk" && selectedNpc.id === "rhea") ? (
+                <button
+                  disabled={busy}
+                  type="button"
+                  onClick={() =>
+                    act(
+                      "talk",
+                      selectedNpc.id,
+                      "What have you heard about me and the town?",
+                    )
+                  }
+                >
+                  Talk
+                </button>
+              ) : null}
+              {!smallRelease &&
+              snapshot.dialogue?.speaker_id === selectedNpc.id
                 ? snapshot.dialogue.available_choices?.map((choice) => (
                     <button
                       disabled={busy}
@@ -825,6 +1204,7 @@ export function GameShell() {
                   ))
                 : null}
               {selectedNpc.id === "marta" &&
+              (!smallRelease || guidedStage === "marta_promise") &&
               !snapshot.promises.some((promise) => promise.promisee_id === "marta") ? (
                 <button
                   disabled={busy}
@@ -834,52 +1214,81 @@ export function GameShell() {
                   Promise to fix the shipment
                 </button>
               ) : null}
-              {selectedNpc.id === "bram" ? (
+              {selectedNpc.id === "bram" &&
+              (!smallRelease || guidedStage === "bram_approach") ? (
                 <>
                   <button
+                    aria-label="Threaten him quietly"
+                    className={smallRelease ? "choice-card choice-card--danger" : undefined}
                     disabled={busy}
                     type="button"
                     onClick={() => act("threaten_bram", "bram")}
                   >
-                    Threaten him quietly
+                    <span>Threaten him quietly</span>
+                    {smallRelease ? (
+                      <small aria-hidden="true">Fast · the town may remember cruelty</small>
+                    ) : null}
                   </button>
                   <button
+                    aria-label="Flatter his business sense"
+                    className={smallRelease ? "choice-card" : undefined}
                     disabled={busy}
                     type="button"
                     onClick={() => act("flatter_bram", "bram")}
                   >
-                    Flatter his business sense
+                    <span>Flatter his business sense</span>
+                    {smallRelease ? (
+                      <small aria-hidden="true">Safe · costs pride, not coin</small>
+                    ) : null}
                   </button>
                   <button
+                    aria-label="Negotiate a deal"
+                    className={
+                      smallRelease
+                        ? "choice-card choice-card--recommended"
+                        : undefined
+                    }
                     disabled={busy}
                     type="button"
                     onClick={() => act("negotiate_bram", "bram")}
                   >
-                    Negotiate a deal
+                    <span>Negotiate a deal</span>
+                    {smallRelease ? (
+                      <small aria-hidden="true">Recommended · firm without making an enemy</small>
+                    ) : null}
                   </button>
                   <button
+                    aria-label="Lie about a constable's order"
+                    className={smallRelease ? "choice-card choice-card--danger" : undefined}
                     disabled={busy}
                     type="button"
                     onClick={() => act("lie_to_bram", "bram")}
                   >
-                    Lie about a constable&apos;s order
+                    <span>Lie about a constable&apos;s order</span>
+                    {smallRelease ? (
+                      <small aria-hidden="true">Risky · devastating if exposed</small>
+                    ) : null}
                   </button>
-                  {snapshot.promises.some(
-                    (promise) =>
-                      promise.promisee_id === "marta" &&
-                      promise.status === "active",
-                  ) ? (
-                    <button
-                      disabled={busy}
-                      type="button"
-                      onClick={() => act("settle_shipment", "bram")}
-                    >
-                      Pay to release Marta&apos;s shipment
-                    </button>
-                  ) : null}
                 </>
               ) : null}
+              {selectedNpc.id === "bram" &&
+              (!smallRelease || guidedStage === "settle_shipment") &&
+              snapshot.promises.some(
+                (promise) =>
+                  promise.promisee_id === "marta" &&
+                  promise.status === "active",
+              ) ? (
+                <button
+                  className={smallRelease ? "choice-card choice-card--recommended" : undefined}
+                  disabled={busy}
+                  type="button"
+                  onClick={() => act("settle_shipment", "bram")}
+                >
+                  Pay to release Marta&apos;s shipment
+                </button>
+              ) : null}
               {selectedNpc.id === "rhea" &&
+              (!smallRelease || guidedStage === "declare_candidacy") &&
               snapshot.day >= 2 &&
               !snapshot.player.candidate ? (
                 <button
@@ -891,6 +1300,7 @@ export function GameShell() {
                 </button>
               ) : null}
               {selectedNpc.id === "rhea" &&
+              (!smallRelease || guidedStage === "rhea_question") &&
               snapshot.player.candidate &&
               !snapshot.favors.some(
                 (favor) => favor.key === "rhea_ballot_compact",
@@ -904,6 +1314,7 @@ export function GameShell() {
                 </button>
               ) : null}
               {selectedNpc.id === "rhea" &&
+              (!smallRelease || guidedStage === "rhea_resolve") &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "rhea_ballot_compact" &&
@@ -926,7 +1337,8 @@ export function GameShell() {
                   </button>
                 </>
               ) : null}
-              {selectedNpc.id === "nessa" &&
+              {!smallRelease &&
+              selectedNpc.id === "nessa" &&
               snapshot.day >= 2 &&
               !snapshot.favors.some(
                 (favor) => favor.key === "nessa_harbor_log",
@@ -939,7 +1351,8 @@ export function GameShell() {
                   Offer to carry the harbor log
                 </button>
               ) : null}
-              {selectedNpc.id === "elias" &&
+              {!smallRelease &&
+              selectedNpc.id === "elias" &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "nessa_harbor_log" &&
@@ -953,7 +1366,8 @@ export function GameShell() {
                   Give Elias the harbor log
                 </button>
               ) : null}
-              {selectedNpc.id === "elias" &&
+              {!smallRelease &&
+              selectedNpc.id === "elias" &&
               !snapshot.favors.some(
                 (favor) => favor.key === "elias_wrongful_arrest",
               ) ? (
@@ -965,7 +1379,8 @@ export function GameShell() {
                   Ask about Elias&apos;s old arrest
                 </button>
               ) : null}
-              {selectedNpc.id === "elias" &&
+              {!smallRelease &&
+              selectedNpc.id === "elias" &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "elias_wrongful_arrest" &&
@@ -988,7 +1403,8 @@ export function GameShell() {
                   </button>
                 </>
               ) : null}
-              {selectedNpc.id === "pip" &&
+              {!smallRelease &&
+              selectedNpc.id === "pip" &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "nessa_harbor_log" &&
@@ -1003,7 +1419,8 @@ export function GameShell() {
                   Correct the storm rumor
                 </button>
               ) : null}
-              {selectedNpc.id === "pip" &&
+              {!smallRelease &&
+              selectedNpc.id === "pip" &&
               !snapshot.favors.some(
                 (favor) => favor.key === "pip_ballot_source",
               ) ? (
@@ -1015,7 +1432,8 @@ export function GameShell() {
                   Ask for Pip&apos;s ballot source
                 </button>
               ) : null}
-              {selectedNpc.id === "pip" &&
+              {!smallRelease &&
+              selectedNpc.id === "pip" &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "pip_ballot_source" &&
@@ -1038,7 +1456,8 @@ export function GameShell() {
                   </button>
                 </>
               ) : null}
-              {selectedNpc.id === "nessa" &&
+              {!smallRelease &&
+              selectedNpc.id === "nessa" &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "nessa_harbor_log" &&
@@ -1053,7 +1472,8 @@ export function GameShell() {
                   Ask for the harbor&apos;s endorsement
                 </button>
               ) : null}
-              {selectedNpc.id === "orin" &&
+              {!smallRelease &&
+              selectedNpc.id === "orin" &&
               !snapshot.favors.some(
                 (favor) => favor.key === "orin_election_confession",
               ) ? (
@@ -1065,7 +1485,8 @@ export function GameShell() {
                   Accept the sealed confession
                 </button>
               ) : null}
-              {selectedNpc.id === "orin" &&
+              {!smallRelease &&
+              selectedNpc.id === "orin" &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "orin_election_confession" &&
@@ -1089,6 +1510,7 @@ export function GameShell() {
                 </>
               ) : null}
               {selectedNpc.id === "talia" &&
+              (!smallRelease || guidedStage === "talia_request") &&
               !snapshot.favors.some(
                 (favor) => favor.key === "talia_sick_house",
               ) ? (
@@ -1101,6 +1523,7 @@ export function GameShell() {
                 </button>
               ) : null}
               {selectedNpc.id === "talia" &&
+              (!smallRelease || guidedStage === "talia_resolve") &&
               snapshot.favors.some(
                 (favor) =>
                   favor.key === "talia_sick_house" &&
@@ -1196,6 +1619,7 @@ export function GameShell() {
         </section>
       ) : null}
 
+      {!smallRelease ? (
       <section className="event-strip" aria-live="polite">
         <span className="event-strip__icon">◉</span>
         <div className="event-strip__label">
@@ -1228,6 +1652,7 @@ export function GameShell() {
             })}
         </ol>
       </section>
+      ) : null}
 
       {busy ? <div className="busy">The town is thinking…</div> : null}
       {error ? <div className="toast error">{error}</div> : null}

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("Nessa's harbor log becomes a public correction and endorsement", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?release_profile=full");
   await page.getByRole("button", { name: "Take the road to Greyhaven" }).click();
   await page.getByRole("button", { name: "Sleep until morning" }).click();
 

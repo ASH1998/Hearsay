@@ -1087,7 +1087,10 @@ class GameService:
         if target_id is None or target_id not in self.content.locations_by_id:
             raise InvalidActionError("Choose a valid Greyhaven location.")
         current = self.content.locations_by_id[snapshot.player.location_id]
-        if target_id not in current.neighbors:
+        if (
+            snapshot.release_profile != "hackathon_small"
+            and target_id not in current.neighbors
+        ):
             raise InvalidActionError("Walk to a connected Greyhaven waypoint first.")
         snapshot.player.location_id = target_id
         location = self.content.locations_by_id[target_id]
