@@ -55,7 +55,6 @@ Open `http://localhost:3000`.
 - [Development, integrations, and testing](docs/DEVELOPMENT.md)
 - [Game Design Document](docs/Hearsay_Game_Design_Document.md)
 - [Agent-memory roadmap](docs/STORY_AGENT_MEMORY_ROADMAP.md)
-- [Third-party assets](THIRD_PARTY_ASSETS.md)
 - [Third-party models](THIRD_PARTY_MODELS.md)
 
 ## License
