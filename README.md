@@ -41,6 +41,31 @@ Then open `http://localhost:3000`. The API serves health and OpenAPI
 documentation at `http://localhost:8000/health` and
 `http://localhost:8000/docs`.
 
+### Recorded run site
+
+The browser-only showcase at `http://localhost:3000/replay` reconstructs two
+completed deterministic sessions inside the real Greyhaven renderer: a 15–5
+election victory and a 10–10 loss after the newcomer's earlier choices are
+exposed. Playback uses frozen `RunSnapshot` sequences, never an MP4, and offers
+play/pause, scene stepping, scrubbing, and speed controls without contacting the
+API, CockroachDB, or AWS.
+
+Regenerate and validate the checked-in replay bundles after simulation changes:
+
+```powershell
+corepack pnpm@11.9.0 replay:export
+```
+
+Produce the replay-only static deployment artifact:
+
+```powershell
+corepack pnpm@11.9.0 replay:build
+```
+
+The ordinary root URL remains the live local game. The static replay build makes
+the run selector the root page and stages the Sites-compatible artifact under
+the ignored `apps/web/dist` directory.
+
 `pnpm play` creates a bounded production build and serves it without Next.js
 development controls or a persistent compiler. The build is stopped if it
 exceeds 60 seconds, and Ctrl+C cleans up the exact web/API processes started by

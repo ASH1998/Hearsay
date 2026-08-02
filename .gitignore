@@ -94,3 +94,5 @@ cdk.out/
 Thumbs.db
 Desktop.ini
 videos/
+public/
+.openai/
