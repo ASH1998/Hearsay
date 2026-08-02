@@ -37,6 +37,7 @@ interface PlayableTownProps {
   onNpcClick: (npc: NpcState) => void;
   selectedLandmarkId: LandmarkId | null;
   selectedNpcId: string | null;
+  syncPlayerPosition?: boolean;
 }
 
 type AssetKey =
@@ -674,6 +675,7 @@ export function PlayableTown({
   onNpcClick,
   selectedLandmarkId,
   selectedNpcId,
+  syncPlayerPosition = false,
 }: PlayableTownProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const assetsRef = useRef<LoadedAssets>({});
@@ -723,6 +725,14 @@ export function PlayableTown({
         LOCATION_POINTS[snapshot.player.location_id] ?? LANDMARKS.road.point;
       playerRef.current = { ...point };
       previousTimestampRef.current = null;
+    } else if (
+      syncPlayerPosition &&
+      previousSnapshot.player.location_id !== snapshot.player.location_id
+    ) {
+      const point =
+        LOCATION_POINTS[snapshot.player.location_id] ?? LANDMARKS.road.point;
+      playerRef.current = { ...point };
+      previousTimestampRef.current = null;
     }
   }, [
     guidedNpcId,
@@ -732,6 +742,7 @@ export function PlayableTown({
     onNpcClick,
     selectedNpcId,
     snapshot,
+    syncPlayerPosition,
   ]);
 
   useEffect(() => {
