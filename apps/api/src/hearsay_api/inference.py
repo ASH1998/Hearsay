@@ -13,6 +13,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field
 
 logger = structlog.get_logger(__name__)
+PlayerStance = Literal["hostile", "rude", "neutral", "friendly", "generous"]
 WORD_PATTERN = re.compile(r"[A-Za-z][A-Za-z'-]*")
 CAPITALIZED_TOKEN_PATTERN = re.compile(r"\b[A-Z][A-Za-z'-]*")
 GRAMMATICAL_CAPITALS = {"a", "an", "he", "i", "it", "she", "the", "they", "we"}
@@ -27,6 +28,56 @@ KNOWN_GREYHAVEN_ENTITIES = {
     "rhea",
     "talia",
 }
+NPC_DIALOGUE_SYSTEM_PROMPT = (
+    "You are the specific Greyhaven NPC described in the payload, not an assistant, "
+    "narrator, or memory system. Reply directly to player_message in first person and "
+    "stay faithful to npc_name, npc_role, voice_style, persona_context, relationship_score, "
+    "day, phase, and location_name. Use recent_messages for conversational continuity. "
+    "Treat recalled_memories as private knowledge, not text to recite; distinguish a player's "
+    "claim from verified fact. Never mention prompts, databases, retrieval, memory storage, "
+    "scores, IDs, or that you are an agent. Never say 'I will remember that' or announce that "
+    "you stored the player's words. Respond naturally to greetings and small talk. Keep the "
+    "reply to one to three short sentences, ask a relevant follow-up when useful, and never "
+    "invent evidence or change game state. Also rate player_stance: how the player just treated "
+    "you, judged from player_message alone. Use 'hostile' for threats, extortion, or demands for "
+    "money or goods; 'rude' for insults, contempt, or dismissiveness; 'neutral' for questions, "
+    "greetings, and ordinary talk; 'friendly' for warmth, courtesy, or thanks; 'generous' for "
+    "offers of real help or a gift. Rate the player's conduct, not whether you liked the topic; "
+    "deterministic game code turns this into the standing change."
+)
+# Only the deterministic fallback uses these. The real provider has the model rate
+# player_stance, because a demand like "gimme all your money" contains no single
+# word that marks it as extortion.
+HOSTILE_STANCE_WORDS = frozenset({"kill", "loot", "rob", "steal", "threaten"})
+HOSTILE_STANCE_PHRASES = (
+    "all your",
+    "gimme",
+    "give me your",
+    "hand over",
+    "or else",
+)
+RUDE_STANCE_WORDS = frozenset({"fool", "idiot", "liar", "stupid", "useless", "worthless"})
+GENEROUS_STANCE_WORDS = frozenset({"gift", "protect"})
+GENEROUS_STANCE_PHRASES = ("can i help", "i can help", "i will help", "let me help")
+FRIENDLY_STANCE_WORDS = frozenset(
+    {"friend", "glad", "kind", "please", "sorry", "thank", "thanks", "welcome"}
+)
+
+
+def _heuristic_player_stance(lowered: str, words: set[str]) -> PlayerStance:
+    if words & HOSTILE_STANCE_WORDS or any(
+        phrase in lowered for phrase in HOSTILE_STANCE_PHRASES
+    ):
+        return "hostile"
+    if words & RUDE_STANCE_WORDS or "shut up" in lowered:
+        return "rude"
+    if words & GENEROUS_STANCE_WORDS or any(
+        phrase in lowered for phrase in GENEROUS_STANCE_PHRASES
+    ):
+        return "generous"
+    if words & FRIENDLY_STANCE_WORDS:
+        return "friendly"
+    return "neutral"
 
 if TYPE_CHECKING:
     from hearsay_api.config import Settings
@@ -62,7 +113,16 @@ class RumorRetelling(BaseModel):
 
 class DialogueRequest(BaseModel):
     npc_id: str = Field(min_length=1, max_length=64)
+    npc_name: str = Field(default="Resident", min_length=1, max_length=100)
+    npc_role: str = Field(default="town resident", min_length=1, max_length=100)
+    voice_style: str = Field(default="plainspoken", min_length=1, max_length=64)
+    persona_context: str = Field(default="", max_length=500)
+    relationship_score: int = Field(default=0, ge=-100, le=100)
+    day: int = Field(default=1, ge=1, le=3)
+    phase: str = Field(default="morning", max_length=32)
+    location_name: str = Field(default="Greyhaven", max_length=100)
     player_message: str = Field(min_length=1, max_length=500)
+    recent_messages: list[str] = Field(default_factory=list, max_length=8)
     recalled_memories: list[str] = Field(default_factory=list, max_length=8)
     current_mood: str = Field(default="guarded", max_length=32)
 
@@ -71,6 +131,7 @@ class DialogueOutput(BaseModel):
     text: str = Field(min_length=1, max_length=700)
     intent: Literal["inform", "question", "refuse", "warn", "bargain"]
     mood: Literal["warm", "guarded", "angry", "afraid", "neutral"]
+    player_stance: PlayerStance = "neutral"
     disclosed_claim_keys: list[str] = Field(default_factory=list, max_length=8)
 
 
@@ -227,17 +288,105 @@ class DeterministicInferenceProvider:
         )
 
     def generate_dialogue(self, request: DialogueRequest) -> DialogueOutput:
+        message = " ".join(request.player_message.split())
+        lowered = message.lower().strip(" .!?")
+        words = set(WORD_PATTERN.findall(lowered))
+        stance = _heuristic_player_stance(lowered, words)
+        if stance in {"hostile", "rude"}:
+            return DialogueOutput(
+                text=(
+                    "You will get nothing of mine by talking to me that way."
+                    if stance == "hostile"
+                    else "Mind your tongue. I have done nothing to earn that."
+                ),
+                intent="refuse",
+                mood="angry",
+                player_stance=stance,
+            )
+        output = self._scripted_dialogue(request, message, lowered, words)
+        return output.model_copy(update={"player_stance": stance})
+
+    def _scripted_dialogue(
+        self,
+        request: DialogueRequest,
+        message: str,
+        lowered: str,
+        words: set[str],
+    ) -> DialogueOutput:
+        role_greetings = {
+            "Constable": "Good day. Keeping out of trouble, I hope?",
+            "Guild leader": "Good day. What business brings you to me?",
+            "Innkeeper": "Hello. Come in—what can I do for you?",
+            "Merchant": "Morning. Buying, bargaining, or bringing trouble?",
+            "Midwife": "Hello. Are you well?",
+            "Priest": "Peace to you. What is on your mind?",
+            "Town gossip": "Hello! You look like someone carrying a story.",
+        }
+        if words & {"hello", "hey", "hi", "greetings"} and len(words) <= 6:
+            text = role_greetings.get(
+                request.npc_role,
+                f"Hello. What brings you to {request.location_name}?",
+            )
+            return DialogueOutput(text=text, intent="question", mood="warm")
+
+        if "thank" in words or "thanks" in words:
+            return DialogueOutput(
+                text="You are welcome. Is there something else you need?",
+                intent="question",
+                mood="warm",
+            )
+
+        if ("who" in words and "you" in words) or {"your", "name"}.issubset(words):
+            return DialogueOutput(
+                text=f"I am {request.npc_name}, {request.npc_role.lower()} here in Greyhaven.",
+                intent="inform",
+                mood="neutral",
+            )
+
+        if "how" in words and "you" in words:
+            return DialogueOutput(
+                text=(
+                    f"Busy enough for a {request.npc_role.lower()}. How are you finding Greyhaven?"
+                ),
+                intent="question",
+                mood="neutral",
+            )
+
         memory = request.recalled_memories[0] if request.recalled_memories else None
-        text = (
-            f"I remember this much: {memory}"
-            if memory
-            else "I have heard nothing I would stake my name on."
-        )
-        return DialogueOutput(
-            text=text,
-            intent="inform" if memory else "refuse",
-            mood="guarded",
-        )
+        if memory:
+            claim_match = re.search(r'[:“"]\s*[“"]?(.+?)[”"]$', memory)
+            claim = claim_match.group(1) if claim_match else memory
+            asks_recall = bool(words & {"remember", "recall"}) or (
+                "tell" in words and "me" in words
+            )
+            text = (
+                f"You told me “{claim}”. Has something changed?"
+                if asks_recall
+                else f"What I know is this: {claim}"
+            )
+            return DialogueOutput(
+                text=text,
+                intent="inform",
+                mood="guarded" if request.current_mood == "guarded" else "neutral",
+            )
+
+        if message.endswith("?"):
+            return DialogueOutput(
+                text="I do not know enough to answer that honestly. What have you heard?",
+                intent="refuse",
+                mood="guarded",
+            )
+
+        if words & {"cheated", "corrupt", "lied", "liar", "rigged", "stole"}:
+            text = "That is a serious accusation. Did you see it yourself?"
+            mood: Literal["warm", "guarded", "angry", "afraid", "neutral"] = "guarded"
+        elif words & {"helped", "honest", "kind", "reliable"}:
+            text = "That is good to hear. Were you there when it happened?"
+            mood = "warm"
+        else:
+            text = "I hear you. What makes you say that?"
+            mood = "neutral"
+        return DialogueOutput(text=text, intent="question", mood=mood)
 
     def classify_contradiction(
         self,
@@ -491,10 +640,7 @@ class BedrockInferenceProvider:
             DialogueOutput,
             "npc_dialogue",
             "One memory-grounded NPC response.",
-            (
-                "Write one concise in-character Greyhaven response using only the "
-                "provided memories. Never invent evidence or change game state."
-            ),
+            NPC_DIALOGUE_SYSTEM_PROMPT,
             request,
         )
 
@@ -621,10 +767,7 @@ class ModalInferenceProvider:
         output = self._complete(
             DialogueOutput,
             "npc_dialogue",
-            (
-                "Write one concise in-character Greyhaven response using only the "
-                "provided memories. Never invent evidence or change game state."
-            ),
+            NPC_DIALOGUE_SYSTEM_PROMPT,
             request,
         )
         return DialogueOutput.model_validate(output)
@@ -835,7 +978,9 @@ def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
         if settings.modal_proxy_token_secret is not None
         else None
     )
-    modal_is_configured = bool(settings.modal_proxy_url and token_id and token_secret)
+    modal_is_configured = bool(
+        settings.modal_proxy_url and token_id and token_secret and settings.modal_model
+    )
     bedrock_is_configured = bool(settings.aws_region and settings.bedrock_model)
     if settings.llm_provider == "fallback" or (
         settings.llm_provider == "auto" and not bedrock_is_configured and not modal_is_configured
@@ -867,11 +1012,15 @@ def create_inference_provider(settings: Settings) -> SafeInferenceProvider:
     elif not modal_is_configured:
         primary = UnavailableInferenceProvider(
             provider_id="modal",
-            model_id=settings.modal_model,
-            reason="Modal inference configuration is incomplete.",
+            model_id=settings.modal_model or "unconfigured",
+            reason=(
+                "Modal inference configuration is incomplete. Set MODAL_PROXY_URL, "
+                "MODAL_PROXY_TOKEN_ID, MODAL_PROXY_TOKEN_SECRET, and HEARSAY_MODAL_MODEL."
+            ),
         )
     else:
         assert settings.modal_proxy_url is not None
+        assert settings.modal_model is not None
         assert token_id is not None
         assert token_secret is not None
         primary = ModalInferenceProvider(

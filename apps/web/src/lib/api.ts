@@ -17,7 +17,14 @@ export type NpcState = Omit<Schemas["NpcState"], "speech" | "recent_echoes"> & {
 };
 export type RunSnapshot = Omit<
   GeneratedSnapshot,
-  "player" | "npcs" | "promises" | "favors" | "dialogue" | "town_events" | "recent_events"
+  | "player"
+  | "npcs"
+  | "promises"
+  | "favors"
+  | "dialogue"
+  | "conversation_history"
+  | "town_events"
+  | "recent_events"
 > & {
   player: Omit<
     Schemas["PlayerState"],
@@ -31,12 +38,20 @@ export type RunSnapshot = Omit<
   promises: PromiseState[];
   favors: Schemas["FavorState"][];
   dialogue: Schemas["DialogueState"] | null;
+  conversation_history: Schemas["ChatMessageState"][];
   town_events: Schemas["TownEventState"][];
   recent_events: Schemas["WorldEvent"][];
 };
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+export function normalizeSnapshot(snapshot: RunSnapshot): RunSnapshot {
+  return {
+    ...snapshot,
+    conversation_history: snapshot.conversation_history ?? [],
+  };
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -68,11 +83,13 @@ export async function createRun(
       release_profile: releaseProfile,
     }),
   });
-  return body.snapshot;
+  return normalizeSnapshot(body.snapshot);
 }
 
 export async function loadRun(runId: string): Promise<RunSnapshot> {
-  return request<RunSnapshot>(`/v1/runs/${runId}/snapshot`);
+  return normalizeSnapshot(
+    await request<RunSnapshot>(`/v1/runs/${runId}/snapshot`),
+  );
 }
 
 export async function takeAction(
@@ -80,6 +97,7 @@ export async function takeAction(
   verb: ActionVerb,
   targetId?: string,
   content?: string,
+  publicStatement = false,
 ): Promise<RunSnapshot> {
   const body = await request<{ snapshot: RunSnapshot }>(
     `/v1/runs/${runId}/actions`,
@@ -90,10 +108,11 @@ export async function takeAction(
         verb,
         target_id: targetId,
         content,
+        public_statement: publicStatement,
       }),
     },
   );
-  return body.snapshot;
+  return normalizeSnapshot(body.snapshot);
 }
 
 export async function loadMemoryLineage(

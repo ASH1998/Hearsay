@@ -96,6 +96,17 @@ def resolve_election(
         resident_memories = active_by_holder.get(resident.id, [])
         if resident.id in content.ambients_by_id:
             resident_memories = resident_memories[-3:]
+        else:
+            chat_memories = [
+                memory
+                for memory in resident_memories
+                if memory.normalized_position.get("chat_memory") is True
+            ][-4:]
+            resident_memories = [
+                memory
+                for memory in resident_memories
+                if memory.normalized_position.get("chat_memory") is not True
+            ] + chat_memories
         for memory in resident_memories:
             proposition_key = memory.proposition_key
             contribution = 0.0
@@ -256,6 +267,19 @@ def resolve_election(
                         "They remember the player signed Rhea's compact, preserving "
                         "sole guild ballot custody for market support."
                     )
+            elif memory.normalized_position.get("chat_memory") is True:
+                topic = memory.normalized_position.get("topic_id")
+                value = topic if isinstance(topic, str) else "conversation"
+                raw_contribution = memory.normalized_position.get(
+                    "election_contribution",
+                )
+                contribution = (
+                    float(raw_contribution) if isinstance(raw_contribution, int | float) else 0.0
+                )
+                explanation = (
+                    "They remember what the player personally told them about "
+                    f"{value.replace('_', ' ')}."
+                )
             echo_hop = memory.normalized_position.get("echo_hop")
             if contribution and isinstance(echo_hop, int) and echo_hop >= 2:
                 echo_style = memory.normalized_position.get("echo_style")

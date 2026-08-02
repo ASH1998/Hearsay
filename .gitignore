@@ -93,3 +93,6 @@ cdk.out/
 .DS_Store
 Thumbs.db
 Desktop.ini
+videos/
+public/
+.openai/

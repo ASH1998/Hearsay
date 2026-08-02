@@ -125,7 +125,7 @@ test("all twelve cozy-village landmarks are reachable and action-free", async ({
   await expect(page.getByLabel("Playable town of Greyhaven")).toBeVisible();
   await page.getByRole("button", { name: "Close conversation" }).click();
   await expect(page.getByText(/Painting Greyhaven/)).toHaveCount(0);
-  await expect(page.getByText("Story step 1 of 10")).toBeVisible();
+  await expect(page.getByText("Story step 1 of 18")).toBeVisible();
   await page.screenshot({ path: ".qa/greyhaven-1440x900.png" });
 
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -200,7 +200,7 @@ test("all twelve cozy-village landmarks are reachable and action-free", async ({
   await walkTo(page, 17.35, 10.15);
   await inspectLandmark(page, "Notice board");
 
-  await expect(page.getByText("Story step 1 of 10")).toBeVisible();
+  await expect(page.getByText("Story step 1 of 18")).toBeVisible();
   expect(failedAssets).toEqual([]);
   expect(legacyRequests).toEqual([]);
 });

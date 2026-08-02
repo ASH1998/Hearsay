@@ -34,6 +34,7 @@ const RUN_STORAGE_KEYS: Record<ReleaseProfile, string> = {
 };
 type GuidedStage =
   | "bram_approach"
+  | "campaign"
   | "declare_candidacy"
   | "election_complete"
   | "final_talk"
@@ -58,20 +59,23 @@ function firstPlaythroughStage(snapshot: RunSnapshot): GuidedStage {
   );
 
   if (!martaPromise) return "marta_promise";
-  if (snapshot.action_count < 2) return "bram_approach";
+  if (!snapshot.player.bram_approach) return "bram_approach";
   if (martaPromise.status === "active") return "settle_shipment";
-  if (snapshot.action_count < 4) return "marta_recall";
   if (!taliaFavor) return "talia_request";
   if (taliaFavor.status === "active") return "talia_resolve";
+  if (snapshot.day < 2) return "campaign";
   if (!snapshot.player.candidate) return "declare_candidacy";
   if (!rheaCompact) return "rhea_question";
   if (rheaCompact.status === "active") return "rhea_resolve";
+  if (snapshot.action_count < snapshot.action_budget - 1) return "campaign";
   return "final_talk";
 }
 
 const GUIDED_OBJECTIVES: Record<GuidedStage, string> = {
   bram_approach:
     "Walk north-east to Market Row. Confront Bram under the gold marker.",
+  campaign:
+    "Build support. Talk to anyone, share claims, and learn what each resident remembers.",
   declare_candidacy:
     "Walk north-west to the Guildhouse. Tell Rhea you are standing for mayor.",
   election_complete: "Election resolved. Open the journal to see why each vote moved.",
@@ -95,6 +99,7 @@ const GUIDED_OBJECTIVES: Record<GuidedStage, string> = {
 
 const GUIDED_NPCS: Record<GuidedStage, string | null> = {
   bram_approach: "bram",
+  campaign: null,
   declare_candidacy: "rhea",
   election_complete: null,
   final_talk: "rhea",
@@ -247,6 +252,9 @@ function playMarketAmbience() {
 export function GameShell() {
   const [snapshot, setSnapshot] = useState<RunSnapshot | null>(null);
   const [selectedNpc, setSelectedNpc] = useState<NpcState | null>(null);
+  const [chatDraft, setChatDraft] = useState("");
+  const [shareChatPublicly, setShareChatPublicly] = useState(false);
+  const chatThreadRef = useRef<HTMLDivElement>(null);
   const [historian, setHistorian] = useState<HistorianTrace | null>(null);
   const [historianOpen, setHistorianOpen] = useState(false);
   const [journalOpen, setJournalOpen] = useState(false);
@@ -348,6 +356,8 @@ export function GameShell() {
   const openNpc = useCallback((npc: NpcState) => {
     setJournalOpen(false);
     setSelectedLandmarkId(null);
+    setChatDraft("");
+    setShareChatPublicly(false);
     setSelectedNpc(npc);
   }, []);
 
@@ -363,13 +373,25 @@ export function GameShell() {
   }, []);
 
   const act = useCallback(
-    async (verb: ActionVerb, targetId?: string, content?: string) => {
+    async (
+      verb: ActionVerb,
+      targetId?: string,
+      content?: string,
+      publicStatement = false,
+    ) => {
       if (!snapshot) return;
       setBusy(true);
       setError(null);
       try {
-        const next = await takeAction(snapshot.run_id, verb, targetId, content);
+        const next = await takeAction(
+          snapshot.run_id,
+          verb,
+          targetId,
+          content,
+          publicStatement,
+        );
         setSnapshot(next);
+        if (verb === "talk") setShareChatPublicly(false);
         playConfirmation();
         if (snapshot.weather !== "rain" && next.weather === "rain") {
           playThunder();
@@ -387,8 +409,15 @@ export function GameShell() {
         setSelectedNpc((current) => {
           if (!current) return null;
           if (next.release_profile === "hackathon_small") {
-            const nextGuide = GUIDED_NPCS[firstPlaythroughStage(next)];
-            if (nextGuide !== current.id) return null;
+            const nextStage = firstPlaythroughStage(next);
+            const nextGuide = GUIDED_NPCS[nextStage];
+            if (
+              verb !== "talk" &&
+              nextStage !== "campaign" &&
+              nextGuide !== current.id
+            ) {
+              return null;
+            }
           }
           return next.npcs.find((npc) => npc.id === current.id) ?? null;
         });
@@ -444,6 +473,14 @@ export function GameShell() {
     },
     [snapshot],
   );
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const thread = chatThreadRef.current;
+      if (thread) thread.scrollTop = thread.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [snapshot?.conversation_history?.length, selectedNpc?.id]);
 
   if (!snapshot) {
     return (
@@ -510,6 +547,51 @@ export function GameShell() {
       listener.recent_echoes.map((echo) => ({ echo, listener })),
     )
     .sort((left, right) => right.echo.hop - left.echo.hop)[0];
+  const latestAgentTurn = snapshot.recent_events.find(
+    (event) => event.kind === "agent_decision",
+  );
+  const agentTurnPayload = latestAgentTurn?.payload;
+  const actingAgentId =
+    agentTurnPayload && typeof agentTurnPayload.agent_id === "string"
+      ? agentTurnPayload.agent_id
+      : null;
+  const actingAgent = snapshot.npcs.find((npc) => npc.id === actingAgentId);
+  const agentTargetId =
+    agentTurnPayload && typeof agentTurnPayload.target_id === "string"
+      ? agentTurnPayload.target_id
+      : null;
+  const agentTarget = snapshot.npcs.find((npc) => npc.id === agentTargetId);
+  const recalledAgentMemories =
+    agentTurnPayload && Array.isArray(agentTurnPayload.recalled_memories)
+      ? agentTurnPayload.recalled_memories.filter(
+          (memory): memory is string => typeof memory === "string",
+        )
+      : [];
+  const agentAction =
+    agentTurnPayload && typeof agentTurnPayload.action === "string"
+      ? agentTurnPayload.action
+      : null;
+  const agentRationale =
+    agentTurnPayload && typeof agentTurnPayload.rationale === "string"
+      ? agentTurnPayload.rationale
+      : null;
+  const agentProvider =
+    agentTurnPayload && typeof agentTurnPayload.provider_id === "string"
+      ? agentTurnPayload.provider_id
+      : null;
+  const agentModel =
+    agentTurnPayload && typeof agentTurnPayload.model_id === "string"
+      ? agentTurnPayload.model_id
+      : null;
+  const agentUsedFallback = agentTurnPayload?.fallback_used === true;
+  const selectedConversationMessages = selectedNpc
+    ? (snapshot.conversation_history ?? []).filter(
+        (message) => message.npc_id === selectedNpc.id,
+      )
+    : [];
+  const latestStoredNpcMessage = selectedConversationMessages.findLast(
+    (message) => message.speaker === "npc",
+  );
 
   return (
     <main
@@ -625,6 +707,52 @@ export function GameShell() {
           </nav>
         </>
       )}
+
+      {smallRelease && latestAgentTurn && actingAgent ? (
+        <section className="agent-turn-card" aria-label="Autonomous agent turn">
+          <header>
+            <span className="agent-turn-card__pulse" aria-hidden="true" />
+            <div>
+              <small>Autonomous town turn</small>
+              <strong>{actingAgent.name} acts without the player</strong>
+            </div>
+          </header>
+          <ol>
+            <li>
+              <span>Recall</span>
+              <p>
+                {recalledAgentMemories[0]
+                  ? `“${recalledAgentMemories[0]}”`
+                  : "No salient public memory was selected."}
+              </p>
+            </li>
+            <li>
+              <span>Decide</span>
+              <p>
+                {agentAction === "share_rumor" && agentTarget
+                  ? `Carry this version to ${agentTarget.name}.`
+                  : "Hold the story for now."}
+              </p>
+              {agentRationale ? <small>{agentRationale}</small> : null}
+            </li>
+            <li>
+              <span>Act</span>
+              <p>
+                {latestEcho && agentTarget
+                  ? `${agentTarget.name} now carries a changed version at hop ${latestEcho.echo.hop}.`
+                  : latestAgentTurn.text}
+              </p>
+            </li>
+          </ol>
+          <footer>
+            {agentProvider && agentModel
+              ? `${agentProvider}/${agentModel}`
+              : "validated agent policy"}
+            {agentUsedFallback ? " · safe local fallback" : ""}
+            {" · memory committed to CockroachDB"}
+          </footer>
+        </section>
+      ) : null}
 
       <section
         className={`ledger${smallRelease ? " ledger--journal" : ""}`}
@@ -1124,11 +1252,44 @@ export function GameShell() {
               {selectedNpc.relationship >= 0 ? "+" : ""}
               {selectedNpc.relationship}
             </h2>
-            <blockquote>
-              {snapshot.dialogue?.speaker_id === selectedNpc.id
-                ? snapshot.dialogue.text
-                : selectedNpc.speech ?? "They wait to hear what you have to say."}
-            </blockquote>
+            <div
+              className="chat-thread"
+              ref={chatThreadRef}
+              aria-label={`Chat with ${selectedNpc.name}`}
+            >
+              {selectedConversationMessages.length === 0 ? (
+                <article className="chat-message chat-message--npc">
+                  <span>{selectedNpc.name}</span>
+                  <p>
+                    {snapshot.dialogue?.speaker_id === selectedNpc.id
+                      ? snapshot.dialogue.text
+                      : selectedNpc.speech ??
+                        "They wait to hear what you have to say."}
+                  </p>
+                </article>
+              ) : (
+                selectedConversationMessages.map((message) => (
+                  <article
+                    className={`chat-message chat-message--${message.speaker}`}
+                    key={message.id}
+                  >
+                    <span>
+                      {message.speaker === "player" ? "You" : selectedNpc.name}
+                      {message.public_statement ? <em>Shared with town</em> : null}
+                    </span>
+                    <p>{message.text}</p>
+                  </article>
+                ))
+              )}
+              {selectedConversationMessages.length > 0 &&
+              snapshot.dialogue?.speaker_id === selectedNpc.id &&
+              snapshot.dialogue.text !== latestStoredNpcMessage?.text ? (
+                <article className="chat-message chat-message--npc">
+                  <span>{selectedNpc.name}</span>
+                  <p>{snapshot.dialogue.text}</p>
+                </article>
+              ) : null}
+            </div>
             {snapshot.dialogue?.speaker_id === selectedNpc.id &&
             (snapshot.dialogue.recalled_memories?.length ?? 0) > 0 ? (
               <div className="memory-proof" aria-label="Long-term memories recalled">
@@ -1146,9 +1307,11 @@ export function GameShell() {
                 <ul>
                   {snapshot.dialogue.recalled_memories?.map((memory) => (
                     <li key={`${memory.belief_id}-${memory.version}`}>
-                      <strong>{memory.proposition_key.replaceAll("_", " ")}</strong>
+                      <strong>{memory.scope} memory</strong>
+                      <span>{memory.summary}</span>
                       <code>
-                        belief {memory.belief_id.slice(0, 8)} · v{memory.version}
+                        {memory.proposition_key.replaceAll("_", " ")} · belief{" "}
+                        {memory.belief_id.slice(0, 8)} · v{memory.version}
                       </code>
                       {memory.contested ? <em>contested</em> : null}
                     </li>
@@ -1166,28 +1329,60 @@ export function GameShell() {
                 get his attention.
               </p>
             ) : null}
+            <form
+              className="npc-chat"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const message = chatDraft.trim();
+                if (!message) return;
+                setChatDraft("");
+                void act(
+                  "talk",
+                  selectedNpc.id,
+                  message,
+                  shareChatPublicly,
+                );
+              }}
+            >
+              <label htmlFor={`chat-${selectedNpc.id}`}>
+                Tell {selectedNpc.name.split(" ")[0]} anything
+              </label>
+              <textarea
+                id={`chat-${selectedNpc.id}`}
+                disabled={busy || selectedNpcOutOfReach}
+                maxLength={500}
+                onChange={(event) => setChatDraft(event.target.value)}
+                placeholder={`Ask what ${selectedNpc.name.split(" ")[0]} remembers, or tell them something about another resident…`}
+                rows={2}
+                value={chatDraft}
+              />
+              <div className="npc-chat__controls">
+                <label>
+                  <input
+                    checked={shareChatPublicly}
+                    disabled={busy || selectedNpcOutOfReach}
+                    onChange={(event) =>
+                      setShareChatPublicly(event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Share this message with the town
+                </label>
+                <button
+                  disabled={busy || chatDraft.trim().length === 0}
+                  type="submit"
+                >
+                  Say it
+                </button>
+              </div>
+              <small>
+                Private by default · Town sharing creates public memory and rumor hops
+              </small>
+            </form>
             <fieldset
               className="conversation__choices"
               disabled={busy || selectedNpcOutOfReach}
             >
-              {!smallRelease ||
-              (guidedStage === "marta_recall" &&
-                selectedNpc.id === "marta") ||
-              (guidedStage === "final_talk" && selectedNpc.id === "rhea") ? (
-                <button
-                  disabled={busy}
-                  type="button"
-                  onClick={() =>
-                    act(
-                      "talk",
-                      selectedNpc.id,
-                      "What have you heard about me and the town?",
-                    )
-                  }
-                >
-                  Talk
-                </button>
-              ) : null}
               {!smallRelease &&
               snapshot.dialogue?.speaker_id === selectedNpc.id
                 ? snapshot.dialogue.available_choices?.map((choice) => (

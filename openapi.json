@@ -412,6 +412,11 @@
               }
             ],
             "title": "Content"
+          },
+          "public_statement": {
+            "type": "boolean",
+            "title": "Public Statement",
+            "default": false
           }
         },
         "type": "object",
@@ -654,6 +659,65 @@
         ],
         "title": "BeliefInputState"
       },
+      "ChatMessageState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "npc_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Npc Id"
+          },
+          "speaker": {
+            "type": "string",
+            "enum": [
+              "player",
+              "npc"
+            ],
+            "title": "Speaker"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 700,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "day": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Day"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "morning",
+              "afternoon",
+              "evening",
+              "night"
+            ],
+            "title": "Phase"
+          },
+          "public_statement": {
+            "type": "boolean",
+            "title": "Public Statement",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "npc_id",
+          "speaker",
+          "text",
+          "day",
+          "phase"
+        ],
+        "title": "ChatMessageState"
+      },
       "CreateRunRequest": {
         "properties": {
           "display_name": {
@@ -738,6 +802,22 @@
           "proposition_key": {
             "type": "string",
             "title": "Proposition Key"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "town",
+              "rumor"
+            ],
+            "title": "Scope",
+            "default": "individual"
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Summary",
+            "default": ""
           },
           "contested": {
             "type": "boolean",
@@ -1570,6 +1650,17 @@
             "title": "Candidate",
             "default": false
           },
+          "bram_approach": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bram Approach"
+          },
           "argument_choice": {
             "anyOf": [
               {
@@ -1847,6 +1938,14 @@
                 "type": "null"
               }
             ]
+          },
+          "conversation_history": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageState"
+            },
+            "type": "array",
+            "maxItems": 80,
+            "title": "Conversation History"
           },
           "town_events": {
             "items": {

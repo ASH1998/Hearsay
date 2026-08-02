@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Literal, cast
 from uuid import UUID, uuid4
 
@@ -13,6 +14,7 @@ from hearsay_api.inference import (
     DeterministicInferenceProvider,
     DialogueRequest,
     InferenceResult,
+    PlayerStance,
     RumorRetelling,
     RumorRetellingRequest,
     SafeInferenceProvider,
@@ -23,6 +25,7 @@ from hearsay_api.memory import (
     EmbeddingProvider,
     PromiseTransition,
     VisibleAmbientEcho,
+    chat_standing_deltas,
     derive_dialogue_treatment,
     plan_action_memory,
 )
@@ -35,6 +38,7 @@ from hearsay_api.schemas import (
     ActionRequest,
     ActionResponse,
     ActionVerb,
+    ChatMessageState,
     CreateRunRequest,
     CreateRunResponse,
     DialogueMemoryRef,
@@ -66,6 +70,18 @@ FREE_ACTIONS = {
     ActionVerb.OBSERVE,
     ActionVerb.READ_NOTICE_BOARD,
 }
+
+CHAT_STANDING_CUES: dict[PlayerStance, str] = {
+    "hostile": "Hostile: {name} will not forget being threatened.",
+    "rude": "Stung: {name} did not care for your tone.",
+    "friendly": "Warmer: {name} appreciated how you spoke to them.",
+    "generous": "Grateful: {name} noticed you offered something real.",
+}
+
+
+def _chat_standing_cue(stance: PlayerStance, name: str, heard_by_town: bool) -> str:
+    cue = CHAT_STANDING_CUES[stance].format(name=name)
+    return f"{cue} The whole town heard it." if heard_by_town else cue
 
 BRAM_APPROACH_VERBS = {
     ActionVerb.CONFRONT,
@@ -106,7 +122,7 @@ RHEA_COMPACT_CHOICE_VERBS = {
     ActionVerb.DEAL_WITH_RHEA,
 }
 
-HACKATHON_SMALL_ACTION_BUDGET = 10
+HACKATHON_SMALL_ACTION_BUDGET = 18
 HACKATHON_SMALL_FEATURED_NPCS = frozenset({"marta", "bram", "pip", "talia", "rhea"})
 HACKATHON_SMALL_ACTIONS = frozenset(
     {
@@ -314,6 +330,7 @@ class GameService:
                     snapshot,
                     request,
                 )
+                self._record_conversation_exchange(snapshot, request)
             existing_lineage = (
                 self.repository.list_memory_lineage(run_id)
                 if consumed_time and snapshot.action_count % 2 == 0 and snapshot.election is None
@@ -387,12 +404,13 @@ class GameService:
         nearby_agent_ids = featured_nearby or ambient_nearby
         if not nearby_agent_ids:
             return None
+        recalled_memories = [pip.speech] if pip.speech else []
         result = self.inference.choose_autonomous_action(
             AutonomousActionRequest(
                 agent_id="pip",
                 location_id=pip.location_id,
                 nearby_agent_ids=nearby_agent_ids,
-                recalled_memories=[pip.speech] if pip.speech else [],
+                recalled_memories=recalled_memories,
                 allowed_actions=["share_rumor", "wait"],
             )
         )
@@ -411,8 +429,13 @@ class GameService:
             event_text,
             payload={
                 "agent_id": "pip",
+                "location_id": pip.location_id,
+                "nearby_agent_ids": nearby_agent_ids,
+                "recalled_memories": recalled_memories,
                 "action": result.value.action,
                 "target_id": result.value.target_id,
+                "utterance": result.value.utterance,
+                "rationale": result.value.rationale,
                 "provider_id": result.provider_id,
                 "model_id": result.model_id,
                 "fallback_used": result.fallback_used,
@@ -439,12 +462,20 @@ class GameService:
         if not question:
             return None
         try:
-            recalled = self.recall_memories(
+            individual_recall = self.recall_memories(
                 run_id,
                 MemoryRecallRequest(
                     holder_id=request.target_id,
                     query=question,
-                    limit=4,
+                    limit=6,
+                ),
+            )
+            town_recall = self.recall_memories(
+                run_id,
+                MemoryRecallRequest(
+                    holder_id="town",
+                    query=question,
+                    limit=3,
                 ),
             )
         except Exception as error:
@@ -455,27 +486,62 @@ class GameService:
             )
             return None
 
+        town_memory_keys = {(memory.belief_id, memory.version) for memory in town_recall.memories}
+        recalled_memories = sorted(
+            individual_recall.memories + town_recall.memories,
+            key=lambda memory: memory.final_score,
+            reverse=True,
+        )
+        unique_memories = []
+        seen_memory_keys: set[tuple[UUID, int]] = set()
+        for memory in recalled_memories:
+            key = (memory.belief_id, memory.version)
+            if key in seen_memory_keys:
+                continue
+            seen_memory_keys.add(key)
+            unique_memories.append(memory)
+            if len(unique_memories) == 6:
+                break
+
         memories = [
             (f"[contested] {memory.narrative_text}" if memory.contested else memory.narrative_text)
-            for memory in recalled.memories
+            for memory in unique_memories
         ]
         npc = self._require_npc(snapshot, request.target_id)
         treatment = derive_dialogue_treatment(
-            recalled.memories,
+            individual_recall.memories,
             npc.relationship,
         )
         npc.relationship = treatment.relationship_score
+        resident = self.content.residents_by_id[request.target_id]
         result = self.inference.generate_dialogue(
             DialogueRequest(
                 npc_id=request.target_id,
+                npc_name=resident.name,
+                npc_role=resident.role,
+                voice_style=resident.echo_style,
+                persona_context=resident.opening,
+                relationship_score=npc.relationship,
+                day=snapshot.day,
+                phase=snapshot.phase,
+                location_name=self.content.locations_by_id[npc.location_id].name,
                 player_message=question,
+                recent_messages=[
+                    f"{'Player' if message.speaker == 'player' else resident.name}: {message.text}"
+                    for message in snapshot.conversation_history
+                    if message.npc_id == request.target_id
+                ][-8:],
                 recalled_memories=memories,
                 current_mood=(
-                    "guarded"
-                    if any(memory.contested for memory in recalled.memories)
-                    else "neutral"
+                    "guarded" if any(memory.contested for memory in unique_memories) else "neutral"
                 ),
             )
+        )
+        treatment = self._apply_chat_standing(
+            snapshot,
+            request,
+            treatment,
+            result.value.player_stance,
         )
         snapshot.dialogue = DialogueState(
             speaker_id=npc.id,
@@ -486,9 +552,20 @@ class GameService:
                     belief_id=memory.belief_id,
                     version=memory.version,
                     proposition_key=memory.proposition_key,
+                    scope=(
+                        "town"
+                        if (memory.belief_id, memory.version) in town_memory_keys
+                        else (
+                            "rumor"
+                            if isinstance(memory.normalized_position.get("echo_hop"), int)
+                            or memory.normalized_position.get("memory_scope") == "rumor"
+                            else "individual"
+                        )
+                    ),
+                    summary=memory.narrative_text,
                     contested=memory.contested,
                 )
-                for memory in recalled.memories
+                for memory in unique_memories
             ],
             provider_id=result.provider_id,
             model_id=result.model_id,
@@ -500,6 +577,79 @@ class GameService:
             available_choices=list(treatment.choices),
         )
         return treatment
+
+    def _apply_chat_standing(
+        self,
+        snapshot: RunSnapshot,
+        request: ActionRequest,
+        treatment: DialogueTreatment,
+        stance: PlayerStance,
+    ) -> DialogueTreatment:
+        """Move standing based on how the player just spoke, then re-cue the dialogue.
+
+        The resident spoken to takes the full delta. Others take a small ripple only
+        when the exchange was shared with the town, so one demand cannot flip the
+        whole town at once but repeated demands accumulate.
+        """
+        assert request.target_id is not None
+        target_delta, witness_delta = chat_standing_deltas(stance, request.public_statement)
+        if target_delta == 0 and witness_delta == 0:
+            return treatment
+
+        for npc in snapshot.npcs:
+            if npc.id == request.target_id:
+                npc.relationship = max(-100, min(100, npc.relationship + target_delta))
+            elif witness_delta:
+                npc.relationship = max(-100, min(100, npc.relationship + witness_delta))
+
+        target = self._require_npc(snapshot, request.target_id)
+        return replace(
+            treatment,
+            relationship_score=target.relationship,
+            cue=_chat_standing_cue(stance, target.name, witness_delta != 0),
+            player_stance=stance,
+        )
+
+    def _record_conversation_exchange(
+        self,
+        snapshot: RunSnapshot,
+        request: ActionRequest,
+    ) -> None:
+        if request.target_id is None or not request.content or snapshot.dialogue is None:
+            return
+        resident = self.content.residents_by_id[request.target_id]
+        messages = snapshot.conversation_history
+        if not any(message.npc_id == request.target_id for message in messages):
+            messages.append(
+                ChatMessageState(
+                    npc_id=request.target_id,
+                    speaker="npc",
+                    text=resident.opening,
+                    day=snapshot.day,
+                    phase=snapshot.phase,
+                )
+            )
+        messages.extend(
+            (
+                ChatMessageState(
+                    npc_id=request.target_id,
+                    speaker="player",
+                    text=request.content,
+                    day=snapshot.day,
+                    phase=snapshot.phase,
+                    public_statement=request.public_statement,
+                ),
+                ChatMessageState(
+                    npc_id=request.target_id,
+                    speaker="npc",
+                    text=snapshot.dialogue.text,
+                    day=snapshot.day,
+                    phase=snapshot.phase,
+                ),
+            )
+        )
+        if len(messages) > 80:
+            del messages[:-80]
 
     def _apply_action(self, snapshot: RunSnapshot, request: ActionRequest) -> WorldEvent:
         if (
@@ -537,7 +687,15 @@ class GameService:
                 speaker_name=npc.name,
                 text=npc.speech or principal.opening,
             )
-            return self._event("conversation", f"You speak with {npc.name}.")
+            return self._event(
+                "conversation",
+                f"You speak with {npc.name}.",
+                payload={
+                    "npc_id": npc.id,
+                    "player_message": request.content or "",
+                    "public_statement": request.public_statement,
+                },
+            )
         if request.verb == ActionVerb.PROMISE_HELP:
             if request.target_id != "marta":
                 raise InvalidActionError("The opening shipment promise is made to Marta.")
@@ -609,6 +767,7 @@ class GameService:
             if request.target_id != "bram":
                 raise InvalidActionError("The opening shipment dispute targets Bram.")
             approach = self._bram_approach(request.verb)
+            snapshot.player.bram_approach = approach.action_verb
             bram = self._require_npc(snapshot, "bram")
             bram.relationship = max(
                 -100,
@@ -1075,22 +1234,18 @@ class GameService:
     ) -> None:
         if snapshot.release_profile != "hackathon_small":
             return
+        if request.verb == ActionVerb.TALK:
+            if request.target_id not in {npc.id for npc in snapshot.npcs}:
+                raise InvalidActionError("Choose a Greyhaven resident to speak with.")
+            return
         if request.verb not in HACKATHON_SMALL_ACTIONS:
             raise InvalidActionError("That side story is outside this five-resident release run.")
-        if (
-            request.verb == ActionVerb.TALK
-            and request.target_id not in HACKATHON_SMALL_FEATURED_NPCS
-        ):
-            raise InvalidActionError("This release run follows Marta, Bram, Pip, Talia, and Rhea.")
 
     def _move(self, snapshot: RunSnapshot, target_id: str | None) -> WorldEvent:
         if target_id is None or target_id not in self.content.locations_by_id:
             raise InvalidActionError("Choose a valid Greyhaven location.")
         current = self.content.locations_by_id[snapshot.player.location_id]
-        if (
-            snapshot.release_profile != "hackathon_small"
-            and target_id not in current.neighbors
-        ):
+        if snapshot.release_profile != "hackathon_small" and target_id not in current.neighbors:
             raise InvalidActionError("Walk to a connected Greyhaven waypoint first.")
         snapshot.player.location_id = target_id
         location = self.content.locations_by_id[target_id]
@@ -1140,7 +1295,7 @@ class GameService:
             next_boundary = next(
                 (
                     boundary
-                    for boundary in (6, 9, HACKATHON_SMALL_ACTION_BUDGET)
+                    for boundary in (6, 12, HACKATHON_SMALL_ACTION_BUDGET)
                     if boundary > snapshot.action_count
                 ),
                 HACKATHON_SMALL_ACTION_BUDGET,
@@ -1152,25 +1307,22 @@ class GameService:
                 HACKATHON_SMALL_ACTION_BUDGET,
             )
 
-        clock = {
-            0: (1, "morning"),
-            1: (1, "morning"),
-            2: (1, "afternoon"),
-            3: (1, "afternoon"),
-            4: (1, "evening"),
-            5: (1, "night"),
-            6: (2, "morning"),
-            7: (2, "afternoon"),
-            8: (2, "evening"),
-            9: (3, "morning"),
-            10: (3, "night"),
-        }
-        day, phase = clock[snapshot.action_count]
-        snapshot.day = day
-        snapshot.phase = cast(
-            Literal["morning", "afternoon", "evening", "night"],
-            phase,
-        )
+        if snapshot.action_count >= HACKATHON_SMALL_ACTION_BUDGET:
+            snapshot.day = 3
+            snapshot.phase = "night"
+            snapshot.status = "completed"
+            return
+
+        snapshot.day = min((snapshot.action_count // 6) + 1, 3)
+        action_in_day = snapshot.action_count % 6
+        if action_in_day <= 1:
+            snapshot.phase = "morning"
+        elif action_in_day <= 3:
+            snapshot.phase = "afternoon"
+        elif action_in_day == 4:
+            snapshot.phase = "evening"
+        else:
+            snapshot.phase = "night"
         if snapshot.action_count >= HACKATHON_SMALL_ACTION_BUDGET:
             snapshot.status = "completed"
 
